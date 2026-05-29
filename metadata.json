@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Attack on Titan Revolution Stock Checker",
+  "description": "ระบบเช็คสต๊อกไอเทมและจัดการสต๊อกสำหรับแอป Attack on Titan Revolution",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

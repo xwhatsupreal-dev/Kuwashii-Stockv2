@@ -1,0 +1,121 @@
+import React from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { X, Trophy, Sparkles } from 'lucide-react';
+
+interface GachaResultModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  result: {
+    item: any;
+    drops: { name: string; color?: string; isSalt?: boolean }[];
+  } | null;
+}
+
+export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onClose, result }) => {
+  if (!isOpen || !result) return null;
+
+  const allSalt = result.drops.every(d => d.isSalt);
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/80 backdrop-blur-md"
+        />
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 30 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 30 }}
+          transition={{ type: "spring", damping: 20, stiffness: 300 }}
+          className={`relative max-w-lg w-full bg-zinc-950 border-2 ${allSalt ? 'border-zinc-500/50 shadow-[0_0_50px_rgba(113,113,122,0.2)]' : 'border-amber-500/50 shadow-[0_0_50px_rgba(245,158,11,0.2)]'} rounded-3xl p-6 z-10 text-center overflow-hidden`}
+        >
+          {/* Confetti / Lights effect background */}
+          <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 ${allSalt ? 'bg-zinc-500/20' : 'bg-amber-500/20'} blur-[60px] rounded-full pointer-events-none`} />
+
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-colors z-20 cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <div className="mb-6 relative">
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ delay: 0.2, type: "spring", damping: 12 }}
+              className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center border-4 border-zinc-950 ${allSalt ? 'bg-gradient-to-br from-zinc-500 to-zinc-700 shadow-[0_0_30px_rgba(113,113,122,0.5)]' : 'bg-gradient-to-br from-amber-400 to-orange-600 shadow-[0_0_30px_rgba(245,158,11,0.5)]'}`}
+            >
+              {allSalt ? (
+                <div className="text-4xl">🧂</div>
+              ) : (
+                <Trophy className="w-12 h-12 text-white drop-shadow-md" />
+              )}
+            </motion.div>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border rounded-full border-dashed pointer-events-none ${allSalt ? 'border-zinc-500/30' : 'border-amber-500/30'}`}
+            />
+          </div>
+
+          <h2 className={`text-2xl font-black mb-2 font-display uppercase tracking-wider ${allSalt ? 'text-zinc-300' : 'text-white'}`}>
+            {allSalt ? 'น่าเสียดาย! คุณเกลือ' : 'ยินดีด้วย! คุณได้รับ'}
+          </h2>
+          <p className="text-zinc-400 text-sm mb-6 max-w-sm mx-auto">
+            จากการเปิด {result.item.name} จำนวน {result.drops.length} ครั้ง
+          </p>
+
+          <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800">
+            <AnimatePresence>
+              {result.drops.map((drop, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + (idx * 0.1) }}
+                  className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center gap-4 relative overflow-hidden"
+                >
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 w-1.5"
+                    style={{ backgroundColor: drop.color || '#F59E0B' }}
+                  />
+                  <div 
+                    className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg shadow-inner bg-zinc-950"
+                    style={{ color: drop.color || '#F59E0B' }}
+                  >
+                    {drop.isSalt ? '🧂' : '✨'}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className={`${drop.isSalt ? 'text-zinc-400' : 'text-white'} font-bold text-lg`}>{drop.name}</div>
+                    <div className="text-xs font-mono text-zinc-500 uppercase tracking-widest mt-0.5">
+                      {drop.isSalt ? 'SALT / ไม่มีรางวัล' : 'Epic Drop Reward'}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 + (result.drops.length * 0.1) }}
+            onClick={onClose}
+            className={`w-full mt-6 py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer ${
+              allSalt 
+                ? 'bg-zinc-800 text-zinc-300 shadow-[0_0_20px_rgba(113,113,122,0.3)]' 
+                : 'bg-gradient-to-r from-amber-400 to-orange-500 text-amber-950 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+            }`}
+          >
+            {allSalt ? 'ปิดหน้าต่าง' : 'ยืนยัน / เก็บเข้ากระเป๋า'}
+          </motion.button>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
