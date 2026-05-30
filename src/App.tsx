@@ -71,13 +71,6 @@ import { CouponManagerModal } from './components/CouponManagerModal';
 import { AnnouncementManagerModal } from './components/AnnouncementManagerModal';
 import { AnnouncementPopup } from './components/AnnouncementPopup';
 import jsQR from 'jsqr';
-import {
-  getServerItems,
-  saveServerItem,
-  deleteServerItem,
-  resetServerDatabase,
-  testFirestoreConnection
-} from './apiService';
 
 const readQRFromImage = (file: File): Promise<string | null> => {
    return new Promise((resolve, reject) => {
@@ -445,39 +438,24 @@ export default function App() {
       };
 
       try {
-        const dbItems = await getServerItems(DEFAULT_PRESETS);
-        const migratedDb = migrateItems(dbItems || []);
-        
-        // Smart Recovery: Check if user has more up-to-date items saved in browser LocalStorage
         const saved = localStorage.getItem('AOTR_STOCK_ITEMS');
         if (saved) {
           try {
             const localItems = migrateItems(JSON.parse(saved));
-            if (localItems.length > 0) {
-              const isDifferent = JSON.stringify(migratedDb) !== JSON.stringify(localItems);
-              if (isDifferent) {
-                // Restore local storage state to the new/restarted server database
-                await resetServerDatabase(localItems);
-                setItems(localItems);
-                console.log("Automatically synchronized and restored local storage changes to backend server database!");
-              } else {
-                setItems(migratedDb);
-              }
-            } else {
-              setItems(migratedDb);
-            }
+            setItems(localItems);
           } catch (err) {
-            setItems(migratedDb);
+            setItems(migrateItems(DEFAULT_PRESETS));
+            localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(migrateItems(DEFAULT_PRESETS)));
           }
         } else {
-          setItems(migratedDb);
-          localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(migratedDb));
+          setItems(migrateItems(DEFAULT_PRESETS));
+          localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(migrateItems(DEFAULT_PRESETS)));
         }
 
         setIsOfflineMode(false);
         setIsServerQuotaExceeded(false);
       } catch (e: any) {
-        console.warn("Server fetch error, loading fallback presets:", e);
+        console.warn("Error loading items from local cache", e);
         setIsOfflineMode(true);
         let quotaExceeded = false;
         
@@ -511,7 +489,6 @@ export default function App() {
       }
     }
     initStock();
-    testFirestoreConnection();
   }, []);
 
   const saveItemsToStorage = (newItems: StockItem[]) => {
@@ -1061,19 +1038,7 @@ export default function App() {
       : [finalItem, ...items];
 
     saveItemsToStorage(updatedList);
-
-    if (isOfflineMode) {
-      showToast(existingIndex >= 0 ? `แก้ไขไอเทม ${itemData.name} สำเร็จ (โหมดออฟไลน์)` : `เพิ่มไอเทม ${itemData.name} ลงระบบ (โหมดออฟไลน์)`, 'success');
-      setEditingItem(null);
-      return;
-    }
-
-    try {
-      await saveServerItem(finalItem);
-    } catch (e) {
-      showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูลบนเซิร์ฟเวอร์!', 'error');
-    }
-
+    showToast(existingIndex >= 0 ? `แก้ไขไอเทม ${itemData.name} สำเร็จ` : `เพิ่มไอเทม ${itemData.name} ลงระบบ`, 'success');
     setEditingItem(null);
   };
 
@@ -1084,18 +1049,7 @@ export default function App() {
     if (confirm(`คุณมั่นใจหรือไม่ที่จะลบ "${itemToDelete.name}" ออกจากคลังสต๊อกสินค้า?`)) {
       const remainingItems = items.filter((it) => it.id !== id);
       saveItemsToStorage(remainingItems);
-
-      if (isOfflineMode) {
-        showToast('ลบสินค้าออกจากระบบเรียบร้อย (โหมดออฟไลน์)', 'info');
-        return;
-      }
-
-      try {
-        await deleteServerItem(id);
-        showToast('ลบสินค้าออกจากระบบและฐานข้อมูลเรียบร้อย', 'info');
-      } catch (e) {
-        showToast('เกิดข้อผิดพลาดในการลบข้อมูลบนเซิร์ฟเวอร์!', 'error');
-      }
+      showToast('ลบสินค้าออกจากระบบและฐานข้อมูลเรียบร้อย', 'info');
     }
   };
 
@@ -1217,31 +1171,13 @@ export default function App() {
 
     const newItems = items.map((it) => (it.id === id ? updated : it));
     saveItemsToStorage(newItems);
-
-    if (isOfflineMode) {
-      showToast('อัปเดตจำนวนสต็อกสำเร็จ (โหมดออฟไลน์)', 'success');
-      if (nextQty <= 5 && nextQty < target.quantity) {
-        playChime('warning');
-      } else if (nextQty > target.quantity) {
-        playChime('success');
-      } else {
-        playChime('info');
-      }
-      return;
-    }
-
-    try {
-      await saveServerItem(updated);
-      showToast('อัปเดตจำนวนสต็อกเรียบร้อย!', 'success');
-      if (nextQty <= 5 && nextQty < target.quantity) {
-        playChime('warning');
-      } else if (nextQty > target.quantity) {
-        playChime('success');
-      } else {
-        playChime('info');
-      }
-    } catch (e) {
-      showToast('บันทึกสต็อกลงเซิร์ฟเวอร์ไม่สำเร็จ!', 'error');
+    showToast('อัปเดตจำนวนสต็อกเรียบร้อย!', 'success');
+    if (nextQty <= 5 && nextQty < target.quantity) {
+      playChime('warning');
+    } else if (nextQty > target.quantity) {
+      playChime('success');
+    } else {
+      playChime('info');
     }
   };
 
@@ -1257,43 +1193,17 @@ export default function App() {
 
     const newItems = items.map((it) => (it.id === id ? updated : it));
     saveItemsToStorage(newItems);
-
-    if (isOfflineMode) {
-      if (updated.isPinned) {
-        showToast(`ปักหมุดไอเทม ${updated.name} แล้ว (โหมดออฟไลน์)`, 'success');
-      } else {
-        showToast(`ยกเลิกการปักหมุดไอเทม ${updated.name} แล้ว (โหมดออฟไลน์)`, 'info');
-      }
-      return;
-    }
-
-    try {
-      await saveServerItem(updated);
-      if (updated.isPinned) {
-        showToast(`ปักหมุดไอเทม ${updated.name} แล้ว!`, 'success');
-      } else {
-        showToast(`ยกเลิกการปักหมุดไอเทม ${updated.name} แล้ว`, 'info');
-      }
-    } catch (e) {
-      showToast('ไม่สามารถบันทึกสถานะปักหมุดลงเซิร์ฟเวอร์!', 'error');
+    if (updated.isPinned) {
+      showToast(`ปักหมุดไอเทม ${updated.name} แล้ว!`, 'success');
+    } else {
+      showToast(`ยกเลิกการปักหมุดไอเทม ${updated.name} แล้ว`, 'info');
     }
   };
 
   const handleResetPresets = async () => {
     if (confirm('คุณต้องการรีเซ็ตสินค้าในสต๊อกกลับไปเป็นค่าเริ่มต้นจากเกม AOT Revolution หรือไม่? (ข้อมูลที่แก้ไขจะหายไป)')) {
       saveItemsToStorage(DEFAULT_PRESETS);
-
-      if (isOfflineMode) {
-        showToast('คืนค่าสต๊อคเริ่มต้นเรียบร้อย (โหมดออฟไลน์)!', 'info');
-        return;
-      }
-
-      try {
-        await resetServerDatabase(DEFAULT_PRESETS);
-        showToast('คืนค่าสต๊อคเริ่มต้นในระบบเซิร์ฟเวอร์เรียบร้อย!', 'info');
-      } catch (e) {
-        showToast('คืนค่าปริยายบนเซิร์ฟเวอร์ไม่สำเร็จ!', 'error');
-      }
+      showToast('คืนค่าสต๊อคเริ่มต้นในระบบเรียบร้อย!', 'info');
     }
   };
 
@@ -1305,36 +1215,14 @@ export default function App() {
         updatedAt: new Date().toISOString()
       }));
       saveItemsToStorage(updatedList);
-
-      if (isOfflineMode) {
-        showToast('เซ็ตจำนวนสินค้าทั้งหมดเป็น 0 เรียบร้อย (โหมดออฟไลน์)!', 'success');
-        return;
-      }
-
-      try {
-        await resetServerDatabase(updatedList);
-        showToast('เซ็ตจำนวนสินค้าในสต๊อกทั้งหมดเหลือ 0 ชิ้น เรียบร้อย!', 'success');
-      } catch (e) {
-        showToast('อัปเดตสต๊อกเหลือ 0 บนเซิร์ฟเวอร์ล้มเหลว!', 'error');
-      }
+      showToast('เซ็ตจำนวนสินค้าในสต๊อกทั้งหมดเหลือ 0 ชิ้น เรียบร้อย!', 'success');
     }
   };
 
   const handleDeleteAllProducts = async () => {
     if (confirm('⚠️⚠️⚠️ คุณแน่ใจหรือไม่ที่จะลบสินค้าทั้งหมดออกจากระบบร้านค้าและคลาวด์เซิร์ฟเวอร์? (ข้อมูลสินค้าทั้งหมดและรูปภาพจะถูกล้างออกและแสดงผลเป็นหน้าว่างเปล่า มีสินค้า 0 รายการ)')) {
       saveItemsToStorage([]);
-
-      if (isOfflineMode) {
-        showToast('ลบข้อมูลสินค้าทั้งหมดเรียบร้อย (โหมดออฟไลน์)!', 'info');
-        return;
-      }
-
-      try {
-        await resetServerDatabase([]);
-        showToast('ลบข้อมูลสินค้าทั้งหมดเรียบร้อยแล้ว!', 'info');
-      } catch (e) {
-        showToast('ลบสินค้าบนเซิร์ฟเวอร์ล้มเหลว!', 'error');
-      }
+      showToast('ลบข้อมูลสินค้าทั้งหมดเรียบร้อยแล้ว!', 'info');
     }
   };
 
@@ -1397,18 +1285,7 @@ export default function App() {
           const isValid = importedData.every(it => it.id && it.name && typeof it.price === 'number');
           if (isValid) {
             saveItemsToStorage(importedData as StockItem[]);
-            
-            if (isOfflineMode) {
-              showToast('นำเข้าข้อมูลสำเร็จสู่ระบบอุปกรณ์ปัจจุบัน (โหมดออฟไลน์)!', 'success');
-              return;
-            }
-
-            try {
-              await resetServerDatabase(importedData as StockItem[]);
-              showToast('นำเข้าคลังสต๊อกสำเร็จและอัปเดตบนเซิร์ฟเวอร์แล้ว!', 'success');
-            } catch (err) {
-              showToast('นำเข้าสำเร็จ แต่ซิงค์ขึ้นเซิร์ฟเวอร์ไม่สำเร็จ', 'error');
-            }
+            showToast('นำเข้าคลังสต๊อกสำเร็จและอัปเดตระบบแล้ว!', 'success');
           } else {
             showToast('ฟอร์แมตข้อมูลในไฟล์ JSON ไม่ถูกต้อง', 'error');
           }

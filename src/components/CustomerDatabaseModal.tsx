@@ -17,7 +17,7 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
 
   // Load from multiple sources optionally, but focus on KUWASHII_V2_USERS
   useEffect(() => {
-    if (isOpen) {
+    const loadData = () => {
       const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
       let parsedUsers: Record<string, UserData> = {};
       
@@ -52,8 +52,20 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
           localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(parsedUsers));
         }
       }
+
       setUsers(Object.values(parsedUsers));
+    };
+
+    if (isOpen) {
+      loadData();
     }
+    
+    // Listen for realtime changes pushed by Supabase
+    const handleSync = () => {
+      if (isOpen) loadData();
+    };
+    window.addEventListener('sync-update', handleSync);
+    return () => window.removeEventListener('sync-update', handleSync);
   }, [isOpen]);
 
   const handleUpdateBalance = (username: string) => {

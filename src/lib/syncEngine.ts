@@ -3,10 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '';
 
-
 export const supabase = supabaseUrl && supabaseAnonKey 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
+
+if (!supabase) {
+  console.warn("⚠️ VITE_SUPABASE_URL หรือ VITE_SUPABASE_ANON_KEY ไม่ได้ถูกตั้งค่า ระบบ Sync จึงไม่ทำงานข้อมูลจะถูกเก็บในเครื่องเท่านั้น!");
+}
 
 const SYNC_KEYS = [
   'KUWASHII_V2_USERS',
