@@ -126,6 +126,30 @@ export default function App() {
   const [selectedStatus, setSelectedStatus] = useState<StockStatusFilter>('all');
   const [showPopularOnly, setShowPopularOnly] = useState(false);
   const [sortBy, setSortBy] = useState<string>('rarity-desc');
+  const [syncCounter, setSyncCounter] = useState(0);
+
+  // Sync Engine Listener
+  useEffect(() => {
+    const handleSync = () => {
+      const savedItems = localStorage.getItem('AOTR_STOCK_ITEMS');
+      if (savedItems) {
+         try {
+           const parsed = JSON.parse(savedItems);
+           if (Array.isArray(parsed)) {
+             setItems(current => {
+               // Use a custom migrate check if needed, or just set it
+               // To avoid deep dependency loops, we just set the parsed array
+               // Since items were migrated when saved, they should be fine
+               return parsed;
+             });
+           }
+         } catch(e){}
+      }
+      setSyncCounter(c => c + 1);
+    };
+    window.addEventListener('sync-update', handleSync);
+    return () => window.removeEventListener('sync-update', handleSync);
+  }, []);
 
   // Loading Screen Timer
   useEffect(() => {
