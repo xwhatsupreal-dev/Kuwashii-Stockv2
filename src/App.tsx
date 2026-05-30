@@ -1629,6 +1629,7 @@ export default function App() {
                         placeholder="เช่น Kuwashii_member"
                         required={authMode !== 'forgot'}
                         autoFocus={authMode !== 'forgot'}
+                        autoComplete="username"
                         className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-medium"
                       />
                     </div>
@@ -1648,6 +1649,7 @@ export default function App() {
                         }}
                         placeholder={authMode === 'forgot' ? "อีเมลที่ใช้สมัครบัญชี" : "สำหรับใช้รีเซ็ตรหัสผ่านหากลืม"}
                         required
+                        autoComplete="email"
                         className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-medium"
                       />
                     </motion.div>
@@ -1667,6 +1669,7 @@ export default function App() {
                         }}
                         placeholder="ป้อนรหัสผ่าน..."
                         required={authMode !== 'forgot'}
+                        autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                         className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold"
                       />
                       {authMode === 'login' && (
@@ -1700,6 +1703,7 @@ export default function App() {
                         }}
                         placeholder="ยืนยันรหัสผ่านอีกครั้ง..."
                         required={authMode === 'register'}
+                        autoComplete="new-password"
                         className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold"
                       />
                     </motion.div>
