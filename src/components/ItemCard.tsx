@@ -437,7 +437,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               id={`btn-buy-${item.id}`}
             >
               <ShoppingBag className="w-3 h-3" />
-              <span>{item.quantity === 0 ? 'สินค้าหมดคลัง' : (item.gachaPool && item.gachaPool.length > 0 && onBuy ? 'สุ่มกาชา / เลือกระบุจำนวน' : (onBuy ? 'ซื้อด้วยเครดิต / ระบุจำนวน' : 'สนใจซื้อ / สอบถามสต๊อก'))}</span>
+              <span>{item.quantity === 0 ? 'สินค้าหมดคลัง' : (item.gachaPool && item.gachaPool.length > 0 && onBuy ? 'สั่งซื้อกล่องสุ่ม' : (onBuy ? 'ซื้อด้วยเครดิต / ระบุจำนวน' : 'สนใจซื้อ / สอบถามสต๊อก'))}</span>
             </button>
             {onShareToAI && (
               <button

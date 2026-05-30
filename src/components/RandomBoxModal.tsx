@@ -88,10 +88,10 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
               {item.description ? item.description : (
                 <>
                   <p className="text-red-400">🚨 โปรดอ่านก่อนสั่งซื้อ! 🚨</p>
-                  <p className="mt-1.5">💰 เมื่อลูกค้าสั่งซื้อกล่องแล้วให้ทักมาทางเพจนะครับ</p>
-                  <ul className="mt-1.5 text-zinc-500">
+                  <p className="mt-1.5">💰 เมื่อได้ตัวละคร ให้ทักแอดมินตามช่องทางที่กำหนดเพื่อรับของรางวัล</p>
+                  <ul className="mt-1.5 text-zinc-500 space-y-1">
                     <li>- มีเกลือ (โอกาสไม่ได้ของแรร์)</li>
-                    <li>- ลุ้นรับของรางวัลสุดแรร์ตามที่ระบุ</li>
+                    <li>- ลุ้นรับของรางวัล (มีโอกาสได้รับของรางวัลสุดแรร์ ✨)</li>
                   </ul>
                   <p className="mt-3 text-amber-400 font-bold bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 text-xs">
                     ⚠️ แค่กดสั่งซื้อ ระบบจะสุ่มรางวัลให้ทันที
@@ -106,33 +106,6 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
               )}
             </div>
 
-            {/* View Gacha Pool Details */}
-            {item.gachaPool && item.gachaPool.length > 0 && (
-              <div className="mb-5 bg-zinc-900 border border-zinc-800 rounded-xl p-3">
-                <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-widest mb-2 border-b border-zinc-800 pb-2">
-                  🎁 ของจำลองในกล่องสุ่มนี้ (Gacha Pool)
-                </h3>
-                <ul className="space-y-1.5 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 pr-1">
-                  {item.gachaPool.map((drop) => {
-                    const dropColor = drop.color || '#a1a1aa';
-                    const hasGuarantee = drop.guaranteedAtStock !== undefined || (drop.guaranteedAtStocks && drop.guaranteedAtStocks.length > 0);
-                    return (
-                      <li key={drop.id} className="text-xs flex items-center justify-between p-1.5 rounded-lg bg-zinc-950/50 border border-zinc-800/50">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: dropColor }}></span>
-                          <span className="font-medium" style={{ color: dropColor }}>{drop.name}</span>
-                        </div>
-                        {hasGuarantee ? (
-                          <span className="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded uppercase font-bold">แรร์ไอเทม!</span>
-                        ) : (
-                          <span className="text-[9px] text-zinc-600">ทั่วไป</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
 
             {/* Purchase area */}
             <div className="mt-2 flex flex-col gap-4">
@@ -176,6 +149,14 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
                 >
                   <Plus className="w-5 h-5 stroke-[2]" />
                 </button>
+                <button
+                  type="button"
+                  disabled={quantity >= item.quantity}
+                  onClick={() => setQuantity(item.quantity)}
+                  className="px-3 h-11 rounded-xl bg-amber-500/20 text-amber-500 text-xs font-bold uppercase transition-colors hover:bg-amber-500/30 disabled:opacity-30 border border-amber-500/10 active:scale-95 cursor-pointer ml-1"
+                >
+                  Max
+                </button>
               </div>
 
               <button
@@ -186,7 +167,7 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
                 {copied ? (
                   <span className="flex items-center gap-2"><Check className="w-4 h-4 stroke-[3]" /> คัดลอกสำเร็จ!</span>
                 ) : (
-                  <span className="flex items-center gap-2"><ShoppingCart className="w-4 h-4 stroke-[2]" /> สั่งซื้อด้วยเครดิต (Buy Data)</span>
+                  <span className="flex items-center gap-2"><ShoppingCart className="w-4 h-4 stroke-[2]" /> สั่งซื้อกล่องสุ่มด้วยเครดิต</span>
                 )}
               </button>
             </div>

@@ -389,7 +389,8 @@ export default function App() {
   useEffect(() => {
     try {
       if (!localStorage.getItem('STATS_RESET_V2')) {
-        localStorage.setItem('KUWASHII_GLOBAL_REVENUE', '0');
+        localStorage.setItem('KUWASHII_GLOBAL_REVENUE_AOTR', '0');
+        localStorage.setItem('KUWASHII_GLOBAL_REVENUE_ASTD', '0');
         localStorage.setItem('STATS_RESET_V2', 'true');
       }
 
@@ -559,8 +560,9 @@ export default function App() {
 
          localStorage.setItem('KUWASHII_COUPONS', JSON.stringify(coupons));
          
-         const currentFree = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS') || '0');
-         localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS', (currentFree + coupon.amount).toString());
+         let freeKey = appScreen === 'ASTD' ? 'KUWASHII_GLOBAL_FREE_CREDITS_ASTD' : 'KUWASHII_GLOBAL_FREE_CREDITS_AOTR';
+         const currentFree = parseFloat(localStorage.getItem(freeKey) || '0');
+         localStorage.setItem(freeKey, (currentFree + coupon.amount).toString());
 
          users[activeUsername] = {
            ...currentUserData,
@@ -572,15 +574,13 @@ export default function App() {
                amount: coupon.amount,
                date: new Date().toISOString(),
                method: 'Coupon',
-               refCode: coupon.code
+               refCode: coupon.code,
+               game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
              }
            ]
          };
          
          localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
-         
-         const currentCredit = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS') || '0');
-         localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS', (currentCredit + coupon.amount).toString());
          
          showToast(`ใช้คูปองสำเร็จ! ได้รับ ${coupon.amount.toLocaleString()} เครดิต`, 'success');
          setTopupSuccessMessage(`ใช้คูปองสำเร็จ! ได้รับ ${coupon.amount.toLocaleString()} เครดิต`);
@@ -611,8 +611,9 @@ export default function App() {
             const amount = Number((rawAmount - fee).toFixed(2));
             const ownerName = data.owner_profile || 'ไม่ทราบชื่อ';
             
-            const currentRevenue = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_REVENUE') || '0');
-            localStorage.setItem('KUWASHII_GLOBAL_REVENUE', (currentRevenue + amount).toString());
+            let revKey = appScreen === 'ASTD' ? 'KUWASHII_GLOBAL_REVENUE_ASTD' : 'KUWASHII_GLOBAL_REVENUE_AOTR';
+            const currentRevenue = parseFloat(localStorage.getItem(revKey) || '0');
+            localStorage.setItem(revKey, (currentRevenue + amount).toString());
 
             users[activeUsername] = {
               ...currentUserData,
@@ -624,15 +625,13 @@ export default function App() {
                   amount: amount,
                   date: new Date().toISOString(),
                   method: 'TrueMoney (Angpao)',
-                  refCode: topupCode.trim()
+                  refCode: topupCode.trim(),
+                  game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
                 }
               ]
             };
             
             localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
-            
-            const currentRev = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_REVENUE') || '0');
-            localStorage.setItem('KUWASHII_GLOBAL_REVENUE', (currentRev + amount).toString());
 
             const msg = `เติมเงินสำเร็จ! จำนวน ${amount} บาท (หักค่าธรรมเนียม ${fee}) จากซองของ: ${ownerName}`;
             showToast(msg, 'success');
@@ -722,8 +721,60 @@ export default function App() {
                 return;
              }
 
-             const currentRevenue = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_REVENUE') || '0');
-             localStorage.setItem('KUWASHII_GLOBAL_REVENUE', (currentRevenue + amount).toString());
+             // --- Check Slip Time (within 5 minutes) ---
+             let slipTime: number | null = null;
+             const dStr = data.date || data.transDate || data.data?.transDate || data.data?.date;
+             const tStr = data.time || data.transTime || data.data?.transTime || data.data?.time;
+             
+             if (dStr) {
+               if (typeof dStr === 'string' && dStr.length === 8 && typeof tStr === 'string') {
+                 // Format: "20240530", "12:00:00" -> yyyy-mm-ddThh:mm:ss+07:00
+                 const year = dStr.substring(0, 4);
+                 const month = dStr.substring(4, 6);
+                 const day = dStr.substring(6, 8);
+                 slipTime = new Date(`${year}-${month}-${day}T${tStr}+07:00`).getTime();
+               } else if (typeof dStr === 'string' && dStr.includes('T')) {
+                 slipTime = new Date(dStr).getTime();
+               } else if (typeof dStr === 'string' && typeof tStr === 'string') {
+                 slipTime = new Date(`${dStr}T${tStr}+07:00`).getTime();
+               } else {
+                 slipTime = new Date(dStr).getTime();
+               }
+             }
+
+             if (!slipTime || isNaN(slipTime)) {
+                // Regex fallback from stringified data
+                const isoMatch = stringifiedData.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+                if (isoMatch) {
+                   slipTime = new Date(isoMatch[0] + '+07:00').getTime();
+                } else {
+                   const dMatch = stringifiedData.match(/"transDate"\s*:\s*"(\d{4})(\d{2})(\d{2})"/i) || stringifiedData.match(/"date"\s*:\s*"(\d{4})(\d{2})(\d{2})"/i);
+                   const tMatch = stringifiedData.match(/"transTime"\s*:\s*"(\d{2}:\d{2}:\d{2})"/i) || stringifiedData.match(/"time"\s*:\s*"(\d{2}:\d{2}:\d{2})"/i);
+                   if (dMatch && tMatch) {
+                       slipTime = new Date(`${dMatch[1]}-${dMatch[2]}-${dMatch[3]}T${tMatch[1]}+07:00`).getTime();
+                   }
+                }
+             }
+
+             if (slipTime && !isNaN(slipTime)) {
+                const now = Date.now();
+                // slipTime is in milliseconds. Compare with 'now'
+                const diffMinutes = Math.floor((now - slipTime) / (1000 * 60));
+                
+                // Allow a small clock skew (e.g., -2 minutes) but reject if it's more than 5 minutes old
+                if (diffMinutes > 5) {
+                   const timeErr = `สลิปนี้หมดอายุแล้ว (โอนผ่านมาเกิน 5 นาที) กรุณาติดต่อแอดมินเพื่อตรวจสอบ`;
+                   setTopupError(timeErr);
+                   showToast(timeErr, 'error');
+                   setIsProcessingTopup(false);
+                   return;
+                }
+             }
+             // --- End Check Slip Time ---
+
+             let revKey = appScreen === 'ASTD' ? 'KUWASHII_GLOBAL_REVENUE_ASTD' : 'KUWASHII_GLOBAL_REVENUE_AOTR';
+             const currentRevenue = parseFloat(localStorage.getItem(revKey) || '0');
+             localStorage.setItem(revKey, (currentRevenue + amount).toString());
 
              users[activeUsername] = {
                 ...currentUserData,
@@ -735,14 +786,12 @@ export default function App() {
                     amount: amount,
                     date: new Date().toISOString(),
                     method: 'Bank Transfer',
-                    refCode: transactionId
+                    refCode: transactionId,
+                    game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
                   }
                 ]
              };
              localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
-
-             const currentRev = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_REVENUE') || '0');
-             localStorage.setItem('KUWASHII_GLOBAL_REVENUE', (currentRev + amount).toString());
 
              const bankMsg = `เติมเงินสำเร็จ! ได้รับ ${amount} เครดิต (อ้างอิง: ${transactionId})`;
              showToast(bankMsg, 'success');
@@ -1842,6 +1891,9 @@ export default function App() {
                        <p className="text-[9px] text-blue-400/70 border-t border-blue-500/20 pt-1.5 pb-0.5 w-full leading-relaxed">
                          คลิกที่รูปเพื่อดูรูปใหญ่ หรือดาวน์โหลดรูปภาพเก็บไว้<br/>เมื่อโอนเสร็จสิ้น ให้อัปโหลด "ภาพสลิปโอนเงิน" ด้านล่าง
                        </p>
+                       <div className="bg-red-500/10 border border-red-500/20 rounded px-2 py-1 text-[9px] text-red-400 font-medium w-full mt-2 leading-relaxed">
+                          ⚠️ โปรดอัปโหลดสลิปภายในเวลา 3-5 นาที<br/>หลังจากโอนเสร็จสิ้น หากเกินเวลาเติมไม่ได้โปรดแจ้งแอดมิน ⚠️
+                       </div>
                      </div>
                    )}
 
@@ -2519,14 +2571,14 @@ export default function App() {
                   <span className="font-mono text-2xl font-black text-white">
                     {hideGlobalStats ? '***' : (() => {
                       try {
-                        let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_REVENUE');
+                        let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_REVENUE_ASTD');
                         let total = savedTotal !== null ? parseFloat(savedTotal) : null;
                         if (total === null && localStorage.getItem('KUWASHII_V2_USERS')) {
                           const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
                           total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
-                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method !== 'Coupon' ? (tx.amount || 0) : 0), 0);
+                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method !== 'Coupon' && tx.game === 'ASTD' ? (tx.amount || 0) : 0), 0);
                           }, 0);
-                          localStorage.setItem('KUWASHII_GLOBAL_REVENUE', (total || 0).toString());
+                          localStorage.setItem('KUWASHII_GLOBAL_REVENUE_ASTD', (total || 0).toString());
                         }
                         return (total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                       } catch(e) { return "0.00"; }
@@ -2542,14 +2594,14 @@ export default function App() {
                   <span className="font-mono text-2xl font-black text-yellow-400">
                     {(() => {
                       try {
-                        let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS');
+                        let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD');
                         let total = savedTotal !== null ? parseFloat(savedTotal) : null;
                         if (total === null && localStorage.getItem('KUWASHII_V2_USERS')) {
                           const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
                           total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
-                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method === 'Coupon' ? (tx.amount || 0) : 0), 0);
+                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method === 'Coupon' && tx.game === 'ASTD' ? (tx.amount || 0) : 0), 0);
                           }, 0);
-                          localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS', (total || 0).toString());
+                          localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD', (total || 0).toString());
                         }
                         return (total || 0).toLocaleString();
                       } catch(e) { return "0"; }
