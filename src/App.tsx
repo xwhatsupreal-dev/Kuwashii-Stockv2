@@ -111,7 +111,6 @@ export default function App() {
   // --- States ---
   const [items, setItems] = useState<StockItem[]>([]);
   const [isLoadingStock, setIsLoadingStock] = useState(true);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [isServerQuotaExceeded, setIsServerQuotaExceeded] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
@@ -452,11 +451,9 @@ export default function App() {
           localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(migrateItems(DEFAULT_PRESETS)));
         }
 
-        setIsOfflineMode(false);
         setIsServerQuotaExceeded(false);
       } catch (e: any) {
         console.warn("Error loading items from local cache", e);
-        setIsOfflineMode(true);
         let quotaExceeded = false;
         
         // Parse custom JSON string error info or standard error message

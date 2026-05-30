@@ -30,16 +30,29 @@ export async function initSyncEngine() {
   if (!supabase) return;
   if (isInitialized) return;
 
+  // 🔴 CLEAR LOCAL OFFLINE DATA TO FORCE FRESH SERVER LOAD 🔴
+  // According to user request: "เซฟออฟไลน์ในเครื่อง (Local Storage) เอาออก"
+  for (const key of SYNC_KEYS) {
+     window.localStorage.removeItem(key);
+  }
+
   try {
     const { data, error } = await supabase.from('kv_store').select('*');
     if (!error && data) {
+      const serverKeys = data.map((r: any) => r.key);
+      let localUpdates = false;
+
       for (const row of data) {
         if (SYNC_KEYS.includes(row.key)) {
           const stringValue = typeof row.value === 'object' ? JSON.stringify(row.value) : row.value;
           originalSetItem.call(window.localStorage, row.key, stringValue);
+          localUpdates = true;
         }
       }
-      window.dispatchEvent(new Event('sync-update'));
+
+      if (localUpdates) {
+        window.dispatchEvent(new Event('sync-update'));
+      }
     } else if (error) {
        console.warn("Supabase kv_store sync error (Table might not exist):", error.message);
     }
