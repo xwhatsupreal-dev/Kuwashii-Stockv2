@@ -571,6 +571,81 @@ app.post("/api/topup/bank", async (req: express.Request, res: express.Response) 
     });
     
     const data = await response.json();
+    
+    // Server-side explicit time check (5 mins max)
+    if (data.status === 'success') {
+       try {
+           let dVal = data.date || data.transDate || data.data?.transDate || data.data?.date;
+           let tVal = data.time || data.transTime || data.data?.transTime || data.data?.time;
+           let slipTimeStr = data.slip_time || data.data?.slip_time;
+           
+           const stringData = JSON.stringify(data);
+           let slipTime: number | null = null;
+           
+           if (!dVal && !tVal && !slipTimeStr) {
+              const dMatch = stringData.match(/"(?:transDate|date)"\s*:\s*"([^"]+)"/i);
+              const tMatch = stringData.match(/"(?:transTime|time)"\s*:\s*"([^"]+)"/i);
+              if (dMatch) dVal = dMatch[1];
+              if (tMatch) tVal = tMatch[1];
+              
+              const stMatch = stringData.match(/"slip_time"\s*:\s*"([^"]+)"/i);
+              if (stMatch) slipTimeStr = stMatch[1];
+           }
+           
+           if (slipTimeStr) {
+              // slip_time might be like "2024-05-30 18:20:00"
+              const cleanSlipTimeStr = String(slipTimeStr).replace(' ', 'T');
+              let dtStr = cleanSlipTimeStr;
+              if (!dtStr.includes('+') && !dtStr.endsWith('Z')) {
+                 dtStr += '+07:00';
+              }
+              slipTime = new Date(dtStr).getTime();
+           } else if (dVal && String(dVal).includes('T')) {
+              slipTime = new Date(dVal).getTime();
+           } else if (dVal && tVal) {
+              let cleanD = String(dVal).replace(/[-/]/g, '');
+              if (cleanD.length >= 8) {
+                  // Usually 20260530 -> 2026-05-30
+                  cleanD = `${cleanD.substring(0,4)}-${cleanD.substring(4,6)}-${cleanD.substring(6,8)}`;
+              } else {
+                  cleanD = String(dVal);
+              }
+              
+              let cleanT = String(tVal).trim().replace(/[-/:\s]/g, '');
+              if (cleanT.length >= 6) {
+                  cleanT = `${cleanT.substring(0,2)}:${cleanT.substring(2,4)}:${cleanT.substring(4,6)}`;
+              } else if (cleanT.length >= 4) {
+                  cleanT = `${cleanT.substring(0,2)}:${cleanT.substring(2,4)}:00`;
+              }
+              
+              slipTime = new Date(`${cleanD}T${cleanT}+07:00`).getTime();
+           } else {
+              const tsMatch = stringData.match(/"(?:timestamp|created_at)"\s*:\s*"([^"]+)"/i);
+              if (tsMatch) {
+                 slipTime = new Date(tsMatch[1]).getTime();
+              }
+           }
+           
+           if (!slipTime || isNaN(slipTime)) {
+               let reason = dVal || tVal ? `D:${dVal} T:${tVal}` : `No Date/Time from API: ${stringData.substring(0, 100)}`;
+               return res.json({ status: 'error', message: `ไม่สามารถตรวจสอบเวลาบนสลิปได้ (${reason}) プロดติดต่อแอดมิน` });
+           }
+
+           if (slipTime && !isNaN(slipTime)) {
+               const now = Date.now();
+               const diffMinutes = Math.floor((now - slipTime) / (1000 * 60));
+               
+               if (diffMinutes > 5) {
+                   return res.json({ status: 'error', message: `สลิปหมดอายุการใช้งาน (โอนผ่านมาแล้ว ${diffMinutes} นาที)` });
+               } else if (diffMinutes < -5) {
+                   return res.json({ status: 'error', message: `เวลาในสลิปไม่ถูกต้อง (เวลาในอนาคต)` });
+               }
+           }
+       } catch(e) {
+           console.error("Server-side time check error:", e);
+       }
+    }
+    
     res.json(data);
   } catch (err: any) {
     console.error("Bank Slip Error:", err);

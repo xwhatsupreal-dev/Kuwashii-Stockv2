@@ -7,9 +7,10 @@ interface CustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onViewUserHistory: (username: string) => void;
+  appScreen?: string;
 }
 
-export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, onViewUserHistory }) => {
+export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, onViewUserHistory, appScreen = 'ASTD' }) => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [search, setSearch] = useState('');
   const [editingBalanceUser, setEditingBalanceUser] = useState<string | null>(null);
@@ -81,6 +82,8 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
         parsedUsers[username].balance = amount;
         
         if (difference !== 0) {
+          const targetGame = appScreen === 'ASTD' ? 'ASTD' : 'AOTR';
+          
           parsedUsers[username].topups = [
             ...(parsedUsers[username].topups || []),
             {
@@ -88,9 +91,16 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
               amount: difference,
               date: new Date().toISOString(),
               method: difference > 0 ? 'Admin เพิ่มเครดิต' : 'Admin ลดเครดิต',
-              refCode: 'manual'
+              refCode: 'manual',
+              game: targetGame
             }
           ];
+          
+          if (difference > 0) {
+            const revKey = targetGame === 'ASTD' ? 'KUWASHII_GLOBAL_REVENUE_ASTD' : 'KUWASHII_GLOBAL_REVENUE_AOTR';
+            const currentRevenue = parseFloat(localStorage.getItem(revKey) || '0');
+            localStorage.setItem(revKey, (currentRevenue + difference).toString());
+          }
         }
         
         localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(parsedUsers));

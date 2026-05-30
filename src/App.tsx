@@ -385,40 +385,10 @@ export default function App() {
     }
   };
 
-  // Cleanup old histories (> 3 days)
+  // Cleanup logic (Disabled auto-delete per user request)
   useEffect(() => {
     try {
-      if (!localStorage.getItem('STATS_RESET_V2')) {
-        localStorage.setItem('KUWASHII_GLOBAL_REVENUE_AOTR', '0');
-        localStorage.setItem('KUWASHII_GLOBAL_REVENUE_ASTD', '0');
-        localStorage.setItem('STATS_RESET_V2', 'true');
-      }
-
-      const usersStr = localStorage.getItem('KUWASHII_V2_USERS');
-      if (usersStr) {
-        const users = JSON.parse(usersStr);
-        let hasChanges = false;
-        const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
-        const now = Date.now();
-
-        Object.keys(users).forEach(username => {
-          const u = users[username];
-          if (u.purchases && Array.isArray(u.purchases)) {
-            const len = u.purchases.length;
-            u.purchases = u.purchases.filter((p: any) => (now - new Date(p.date).getTime()) < THREE_DAYS_MS);
-            if (u.purchases.length !== len) hasChanges = true;
-          }
-          if (u.topups && Array.isArray(u.topups)) {
-            const len = u.topups.length;
-            u.topups = u.topups.filter((t: any) => (now - new Date(t.date).getTime()) < THREE_DAYS_MS);
-            if (u.topups.length !== len) hasChanges = true;
-          }
-        });
-
-        if (hasChanges) {
-          localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
-        }
-      }
+      // Intentionally bypassed to preserve stats, revenue, and history!
     } catch (e) {
       console.warn("Error cleaning up old histories", e);
     }
@@ -723,37 +693,46 @@ export default function App() {
 
              // --- Check Slip Time (within 5 minutes) ---
              let slipTime: number | null = null;
-             const dStr = data.date || data.transDate || data.data?.transDate || data.data?.date;
-             const tStr = data.time || data.transTime || data.data?.transTime || data.data?.time;
-             
-             if (dStr) {
-               if (typeof dStr === 'string' && dStr.length === 8 && typeof tStr === 'string') {
-                 // Format: "20240530", "12:00:00" -> yyyy-mm-ddThh:mm:ss+07:00
-                 const year = dStr.substring(0, 4);
-                 const month = dStr.substring(4, 6);
-                 const day = dStr.substring(6, 8);
-                 slipTime = new Date(`${year}-${month}-${day}T${tStr}+07:00`).getTime();
-               } else if (typeof dStr === 'string' && dStr.includes('T')) {
-                 slipTime = new Date(dStr).getTime();
-               } else if (typeof dStr === 'string' && typeof tStr === 'string') {
-                 slipTime = new Date(`${dStr}T${tStr}+07:00`).getTime();
-               } else {
-                 slipTime = new Date(dStr).getTime();
-               }
+             let rawD = '';
+             let rawT = '';
+             try {
+                const stringData = JSON.stringify(data);
+                let dVal = data.date || data.transDate || data.data?.transDate || data.data?.date;
+                let tVal = data.time || data.transTime || data.data?.transTime || data.data?.time;
+                
+                if (!dVal || !tVal) {
+                   const dMatch = stringData.match(/"(?:transDate|date)"\s*:\s*"([^"]+)"/i);
+                   const tMatch = stringData.match(/"(?:transTime|time)"\s*:\s*"([^"]+)"/i);
+                   if (dMatch) dVal = dMatch[1];
+                   if (tMatch) tVal = tMatch[1];
+                }
+                
+                rawD = String(dVal || '');
+                rawT = String(tVal || '');
+                
+                if (dVal && tVal) {
+                   let cleanD = String(dVal).replace(/[-/]/g, '');
+                   if (cleanD.length >= 8) {
+                      cleanD = `${cleanD.substring(0,4)}-${cleanD.substring(4,6)}-${cleanD.substring(6,8)}`;
+                   } else {
+                      cleanD = String(dVal);
+                   }
+                   let cleanT = String(tVal).trim();
+                   if (cleanT.length === 5) cleanT += ':00'; // e.g. "20:40" -> "20:40:00"
+                   
+                   slipTime = new Date(`${cleanD}T${cleanT}+07:00`).getTime();
+                } else {
+                   const tsMatch = stringData.match(/"(?:timestamp|created_at)"\s*:\s*"([^"]+)"/i);
+                   if (tsMatch) {
+                      slipTime = new Date(tsMatch[1]).getTime();
+                   }
+                }
+             } catch(e) {
+                console.error("Slip time parse error", e);
              }
 
              if (!slipTime || isNaN(slipTime)) {
-                // Regex fallback from stringified data
-                const isoMatch = stringifiedData.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
-                if (isoMatch) {
-                   slipTime = new Date(isoMatch[0] + '+07:00').getTime();
-                } else {
-                   const dMatch = stringifiedData.match(/"transDate"\s*:\s*"(\d{4})(\d{2})(\d{2})"/i) || stringifiedData.match(/"date"\s*:\s*"(\d{4})(\d{2})(\d{2})"/i);
-                   const tMatch = stringifiedData.match(/"transTime"\s*:\s*"(\d{2}:\d{2}:\d{2})"/i) || stringifiedData.match(/"time"\s*:\s*"(\d{2}:\d{2}:\d{2})"/i);
-                   if (dMatch && tMatch) {
-                       slipTime = new Date(`${dMatch[1]}-${dMatch[2]}-${dMatch[3]}T${tMatch[1]}+07:00`).getTime();
-                   }
-                }
+                console.warn(`ไม่สามารถอ่านเวลาจากสลิปได้ (D:${rawD} T:${rawT})`);
              }
 
              if (slipTime && !isNaN(slipTime)) {
@@ -763,7 +742,16 @@ export default function App() {
                 
                 // Allow a small clock skew (e.g., -2 minutes) but reject if it's more than 5 minutes old
                 if (diffMinutes > 5) {
-                   const timeErr = `สลิปนี้หมดอายุแล้ว (โอนผ่านมาเกิน 5 นาที) กรุณาติดต่อแอดมินเพื่อตรวจสอบ`;
+                   const timeErr = `สลิปนี้หมดอายุแล้ว (โอนผ่านไปแล้ว ${diffMinutes} นาที) กรุณาติดต่อแอดมินเพื่อตรวจสอบ`;
+                   setTopupError(timeErr);
+                   showToast(timeErr, 'error');
+                   setIsProcessingTopup(false);
+                   return;
+                }
+                
+                // Also reject if it's somehow in the future > 5 minutes (user changed device time? No, our 'now' is from server/client timezone)
+                if (diffMinutes < -5) {
+                   const timeErr = `เวลาในสลิปไม่ถูกต้อง (อนาคต) กรุณาติดต่อแอดมิน`;
                    setTopupError(timeErr);
                    showToast(timeErr, 'error');
                    setIsProcessingTopup(false);
@@ -1876,23 +1864,29 @@ export default function App() {
                    )}
 
                    {topupModalStep === 'bank' && (
-                     <div className="mb-4 bg-blue-500/10 border border-blue-500/20 p-2 rounded-xl flex flex-col items-center text-center">
-                       <p className="text-[10px] text-blue-300 mb-0.5">กรุณาโอนเงินมาที่บัญชี (QR Code):</p>
-                       <p className="text-xs font-bold text-white tracking-widest font-mono flex items-center justify-center gap-1.5 mb-0.5">
-                          213-3-81446-1 
-                          <button type="button" onClick={() => { navigator.clipboard.writeText('2133814461'); showToast('คัดลอกเลขบัญชีแล้ว', 'success'); }} className="p-1 bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 rounded">
-                             <Copy className="w-2.5 h-2.5" />
-                          </button>
-                       </p>
-                       <p className="text-[10px] text-blue-400 mb-2">นายธีรเทพ ทองเกตุ</p>
-                       <a href="https://img2.pic.in.th/1000098251.jpg" download target="_blank" rel="noreferrer" className="block w-full max-w-[120px] border border-blue-500/30 rounded-lg overflow-hidden mb-2 hover:opacity-90 transition-opacity">
+                     <div className="mb-2 bg-blue-500/10 border border-blue-500/20 p-2 rounded-xl flex flex-col items-center text-center">
+                       <div className="flex flex-col items-center justify-center gap-0.5">
+                          <p className="text-[9px] text-blue-300">กรุณาโอนเงินมาที่บัญชี (QR Code):</p>
+                          <div className="flex items-center gap-1.5">
+                             <p className="text-[11px] font-bold text-white tracking-widest font-mono">213-3-81446-1</p>
+                             <button type="button" onClick={() => { navigator.clipboard.writeText('2133814461'); showToast('คัดลอกเลขบัญชีแล้ว', 'success'); }} className="p-0.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 rounded">
+                                <Copy className="w-2 h-2" />
+                             </button>
+                          </div>
+                          <p className="text-[9px] text-blue-400">นายธีรเทพ ทองเกตุ</p>
+                       </div>
+                       
+                       <a href="https://img2.pic.in.th/1000098251.jpg" download target="_blank" rel="noreferrer" className="block w-full max-w-[80px] border border-blue-500/30 rounded-lg overflow-hidden my-1.5 hover:opacity-90 transition-opacity">
                          <img src="https://img2.pic.in.th/1000098251.jpg" alt="Bank QR" className="w-full h-auto" />
                        </a>
-                       <p className="text-[9px] text-blue-400/70 border-t border-blue-500/20 pt-1.5 pb-0.5 w-full leading-relaxed">
-                         คลิกที่รูปเพื่อดูรูปใหญ่ หรือดาวน์โหลดรูปภาพเก็บไว้<br/>เมื่อโอนเสร็จสิ้น ให้อัปโหลด "ภาพสลิปโอนเงิน" ด้านล่าง
-                       </p>
-                       <div className="bg-red-500/10 border border-red-500/20 rounded px-2 py-1 text-[9px] text-red-400 font-medium w-full mt-2 leading-relaxed">
-                          ⚠️ โปรดอัปโหลดสลิปภายในเวลา 3-5 นาที<br/>หลังจากโอนเสร็จสิ้น หากเกินเวลาเติมไม่ได้โปรดแจ้งแอดมิน ⚠️
+                       
+                       <div className="w-full space-y-1">
+                          <p className="text-[8px] text-blue-400/70 border-t border-blue-500/20 pt-1 leading-tight">
+                            คลิกที่รูปเพื่อดูรูปใหญ่ หรือดาวน์โหลดเก็บไว้<br/>เมื่อโอนเสร็จสิ้น ให้อัปโหลด "ภาพสลิปโอนเงิน" ด้านล่าง
+                          </p>
+                          <div className="bg-red-500/10 border border-red-500/20 rounded px-1.5 py-0.5 text-[8px] text-red-400 font-medium leading-tight">
+                             ⚠️ โปรดอัปโหลดสลิปภายใน 3-5 นาที หลังจากโอนเสร็จสิ้น หากเกินเวลาโปรดแจ้งแอดมิน
+                          </div>
                        </div>
                      </div>
                    )}
@@ -1914,11 +1908,11 @@ export default function App() {
 
                    <div>
                      {topupModalStep === 'bank' ? (
-                       <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-500/5 transition-colors bg-zinc-900 group">
-                         <div className="flex flex-col items-center justify-center pt-3 pb-3 px-4 text-center">
-                           <UploadCloud className="w-6 h-6 text-zinc-500 mb-1.5 group-hover:text-blue-400 transition-colors" />
-                           <p className="text-[10px] text-zinc-400 font-mono break-all max-w-full">
-                             {slipFile ? slipFile.name : "คลิกเพื่ออัปโหลดรูปภาพสลิป"}
+                       <label className="flex flex-col items-center justify-center w-full min-h-[5rem] py-2 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-500/5 transition-colors bg-zinc-900 group">
+                         <div className="flex flex-col items-center justify-center pt-2 pb-2 px-4 text-center">
+                           <UploadCloud className="w-5 h-5 text-zinc-500 mb-1 group-hover:text-blue-400 transition-colors" />
+                           <p className="text-[9px] text-zinc-400 font-mono break-all max-w-full">
+                             {slipFile ? <img src={URL.createObjectURL(slipFile)} alt="slip" className="max-h-24 object-contain rounded" /> : "คลิกเพื่ออัปโหลดรูปภาพสลิป"}
                            </p>
                          </div>
                          <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files && e.target.files[0]) setSlipFile(e.target.files[0]); }} />
@@ -2052,6 +2046,7 @@ export default function App() {
       <CustomerDatabaseModal
         isOpen={isCustomerDbOpen}
         onClose={() => setIsCustomerDbOpen(false)}
+        appScreen={appScreen}
         onViewUserHistory={(username) => {
           setViewingUserHistory(username);
         }}
@@ -2087,11 +2082,15 @@ export default function App() {
     </>
   );
 
-    // Calculate high-level stats
-  const totalStockItems = items.length;
-  const inStockCount = items.filter(it => it.quantity > 0).length;
-  const totalStockUnits = items.reduce((acc, curr) => acc + curr.quantity, 0);
-  const totalStockValue = items.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
+  // Calculate high-level stats based on current game context
+  const currentContextItems = appScreen === 'ASTD' 
+       ? items.filter(it => it.game === 'ASTD') 
+       : items.filter(it => it.game !== 'ASTD');
+       
+  const totalStockItems = currentContextItems.length;
+  const inStockCount = currentContextItems.filter(it => it.quantity > 0).length;
+  const totalStockUnits = currentContextItems.reduce((acc, curr) => acc + curr.quantity, 0);
+  const totalStockValue = currentContextItems.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
 
   if (appScreen === 'LOADING' || appScreen === 'TRANSITION') {
     return (
@@ -2522,20 +2521,36 @@ export default function App() {
             </div>
 
             {/* Statistics summary row - Real Data for ASTD */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 mt-8">
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">จำนวนสินค้าทั้งหมด</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
-                  <span className="font-mono text-2xl font-black text-white">{items.filter(it => it.game === 'ASTD').length}</span>
+                  <span className="font-mono text-2xl font-black text-white">{totalStockItems}</span>
                   <span className="text-xs text-zinc-500">รายการ</span>
+                </div>
+              </div>
+
+              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">จำนวนพร้อมส่งด่วน</span>
+                <div className="mt-1.5 flex items-baseline gap-2">
+                  <span className="font-mono text-2xl font-black text-emerald-400">{inStockCount}</span>
+                  <span className="text-xs text-zinc-500">ประเภทคลัง</span>
                 </div>
               </div>
 
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">สินค้าสะสมในสต๊อก</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
-                  <span className="font-mono text-2xl font-black text-emerald-400">{items.filter(it => it.game === 'ASTD').reduce((acc, curr) => acc + curr.quantity, 0).toLocaleString()}</span>
+                  <span className="font-mono text-2xl font-black text-yellow-500">{totalStockUnits.toLocaleString()}</span>
                   <span className="text-xs text-zinc-500">ชิ้น</span>
+                </div>
+              </div>
+
+              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">มูลค่าสต๊อกประเมินทั้งหมด</span>
+                <div className="mt-1.5 flex items-baseline gap-1">
+                  <span className="text-zinc-500 font-mono text-xs">฿</span>
+                  <span className="font-mono text-2xl font-black text-white">{totalStockValue.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -2573,7 +2588,7 @@ export default function App() {
                       try {
                         let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_REVENUE_ASTD');
                         let total = savedTotal !== null ? parseFloat(savedTotal) : null;
-                        if (total === null && localStorage.getItem('KUWASHII_V2_USERS')) {
+                        if ((total === null || total === 0) && localStorage.getItem('KUWASHII_V2_USERS')) {
                           const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
                           total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
                             return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method !== 'Coupon' && tx.game === 'ASTD' ? (tx.amount || 0) : 0), 0);
@@ -2596,7 +2611,7 @@ export default function App() {
                       try {
                         let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD');
                         let total = savedTotal !== null ? parseFloat(savedTotal) : null;
-                        if (total === null && localStorage.getItem('KUWASHII_V2_USERS')) {
+                        if ((total === null || total === 0) && localStorage.getItem('KUWASHII_V2_USERS')) {
                           const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
                           total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
                             return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method === 'Coupon' && tx.game === 'ASTD' ? (tx.amount || 0) : 0), 0);
