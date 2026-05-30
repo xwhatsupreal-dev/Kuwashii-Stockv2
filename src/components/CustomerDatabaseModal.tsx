@@ -29,20 +29,26 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
              parsedUsers[key].username = key;
           }
         });
-      } else {
-        // Fallback migration mapping
-        const usersDataV1 = localStorage.getItem('KUWASHII_USERS');
-        if (usersDataV1) {
-          const v1 = JSON.parse(usersDataV1);
-          Object.keys(v1).forEach(username => {
+      }
+      
+      // Fallback migration mapping for any users still stuck in V1
+      const usersDataV1 = localStorage.getItem('KUWASHII_USERS');
+      if (usersDataV1) {
+        const v1 = JSON.parse(usersDataV1);
+        let hasNewMigrations = false;
+        Object.keys(v1).forEach(username => {
+          if (!parsedUsers[username]) {
             parsedUsers[username] = {
               username,
-              password: v1[username], // Keep it just to keep working
+              password: typeof v1[username] === 'string' ? v1[username] : (v1[username]?.password || ''),
               balance: 0,
-              joinDate: new Date().toISOString(),
+              joinDate: v1[username]?.createdAt || new Date().toISOString(),
               purchases: []
             };
-          });
+            hasNewMigrations = true;
+          }
+        });
+        if (hasNewMigrations) {
           localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(parsedUsers));
         }
       }

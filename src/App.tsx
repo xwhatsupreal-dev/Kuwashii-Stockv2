@@ -814,30 +814,33 @@ export default function App() {
 
       // Check localStorage database
       const usersData = localStorage.getItem('KUWASHII_USERS');
+      const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
       let users: Record<string, any> = usersData ? JSON.parse(usersData) : {};
+      let v2Users: Record<string, any> = usersDataV2 ? JSON.parse(usersDataV2) : {};
       
-      const userData = users[authUsername.trim()];
-      const isPasswordValid = typeof userData === 'string' 
+      const usernameTrimmed = authUsername.trim();
+      const userData = users[usernameTrimmed];
+      const v2UserData = v2Users[usernameTrimmed];
+      
+      const isPasswordValid = (typeof userData === 'string' 
         ? userData === authPassword 
-        : userData?.password === authPassword;
+        : userData?.password === authPassword) || (v2UserData?.password === authPassword);
 
       if (isPasswordValid) {
         // Sync to V2 format if missing
-        const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
-        let v2Users = usersDataV2 ? JSON.parse(usersDataV2) : {};
-        if (!v2Users[authUsername.trim()]) {
-          v2Users[authUsername.trim()] = {
-            username: authUsername.trim(),
+        if (!v2Users[usernameTrimmed]) {
+          v2Users[usernameTrimmed] = {
+            username: usernameTrimmed,
             password: authPassword,
             balance: 0,
-            joinDate: new Date().toISOString(),
+            joinDate: typeof userData !== 'string' && userData?.createdAt ? userData.createdAt : new Date().toISOString(),
             purchases: []
           };
           localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(v2Users));
         }
 
-        setCurrentUser({ username: authUsername.trim() });
-        storage.setItem('KUWASHII_CURRENT_USER', JSON.stringify({ username: authUsername.trim() }));
+        setCurrentUser({ username: usernameTrimmed });
+        storage.setItem('KUWASHII_CURRENT_USER', JSON.stringify({ username: usernameTrimmed }));
         storage.setItem('KUWASHII_IS_ADMIN', 'false');
         setShowAuthModal(false);
         setAuthUsername('');
