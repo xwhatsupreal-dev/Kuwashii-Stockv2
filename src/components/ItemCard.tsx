@@ -424,11 +424,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
             <button
               type="button"
               onClick={() => {
-                if (item.gachaPool && item.gachaPool.length > 0 && onBuy) {
-                  onInquire(item);
-                } else {
-                  onBuy ? onBuy(item, 1) : onInquire(item);
-                }
+                onInquire(item);
               }}
               disabled={item.quantity === 0}
               className={`w-full py-2 px-3 rounded-xl font-bold text-[11px] transition-all flex items-center justify-center gap-1.5 border ${
@@ -441,7 +437,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               id={`btn-buy-${item.id}`}
             >
               <ShoppingBag className="w-3 h-3" />
-              <span>{item.quantity === 0 ? 'สินค้าหมดคลัง' : (item.gachaPool && item.gachaPool.length > 0 && onBuy ? 'สุ่มกาชา / เลือกระบุจำนวน' : (onBuy ? 'ซื้อด้วยเครดิต (Buy Data)' : 'สนใจซื้อ / สอบถามสต๊อก'))}</span>
+              <span>{item.quantity === 0 ? 'สินค้าหมดคลัง' : (item.gachaPool && item.gachaPool.length > 0 && onBuy ? 'สุ่มกาชา / เลือกระบุจำนวน' : (onBuy ? 'ซื้อด้วยเครดิต / ระบุจำนวน' : 'สนใจซื้อ / สอบถามสต๊อก'))}</span>
             </button>
             {onShareToAI && (
               <button

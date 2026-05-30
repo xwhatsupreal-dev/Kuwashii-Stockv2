@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Inbox,
   CheckCircle,
+  Check,
   Copy,
   Clock,
   MessageCircle,
@@ -45,12 +46,13 @@ import {
   Users,
   History,
   Wallet,
-  Gift,
   Landmark,
   Ticket,
+  Gift,
   Info,
-  Copy,
-  UploadCloud
+  UploadCloud,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 import { StockItem, CategoryFilter, RarityFilter, StockStatusFilter } from './types';
@@ -64,14 +66,18 @@ import { AdminModal } from './components/AdminModal';
 import { StockManagerModal } from './components/StockManagerModal';
 import { CustomerDatabaseModal } from './components/CustomerDatabaseModal';
 import { HistoryModal } from './components/HistoryModal';
+import { UserSettingsModal } from './components/UserSettingsModal';
+import { CouponManagerModal } from './components/CouponManagerModal';
+import { AnnouncementManagerModal } from './components/AnnouncementManagerModal';
+import { AnnouncementPopup } from './components/AnnouncementPopup';
 import jsQR from 'jsqr';
 import {
-  getFirebaseItems,
-  saveFirebaseItem,
-  deleteFirebaseItem,
-  resetFirebaseDatabase,
+  getServerItems,
+  saveServerItem,
+  deleteServerItem,
+  resetServerDatabase,
   testFirestoreConnection
-} from './firebase';
+} from './apiService';
 
 const readQRFromImage = (file: File): Promise<string | null> => {
    return new Promise((resolve, reject) => {
@@ -113,7 +119,7 @@ export default function App() {
   const [items, setItems] = useState<StockItem[]>([]);
   const [isLoadingStock, setIsLoadingStock] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
-  const [isFirebaseQuotaExceeded, setIsFirebaseQuotaExceeded] = useState(false);
+  const [isServerQuotaExceeded, setIsServerQuotaExceeded] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [selectedRarity, setSelectedRarity] = useState<RarityFilter>('all');
@@ -173,12 +179,12 @@ export default function App() {
 
   // User & Admin Authentications
   const [currentUser, setCurrentUser] = useState<{ username: string } | null>(() => {
-    const saved = localStorage.getItem('KUWASHII_CURRENT_USER');
+    const saved = localStorage.getItem('KUWASHII_CURRENT_USER') || sessionStorage.getItem('KUWASHII_CURRENT_USER');
     if (saved) return JSON.parse(saved);
     return null;
   });
   const [isAdmin, setIsAdmin] = useState(() => {
-    return localStorage.getItem('KUWASHII_IS_ADMIN') === 'true';
+    return localStorage.getItem('KUWASHII_IS_ADMIN') === 'true' || sessionStorage.getItem('KUWASHII_IS_ADMIN') === 'true';
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
@@ -190,6 +196,7 @@ export default function App() {
   
   const [showMockEmailModal, setShowMockEmailModal] = useState(false);
   const [mockEmailModalData, setMockEmailModalData] = useState<{email: string; username: string; password: string} | null>(null);
+  const [rememberAuth, setRememberAuth] = useState(false);
 
   // --- Top Up State ---
   const [showTopupModal, setShowTopupModal] = useState(false);
@@ -209,9 +216,23 @@ export default function App() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isStockManagerOpen, setIsStockManagerOpen] = useState(false);
   const [isCustomerDbOpen, setIsCustomerDbOpen] = useState(false);
+  const [isCouponManagerOpen, setIsCouponManagerOpen] = useState(false);
+  const [isAnnouncementManagerOpen, setIsAnnouncementManagerOpen] = useState(false);
+  const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [viewingUserHistory, setViewingUserHistory] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [inquiringItem, setInquiringItem] = useState<StockItem | null>(null);
+
+  const [hideGlobalStats, setHideGlobalStats] = useState(() => {
+    return localStorage.getItem('KUWASHII_HIDE_STATS') === 'true';
+  });
+
+  const toggleHideGlobalStats = () => {
+    const newState = !hideGlobalStats;
+    setHideGlobalStats(newState);
+    localStorage.setItem('KUWASHII_HIDE_STATS', String(newState));
+  };
 
   // Floating notifications/toast
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -348,7 +369,45 @@ export default function App() {
     }
   };
 
-  // Load and save localStorage / Firebase
+  // Cleanup old histories (> 3 days)
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem('STATS_RESET_V2')) {
+        localStorage.setItem('KUWASHII_GLOBAL_REVENUE', '0');
+        localStorage.setItem('STATS_RESET_V2', 'true');
+      }
+
+      const usersStr = localStorage.getItem('KUWASHII_V2_USERS');
+      if (usersStr) {
+        const users = JSON.parse(usersStr);
+        let hasChanges = false;
+        const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+        const now = Date.now();
+
+        Object.keys(users).forEach(username => {
+          const u = users[username];
+          if (u.purchases && Array.isArray(u.purchases)) {
+            const len = u.purchases.length;
+            u.purchases = u.purchases.filter((p: any) => (now - new Date(p.date).getTime()) < THREE_DAYS_MS);
+            if (u.purchases.length !== len) hasChanges = true;
+          }
+          if (u.topups && Array.isArray(u.topups)) {
+            const len = u.topups.length;
+            u.topups = u.topups.filter((t: any) => (now - new Date(t.date).getTime()) < THREE_DAYS_MS);
+            if (u.topups.length !== len) hasChanges = true;
+          }
+        });
+
+        if (hasChanges) {
+          localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
+        }
+      }
+    } catch (e) {
+      console.warn("Error cleaning up old histories", e);
+    }
+  }, []);
+
+  // Load and save localStorage / Server
   useEffect(() => {
     async function initStock() {
       // Helper to map obsolete "Equipment" category to new "Skin" category
@@ -362,7 +421,7 @@ export default function App() {
       };
 
       try {
-        const dbItems = await getFirebaseItems(DEFAULT_PRESETS);
+        const dbItems = await getServerItems(DEFAULT_PRESETS);
         const migratedDb = migrateItems(dbItems || []);
         
         // Smart Recovery: Check if user has more up-to-date items saved in browser LocalStorage
@@ -374,7 +433,7 @@ export default function App() {
               const isDifferent = JSON.stringify(migratedDb) !== JSON.stringify(localItems);
               if (isDifferent) {
                 // Restore local storage state to the new/restarted server database
-                await resetFirebaseDatabase(localItems);
+                await resetServerDatabase(localItems);
                 setItems(localItems);
                 console.log("Automatically synchronized and restored local storage changes to backend server database!");
               } else {
@@ -392,9 +451,9 @@ export default function App() {
         }
 
         setIsOfflineMode(false);
-        setIsFirebaseQuotaExceeded(false);
+        setIsServerQuotaExceeded(false);
       } catch (e: any) {
-        console.warn("Firebase fetch error, loading fallback presets:", e);
+        console.warn("Server fetch error, loading fallback presets:", e);
         setIsOfflineMode(true);
         let quotaExceeded = false;
         
@@ -410,7 +469,7 @@ export default function App() {
             quotaExceeded = true;
           }
         }
-        setIsFirebaseQuotaExceeded(quotaExceeded);
+        setIsServerQuotaExceeded(quotaExceeded);
 
         const saved = localStorage.getItem('AOTR_STOCK_ITEMS');
         if (saved) {
@@ -479,38 +538,59 @@ export default function App() {
     }
 
     if (topupModalStep === 'coupon') {
-      if (topupCode.trim().toLowerCase() === 'test') {
-        if (currentUserData.usedTestCoupon) {
-           showToast('โค้ดอ้างอิงนี้ถูกใช้งานจนครบกำหนดแล้ว', 'error');
-           return;
-        }
+      const savedCoupons = localStorage.getItem('KUWASHII_COUPONS');
+      let coupons: any[] = savedCoupons ? JSON.parse(savedCoupons) : [];
+      let coupon = coupons.find(c => c.code.toLowerCase() === topupCode.trim().toLowerCase());
 
-        // Add 2000 credits
-        users[activeUsername] = {
-          ...currentUserData,
-          balance: (currentUserData.balance || 0) + 2000,
-          usedTestCoupon: true,
-          topups: [
-            ...(currentUserData.topups || []),
-            {
-              id: `topup-${Date.now()}`,
-              amount: 2000,
-              date: new Date().toISOString(),
-              method: 'Coupon',
-              refCode: 'test'
-            }
-          ]
-        };
-        
-        localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
-        
-        showToast('ใช้คูปองสำเร็จ! ได้รับ 2,000 เครดิต', 'success');
-        setTopupSuccessMessage('ใช้คูปองสำเร็จ! ได้รับ 2,000 เครดิต');
-        setTopupModalStep('success');
-        setTopupCode('');
-        if (currentUser) setCurrentUser({ ...currentUser });
+      if (coupon) {
+         if (coupon.usedBy && coupon.usedBy.includes(activeUsername)) {
+            showToast('คุณได้ใช้งานโค้ดนี้ไปแล้ว', 'error');
+            return;
+         }
+         if (coupon.usedBy && coupon.usedBy.length >= coupon.maxUses) {
+            showToast('โค้ดอ้างอิงนี้ถูกใช้งานจนครบกำหนดแล้ว', 'error');
+            return;
+         }
+         if (coupon.expiresAt && new Date(coupon.expiresAt).getTime() < Date.now()) {
+            showToast('โค้ดนี้หมดอายุการใช้งานแล้ว', 'error');
+            return;
+         }
+
+         if (!coupon.usedBy) coupon.usedBy = [];
+         coupon.usedBy.push(activeUsername);
+
+         localStorage.setItem('KUWASHII_COUPONS', JSON.stringify(coupons));
+         
+         const currentFree = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS') || '0');
+         localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS', (currentFree + coupon.amount).toString());
+
+         users[activeUsername] = {
+           ...currentUserData,
+           balance: (currentUserData.balance || 0) + coupon.amount,
+           topups: [
+             ...(currentUserData.topups || []),
+             {
+               id: `topup-${Date.now()}`,
+               amount: coupon.amount,
+               date: new Date().toISOString(),
+               method: 'Coupon',
+               refCode: coupon.code
+             }
+           ]
+         };
+         
+         localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
+         
+         const currentCredit = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS') || '0');
+         localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS', (currentCredit + coupon.amount).toString());
+         
+         showToast(`ใช้คูปองสำเร็จ! ได้รับ ${coupon.amount.toLocaleString()} เครดิต`, 'success');
+         setTopupSuccessMessage(`ใช้คูปองสำเร็จ! ได้รับ ${coupon.amount.toLocaleString()} เครดิต`);
+         setTopupModalStep('success');
+         setTopupCode('');
+         if (currentUser) setCurrentUser({ ...currentUser });
       } else {
-        showToast('คูปองไม่ถูกต้อง หรือหมดอายุแล้ว', 'error');
+        showToast('ไม่พบโค้ดคูปองนี้ในระบบ', 'error');
       }
       return;
     }
@@ -533,6 +613,9 @@ export default function App() {
             const amount = Number((rawAmount - fee).toFixed(2));
             const ownerName = data.owner_profile || 'ไม่ทราบชื่อ';
             
+            const currentRevenue = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_REVENUE') || '0');
+            localStorage.setItem('KUWASHII_GLOBAL_REVENUE', (currentRevenue + amount).toString());
+
             users[activeUsername] = {
               ...currentUserData,
               balance: (currentUserData.balance || 0) + amount,
@@ -549,6 +632,10 @@ export default function App() {
             };
             
             localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
+            
+            const currentRev = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_REVENUE') || '0');
+            localStorage.setItem('KUWASHII_GLOBAL_REVENUE', (currentRev + amount).toString());
+
             const msg = `เติมเงินสำเร็จ! จำนวน ${amount} บาท (หักค่าธรรมเนียม ${fee}) จากซองของ: ${ownerName}`;
             showToast(msg, 'success');
             setTopupSuccessMessage(msg);
@@ -600,6 +687,27 @@ export default function App() {
              const transactionId = data.transactionId;
              const amount = parseFloat(data.amount);
              
+             // Check Receiver Name Verification
+             const stringifiedData = JSON.stringify(data);
+             const isNameMatch = stringifiedData.includes('นาย ธีรเทพ ท') || 
+                                 stringifiedData.includes('นาย ธีรเทพ ทองเกตุ') || 
+                                 stringifiedData.includes('ธีรเทพ ท') || 
+                                 stringifiedData.includes('ธีรเทพ ทองเกตุ');
+
+             if (!isNameMatch) {
+                // Try to extract the name the API returned to show it
+                let displayFoundName = data.receiver_name || data.receiverName || data.data?.receiver?.name || data.data?.receiver?.displayName || data.data?.receiver?.accountName;
+                if (!displayFoundName) {
+                   const foundNameMatch = stringifiedData.match(/"name"\s*:\s*"([^"]+)"/) || stringifiedData.match(/"receiver_name"\s*:\s*"([^"]+)"/);
+                   if (foundNameMatch) displayFoundName = foundNameMatch[1];
+                }
+                const nameErr = `ชื่อผู้รับไม่ถูกต้อง: ${displayFoundName || 'ไม่ทราบชื่อ'}`;
+                setTopupError(nameErr);
+                showToast(nameErr, 'error');
+                setIsProcessingTopup(false);
+                return;
+             }
+
              // Check if used locally in ALL users
              let isUsed = false;
              Object.values(users).forEach((u: any) => {
@@ -616,6 +724,9 @@ export default function App() {
                 return;
              }
 
+             const currentRevenue = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_REVENUE') || '0');
+             localStorage.setItem('KUWASHII_GLOBAL_REVENUE', (currentRevenue + amount).toString());
+
              users[activeUsername] = {
                 ...currentUserData,
                 balance: (currentUserData.balance || 0) + amount,
@@ -631,6 +742,9 @@ export default function App() {
                 ]
              };
              localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
+
+             const currentRev = parseFloat(localStorage.getItem('KUWASHII_GLOBAL_REVENUE') || '0');
+             localStorage.setItem('KUWASHII_GLOBAL_REVENUE', (currentRev + amount).toString());
 
              const bankMsg = `เติมเงินสำเร็จ! ได้รับ ${amount} เครดิต (อ้างอิง: ${transactionId})`;
              showToast(bankMsg, 'success');
@@ -678,11 +792,16 @@ export default function App() {
     }
 
     if (authMode === 'login') {
+      const storage = rememberAuth ? localStorage : sessionStorage;
+      // remove from both to prevent ghost states
+      localStorage.removeItem('KUWASHII_CURRENT_USER'); sessionStorage.removeItem('KUWASHII_CURRENT_USER');
+      localStorage.removeItem('KUWASHII_IS_ADMIN'); sessionStorage.removeItem('KUWASHII_IS_ADMIN');
+
       if (authUsername.trim() === 'Kuwashii_admin' && authPassword === 'ZAZACI09') {
         setIsAdmin(true);
         setCurrentUser({ username: 'Kuwashii_admin' });
-        localStorage.setItem('KUWASHII_IS_ADMIN', 'true');
-        localStorage.setItem('KUWASHII_CURRENT_USER', JSON.stringify({ username: 'Kuwashii_admin' }));
+        storage.setItem('KUWASHII_IS_ADMIN', 'true');
+        storage.setItem('KUWASHII_CURRENT_USER', JSON.stringify({ username: 'Kuwashii_admin' }));
         setShowAuthModal(false);
         setAuthUsername('');
         setAuthEmail('');
@@ -718,8 +837,8 @@ export default function App() {
         }
 
         setCurrentUser({ username: authUsername.trim() });
-        localStorage.setItem('KUWASHII_CURRENT_USER', JSON.stringify({ username: authUsername.trim() }));
-        localStorage.setItem('KUWASHII_IS_ADMIN', 'false');
+        storage.setItem('KUWASHII_CURRENT_USER', JSON.stringify({ username: authUsername.trim() }));
+        storage.setItem('KUWASHII_IS_ADMIN', 'false');
         setShowAuthModal(false);
         setAuthUsername('');
         setAuthEmail('');
@@ -806,10 +925,14 @@ export default function App() {
       };
       localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(v2Users));
       
+      const storage = rememberAuth ? localStorage : sessionStorage;
+      localStorage.removeItem('KUWASHII_CURRENT_USER'); sessionStorage.removeItem('KUWASHII_CURRENT_USER');
+      localStorage.removeItem('KUWASHII_IS_ADMIN'); sessionStorage.removeItem('KUWASHII_IS_ADMIN');
+
       // Auto login after register
       setCurrentUser({ username: authUsername.trim() });
-      localStorage.setItem('KUWASHII_CURRENT_USER', JSON.stringify({ username: authUsername.trim() }));
-      localStorage.setItem('KUWASHII_IS_ADMIN', 'false');
+      storage.setItem('KUWASHII_CURRENT_USER', JSON.stringify({ username: authUsername.trim() }));
+      storage.setItem('KUWASHII_IS_ADMIN', 'false');
       setShowAuthModal(false);
       setAuthUsername('');
       setAuthEmail('');
@@ -825,7 +948,64 @@ export default function App() {
     setCurrentUser(null);
     localStorage.removeItem('KUWASHII_IS_ADMIN');
     localStorage.removeItem('KUWASHII_CURRENT_USER');
+    sessionStorage.removeItem('KUWASHII_IS_ADMIN');
+    sessionStorage.removeItem('KUWASHII_CURRENT_USER');
     showToast('ออกจากระบบแล้ว', 'info');
+  };
+
+  const handleChangePassword = (newPass: string) => {
+    if (!currentUser) return;
+    const usersStr = localStorage.getItem('KUWASHII_V2_USERS');
+    if (usersStr) {
+      const users = JSON.parse(usersStr);
+      if (users[currentUser.username]) {
+        users[currentUser.username].password = newPass;
+        localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
+        showToast('เปลี่ยนรหัสผ่านสำเร็จ', 'success');
+      }
+    }
+    
+    // Also update legacy DB just in case
+    const legacyStr = localStorage.getItem('KUWASHII_USERS');
+    if (legacyStr) {
+      const legacy = JSON.parse(legacyStr);
+      if (legacy[currentUser.username]) {
+        if (typeof legacy[currentUser.username] === 'string') {
+           legacy[currentUser.username] = newPass;
+        } else {
+           legacy[currentUser.username].password = newPass;
+        }
+        localStorage.setItem('KUWASHII_USERS', JSON.stringify(legacy));
+      }
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    if (!currentUser) return;
+    const username = currentUser.username;
+    
+    // 1. Remove from V2 Users
+    const usersStr = localStorage.getItem('KUWASHII_V2_USERS');
+    if (usersStr) {
+      const users = JSON.parse(usersStr);
+      if (users[username]) {
+        delete users[username];
+        localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
+      }
+    }
+
+    // 2. Remove from legacy users
+    const legacyStr = localStorage.getItem('KUWASHII_USERS');
+    if (legacyStr) {
+      const legacy = JSON.parse(legacyStr);
+      if (legacy[username]) {
+        delete legacy[username];
+        localStorage.setItem('KUWASHII_USERS', JSON.stringify(legacy));
+      }
+    }
+
+    handleLogout();
+    showToast('ลบบัญชีและข้อมูลทั้งหมดเรียบร้อยแล้ว', 'info');
   };
 
   // --- Add/Edit/Delete controllers ---
@@ -862,9 +1042,9 @@ export default function App() {
     }
 
     try {
-      await saveFirebaseItem(finalItem);
+      await saveServerItem(finalItem);
     } catch (e) {
-      showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูลบน Firebase!', 'error');
+      showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูลบนเซิร์ฟเวอร์!', 'error');
     }
 
     setEditingItem(null);
@@ -884,10 +1064,10 @@ export default function App() {
       }
 
       try {
-        await deleteFirebaseItem(id);
+        await deleteServerItem(id);
         showToast('ลบสินค้าออกจากระบบและฐานข้อมูลเรียบร้อย', 'info');
       } catch (e) {
-        showToast('เกิดข้อผิดพลาดในการลบข้อมูลบน Firebase!', 'error');
+        showToast('เกิดข้อผิดพลาดในการลบข้อมูลบนเซิร์ฟเวอร์!', 'error');
       }
     }
   };
@@ -1024,7 +1204,7 @@ export default function App() {
     }
 
     try {
-      await saveFirebaseItem(updated);
+      await saveServerItem(updated);
       showToast('อัปเดตจำนวนสต็อกเรียบร้อย!', 'success');
       if (nextQty <= 5 && nextQty < target.quantity) {
         playChime('warning');
@@ -1034,7 +1214,7 @@ export default function App() {
         playChime('info');
       }
     } catch (e) {
-      showToast('บันทึกสต็อกลง Firebase ไม่สำเร็จ!', 'error');
+      showToast('บันทึกสต็อกลงเซิร์ฟเวอร์ไม่สำเร็จ!', 'error');
     }
   };
 
@@ -1061,14 +1241,14 @@ export default function App() {
     }
 
     try {
-      await saveFirebaseItem(updated);
+      await saveServerItem(updated);
       if (updated.isPinned) {
         showToast(`ปักหมุดไอเทม ${updated.name} แล้ว!`, 'success');
       } else {
         showToast(`ยกเลิกการปักหมุดไอเทม ${updated.name} แล้ว`, 'info');
       }
     } catch (e) {
-      showToast('ไม่สามารถบันทึกสถานะปักหมุดลง Firebase!', 'error');
+      showToast('ไม่สามารถบันทึกสถานะปักหมุดลงเซิร์ฟเวอร์!', 'error');
     }
   };
 
@@ -1082,10 +1262,10 @@ export default function App() {
       }
 
       try {
-        await resetFirebaseDatabase(DEFAULT_PRESETS);
-        showToast('คืนค่าสต๊อคเริ่มต้นในระบบ Firebase เรียบร้อย!', 'info');
+        await resetServerDatabase(DEFAULT_PRESETS);
+        showToast('คืนค่าสต๊อคเริ่มต้นในระบบเซิร์ฟเวอร์เรียบร้อย!', 'info');
       } catch (e) {
-        showToast('คืนค่าปริยายบน Firebase ไม่สำเร็จ!', 'error');
+        showToast('คืนค่าปริยายบนเซิร์ฟเวอร์ไม่สำเร็จ!', 'error');
       }
     }
   };
@@ -1105,16 +1285,16 @@ export default function App() {
       }
 
       try {
-        await resetFirebaseDatabase(updatedList);
+        await resetServerDatabase(updatedList);
         showToast('เซ็ตจำนวนสินค้าในสต๊อกทั้งหมดเหลือ 0 ชิ้น เรียบร้อย!', 'success');
       } catch (e) {
-        showToast('อัปเดตสต๊อกเหลือ 0 บน Firebase ล้มเหลว!', 'error');
+        showToast('อัปเดตสต๊อกเหลือ 0 บนเซิร์ฟเวอร์ล้มเหลว!', 'error');
       }
     }
   };
 
   const handleDeleteAllProducts = async () => {
-    if (confirm('⚠️⚠️⚠️ คุณแน่ใจหรือไม่ที่จะลบสินค้าทั้งหมดออกจากระบบร้านค้าและ Firebase? (ข้อมูลสินค้าทั้งหมดและรูปภาพจะถูกล้างออกและแสดงผลเป็นหน้าว่างเปล่า มีสินค้า 0 รายการ)')) {
+    if (confirm('⚠️⚠️⚠️ คุณแน่ใจหรือไม่ที่จะลบสินค้าทั้งหมดออกจากระบบร้านค้าและคลาวด์เซิร์ฟเวอร์? (ข้อมูลสินค้าทั้งหมดและรูปภาพจะถูกล้างออกและแสดงผลเป็นหน้าว่างเปล่า มีสินค้า 0 รายการ)')) {
       saveItemsToStorage([]);
 
       if (isOfflineMode) {
@@ -1123,10 +1303,10 @@ export default function App() {
       }
 
       try {
-        await resetFirebaseDatabase([]);
+        await resetServerDatabase([]);
         showToast('ลบข้อมูลสินค้าทั้งหมดเรียบร้อยแล้ว!', 'info');
       } catch (e) {
-        showToast('ลบสินค้าบน Firebase ล้มเหลว!', 'error');
+        showToast('ลบสินค้าบนเซิร์ฟเวอร์ล้มเหลว!', 'error');
       }
     }
   };
@@ -1197,10 +1377,10 @@ export default function App() {
             }
 
             try {
-              await resetFirebaseDatabase(importedData as StockItem[]);
-              showToast('นำเข้าคลังสต๊อกสำเร็จและอัปเดตบน Firebase แล้ว!', 'success');
+              await resetServerDatabase(importedData as StockItem[]);
+              showToast('นำเข้าคลังสต๊อกสำเร็จและอัปเดตบนเซิร์ฟเวอร์แล้ว!', 'success');
             } catch (err) {
-              showToast('นำเข้าสำเร็จ แต่ซิงค์ขึ้น Firebase ไม่สำเร็จ', 'error');
+              showToast('นำเข้าสำเร็จ แต่ซิงค์ขึ้นเซิร์ฟเวอร์ไม่สำเร็จ', 'error');
             }
           } else {
             showToast('ฟอร์แมตข้อมูลในไฟล์ JSON ไม่ถูกต้อง', 'error');
@@ -1489,6 +1669,20 @@ export default function App() {
                         required={authMode !== 'forgot'}
                         className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold"
                       />
+                      {authMode === 'login' && (
+                        <label className="flex items-center gap-2 mt-3 cursor-pointer group w-fit text-[11px] text-zinc-400">
+                          <div className="relative flex items-center justify-center">
+                            <input 
+                              type="checkbox" 
+                              checked={rememberAuth}
+                              onChange={(e) => setRememberAuth(e.target.checked)}
+                              className="appearance-none w-3.5 h-3.5 rounded border border-zinc-700 bg-zinc-900 checked:bg-indigo-500 checked:border-indigo-500 transition-colors cursor-pointer"
+                            />
+                            <Check className={`w-2.5 h-2.5 text-white absolute pointer-events-none transition-opacity ${rememberAuth ? 'opacity-100' : 'opacity-0'}`} />
+                          </div>
+                          <span className="group-hover:text-zinc-300 transition-colors">จดจำการเข้าสู่ระบบไว้</span>
+                        </label>
+                      )}
                     </div>
                   )}
 
@@ -1857,6 +2051,7 @@ export default function App() {
         <InquiryModal
           item={inquiringItem}
           onClose={() => setInquiringItem(null)}
+          onBuy={appScreen === 'ASTD' ? handleBuyItem : undefined}
         />
       )}
 
@@ -1885,7 +2080,7 @@ export default function App() {
       <StockManagerModal
         isOpen={isStockManagerOpen}
         onClose={() => setIsStockManagerOpen(false)}
-        items={items}
+        items={items.filter(it => appScreen === 'ASTD' ? it.game === 'ASTD' : it.game !== 'ASTD')}
         onEdit={(item) => {
           setEditingItem(item);
           setIsFormOpen(true);
@@ -1900,14 +2095,35 @@ export default function App() {
       <CustomerDatabaseModal
         isOpen={isCustomerDbOpen}
         onClose={() => setIsCustomerDbOpen(false)}
+        onViewUserHistory={(username) => {
+          setViewingUserHistory(username);
+        }}
       />
 
-      {currentUser && (
+      <CouponManagerModal
+        isOpen={isCouponManagerOpen}
+        onClose={() => setIsCouponManagerOpen(false)}
+      />
+
+      <AnnouncementManagerModal
+        isOpen={isAnnouncementManagerOpen}
+        onClose={() => setIsAnnouncementManagerOpen(false)}
+      />
+
+      <UserSettingsModal
+        isOpen={isAccountSettingsOpen}
+        onClose={() => setIsAccountSettingsOpen(false)}
+        currentUser={currentUser}
+        onDeleteAccount={handleDeleteAccount}
+        onChangePassword={handleChangePassword}
+      />
+
+      {(currentUser || viewingUserHistory) && (
         <HistoryModal
-          isOpen={showHistoryModal}
-          onClose={() => setShowHistoryModal(false)}
-          purchases={JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.purchases || []}
-          topups={JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.topups || []}
+          isOpen={showHistoryModal || !!viewingUserHistory}
+          onClose={() => { setShowHistoryModal(false); setViewingUserHistory(null); }}
+          purchases={JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[viewingUserHistory || currentUser?.username || '']?.purchases || []}
+          topups={JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[viewingUserHistory || currentUser?.username || '']?.topups || []}
         />
       )}
     
@@ -2095,6 +2311,7 @@ export default function App() {
   if (appScreen === 'ASTD') {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
+        <AnnouncementPopup appScreen={appScreen} />
         {/* Hero Header Section */}
         <header className="relative border-b border-zinc-900 bg-zinc-950 py-7 overflow-hidden">
           {/* Background Atmosphere */}
@@ -2133,6 +2350,18 @@ export default function App() {
 
               {/* Top Actions */}
               <div className="flex flex-wrap items-center gap-3">
+                {/* Chat now button */}
+                <a
+                  href="https://m.me/DazzRFkaz"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="py-2.5 px-4 rounded-xl border border-blue-500/30 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-lg shadow-blue-500/5 hover:scale-[1.02] active:scale-95"
+                  id="btn-nav-chat-astd"
+                >
+                  <MessageCircle className="w-4 h-4 text-blue-400" />
+                  <span>ทักแชททันที (Messenger)</span>
+                </a>
+
                 {currentUser ? (
                   <div className="flex flex-wrap items-center gap-2 bg-zinc-900 border border-zinc-800 p-1 rounded-xl hidden sm:flex">
                     {/* User Tag */}
@@ -2319,7 +2548,8 @@ export default function App() {
                          </button>
                          <button 
                            onClick={() => {
-                             showToast('ระบบตั้งค่าบัญชีจะเปิดให้บริการเร็วๆ นี้ (เปลี่ยนโปรไฟล์/เปลี่ยนรหัสผ่าน)', 'info');
+                             if (!currentUser) return;
+                             setIsAccountSettingsOpen(true);
                              setIsAstdMenuOpen(false);
                            }}
                            className="w-full text-left px-4 py-2.5 rounded-xl hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
@@ -2335,11 +2565,11 @@ export default function App() {
             </div>
 
             {/* Statistics summary row - Real Data for ASTD */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">จำนวนสินค้าทั้งหมด</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
-                  <span className="font-mono text-2xl font-black text-white">{items.filter(it => it.tags?.includes('ASTD')).length}</span>
+                  <span className="font-mono text-2xl font-black text-white">{items.filter(it => it.game === 'ASTD').length}</span>
                   <span className="text-xs text-zinc-500">รายการ</span>
                 </div>
               </div>
@@ -2347,16 +2577,21 @@ export default function App() {
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">สินค้าสะสมในสต๊อก</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
-                  <span className="font-mono text-2xl font-black text-emerald-400">{items.filter(it => it.tags?.includes('ASTD')).reduce((acc, curr) => acc + curr.quantity, 0).toLocaleString()}</span>
+                  <span className="font-mono text-2xl font-black text-emerald-400">{items.filter(it => it.game === 'ASTD').reduce((acc, curr) => acc + curr.quantity, 0).toLocaleString()}</span>
                   <span className="text-xs text-zinc-500">ชิ้น</span>
                 </div>
               </div>
 
-              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
+              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl relative group">
+                {isAdmin && (
+                  <button onClick={toggleHideGlobalStats} className="absolute top-2 right-2 p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                    {hideGlobalStats ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                )}
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">จำนวนลูกค้าในเว็ป</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
                   <span className="font-mono text-2xl font-black text-indigo-400">
-                    {(() => {
+                    {hideGlobalStats ? '***' : (() => {
                       try {
                         const usersStr = localStorage.getItem('KUWASHII_V2_USERS');
                         return usersStr ? Object.keys(JSON.parse(usersStr)).length : 0;
@@ -2367,22 +2602,52 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
+              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl relative group">
+                {isAdmin && (
+                  <button onClick={toggleHideGlobalStats} className="absolute top-2 right-2 p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                    {hideGlobalStats ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                )}
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">ยอดการเติมเงินรวม</span>
                 <div className="mt-1.5 flex items-baseline gap-1">
                   <span className="text-zinc-500 font-mono text-xs">฿</span>
                   <span className="font-mono text-2xl font-black text-white">
+                    {hideGlobalStats ? '***' : (() => {
+                      try {
+                        let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_REVENUE');
+                        let total = savedTotal !== null ? parseFloat(savedTotal) : null;
+                        if (total === null && localStorage.getItem('KUWASHII_V2_USERS')) {
+                          const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
+                          total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
+                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method !== 'Coupon' ? (tx.amount || 0) : 0), 0);
+                          }, 0);
+                          localStorage.setItem('KUWASHII_GLOBAL_REVENUE', (total || 0).toString());
+                        }
+                        return (total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                      } catch(e) { return "0.00"; }
+                    })()}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">เครดิตฟรีแจกแล้ว</span>
+                <div className="mt-1.5 flex items-baseline gap-1">
+                  <span className="text-zinc-500 font-mono text-xs">C</span>
+                  <span className="font-mono text-2xl font-black text-yellow-400">
                     {(() => {
                       try {
-                        const usersStr = localStorage.getItem('KUWASHII_V2_USERS');
-                        if (!usersStr) return 0;
-                        const users = JSON.parse(usersStr);
-                        const total = Object.values(users).reduce((acc: number, curr: any) => {
-                          const userTopups = curr.topups || [];
-                          return acc + userTopups.reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0);
-                        }, 0);
-                        return total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                      } catch(e) { return "0.00"; }
+                        let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS');
+                        let total = savedTotal !== null ? parseFloat(savedTotal) : null;
+                        if (total === null && localStorage.getItem('KUWASHII_V2_USERS')) {
+                          const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
+                          total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
+                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method === 'Coupon' ? (tx.amount || 0) : 0), 0);
+                          }, 0);
+                          localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS', (total || 0).toString());
+                        }
+                        return (total || 0).toLocaleString();
+                      } catch(e) { return "0"; }
                     })()}
                   </span>
                 </div>
@@ -2542,6 +2807,12 @@ export default function App() {
                    <button onClick={() => setIsCustomerDbOpen(true)} className="py-2 px-4 rounded-xl bg-purple-500/20 text-purple-400 hover:text-white border border-purple-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-purple-500/10">
                      <Users className="w-4 h-4" /> ระบบฐานลูกค้า (Customer DB)
                    </button>
+                   <button onClick={() => setIsCouponManagerOpen(true)} className="py-2 px-4 rounded-xl bg-emerald-500/20 text-emerald-400 hover:text-white border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/10">
+                     <Gift className="w-4 h-4" /> จัดการโค้ดคูปอง
+                   </button>
+                   <button onClick={() => setIsAnnouncementManagerOpen(true)} className="py-2 px-4 rounded-xl bg-amber-500/20 text-amber-400 hover:text-white border border-amber-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-amber-500/10">
+                     <Bell className="w-4 h-4" /> จัดการแจ้งเตือนต่างๆ
+                   </button>
                    <button onClick={() => setIsStockManagerOpen(true)} className="py-2 px-4 rounded-xl bg-indigo-500/20 text-indigo-400 hover:text-white border border-indigo-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer">
                      <Package className="w-4 h-4" /> ระบบผู้ดูแลสต๊อก
                    </button>
@@ -2598,6 +2869,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
+      <AnnouncementPopup appScreen={appScreen} />
       {/* Return to Hub floating button */}
       <div className="fixed bottom-6 right-6 z-40 hidden md:block">
         <button 
@@ -2692,51 +2964,7 @@ export default function App() {
                     {isAdmin ? <ShieldCheck className="w-3.5 h-3.5 animate-pulse" /> : <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />}
                     <span>{currentUser.username} {isAdmin && '(Admin)'}</span>
                   </span>
-                  {!isAdmin && (
-                    <>
-                      <span className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
-                        <Coins className="w-3.5 h-3.5" />
-                        <span>เครดิต: ฿{JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.balance || 0}</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowTopupModal(true)}
-                        className="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
-                      >
-                        <Wallet className="w-3.5 h-3.5" />
-                        <span>เติมเงิน</span>
-                      </button>
-                    </>
-                  )}
-
-                  {/* Add Product Shortcut (Only Admins) */}
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingItem(null);
-                        setIsFormOpen(true);
-                      }}
-                      className="py-1.5 px-3 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-md shadow-white/5 active:scale-95"
-                      id="btn-nav-add"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>ลงขายสินค้า</span>
-                    </button>
-                  )}
-
-                  {/* History Button (User only) */}
-                  {!isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => setShowHistoryModal(true)}
-                      className="py-1.5 px-3 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border border-indigo-500/20"
-                    >
-                      <History className="w-3.5 h-3.5" />
-                      <span>ประวัติ</span>
-                    </button>
-                  )}
-
+                  {/* In AOTR, no credits/topup/history should be shown */}
                   {/* Logout Button */}
                   <button
                     type="button"
@@ -2837,29 +3065,7 @@ export default function App() {
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
 
-        {/* Offline Warning Banner */}
-        {isOfflineMode && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-8 p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-sm"
-          >
-            <div className="flex items-start gap-3.5">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0 animate-pulse">
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-amber-400">ระบบทำงานในโหมดออฟไลน์ความเร็วสูงอัตโนมัติ (Local Offline Active)</h4>
-                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                  {isFirebaseQuotaExceeded 
-                    ? 'เนื่องจากฐานข้อมูลระบบคลาวด์มียอดการเชื่อมต่อหนาแน่นจนเกินโควต้าฟรี (Firebase Database Quota Exceeded)' 
-                    : 'ระบบไม่สามารถเข้าถึงเซิร์ฟเวอร์ฐานข้อมูล Firebase คลาวด์ได้ชั่วคราว'} 
-                  โดยเพื่อให้ท่านสามารถใช้งานหน้าจอเช็คและแก้ไขสินค้าได้อย่างลื่นไหลไร้รอยต่อ ระบบจึงสลับมาใช้พื้นที่เก็บข้อมูลสำรองความปลอดภัยสูงบนอุปกรณ์ของท่าน (LocalStorage) แทนโดยอัตโนมัติ ข้อมูลทุกอย่างที่ท่านจัดหมวดหมู่ เพิ่มสินค้า หรือแก้ไขจำนวนจะถูกเซฟเก็บไว้อย่างครบถ้วน 100% บนเครื่องนี้ และพร้อมซิงค์กลับทันทีเมื่อโควต้าคลาวด์รีเซ็ต!
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
+
         
         {/* Banner announcement board */}
         <div className="mb-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-red-950/20 via-zinc-900/50 to-zinc-900/20 border border-zinc-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
@@ -3307,11 +3513,33 @@ export default function App() {
               </div>
               <div className="flex flex-wrap items-center gap-2.5">
                 
+                <button
+                  type="button"
+                  onClick={() => setIsAnnouncementManagerOpen(true)}
+                  className="py-2 px-3 border border-amber-500/30 hover:border-amber-500/80 bg-amber-950/20 hover:bg-amber-950/40 text-amber-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Bell className="w-3.5 h-3.5" /> แจ้งเตือน Popup
+                </button>
+
+                <button
+                  onClick={() => setIsCustomerDbOpen(true)}
+                  className="py-2 px-3 border border-purple-500/30 hover:border-purple-500/80 bg-purple-950/20 hover:bg-purple-950/40 text-purple-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Users className="w-3.5 h-3.5" /> ลูกค้า
+                </button>
+
+                <button
+                  onClick={() => setIsCouponManagerOpen(true)}
+                  className="py-2 px-3 border border-emerald-500/30 hover:border-emerald-500/80 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Gift className="w-3.5 h-3.5" /> คูปอง
+                </button>
+
                 {/* Stock Manager button */}
                 <button
                   type="button"
                   onClick={() => setIsStockManagerOpen(true)}
-                  className="py-2 px-3 border border-emerald-500/30 hover:border-emerald-500/80 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="py-2 px-3 border border-indigo-500/30 hover:border-indigo-500/80 bg-indigo-950/20 hover:bg-indigo-950/40 text-indigo-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Package className="w-3.5 h-3.5" />
                   <span>ระบบผู้ดูแลสต๊อกทั้งหมด</span>

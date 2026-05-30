@@ -6,14 +6,14 @@ import { UserData } from '../types';
 interface CustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onViewUserHistory: (username: string) => void;
 }
 
-export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, onClose }) => {
+export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, onViewUserHistory }) => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [search, setSearch] = useState('');
   const [editingBalanceUser, setEditingBalanceUser] = useState<string | null>(null);
   const [newBalance, setNewBalance] = useState('');
-  const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
   // Load from multiple sources optionally, but focus on KUWASHII_V2_USERS
   useEffect(() => {
@@ -210,73 +210,16 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                                  </button>
                                )}
                                <button
-                                 onClick={() => setExpandedUser(expandedUser === user.username ? null : user.username)}
+                                 onClick={() => onViewUserHistory(user.username)}
                                  className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0"
-                                 title="ประวัติ"
+                                 title="ประวัติการทำรายการ"
                                >
-                                 {expandedUser === user.username ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                 <History className="w-4 h-4" />
                                </button>
                              </>
                            )}
                         </div>
                       </div>
-
-                      {/* Expandable History Section */}
-                      {expandedUser === user.username && (
-                        <div className="border-t border-zinc-800/50 p-4 bg-black/20">
-                          <div className="grid md:grid-cols-2 gap-6">
-                            {/* Purchases */}
-                            <div>
-                              <h4 className="text-xs font-bold text-zinc-400 mb-3 flex items-center gap-2">
-                                <Package className="w-3 h-3" /> ประวัติการซื้อ ({user.purchases?.length || 0})
-                              </h4>
-                              {(!user.purchases || user.purchases.length === 0) ? (
-                                <p className="text-xs text-zinc-600 italic">ไม่มีข้อมูลการซื้อ</p>
-                              ) : (
-                                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                  {user.purchases.slice().reverse().map((purchase, i) => (
-                                    <div key={i} className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-lg text-xs">
-                                      <div className="flex justify-between items-start mb-1">
-                                        <span className="font-bold text-zinc-300">{purchase.itemName}</span>
-                                        <span className="text-rose-400 font-mono">- {purchase.price} ฿</span>
-                                      </div>
-                                      <div className="flex justify-between items-center text-zinc-500 text-[10px]">
-                                        <span>ออเดอร์: #{purchase.id.slice(0, 8)}</span>
-                                        <span>{new Date(purchase.date).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Topups */}
-                            <div>
-                              <h4 className="text-xs font-bold text-zinc-400 mb-3 flex items-center gap-2">
-                                <DollarSign className="w-3 h-3" /> ประวัติการเติมเงิน ({user.topups?.length || 0})
-                              </h4>
-                              {(!user.topups || user.topups.length === 0) ? (
-                                <p className="text-xs text-zinc-600 italic">ไม่มีข้อมูลการเติมเงิน</p>
-                              ) : (
-                                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                  {user.topups.slice().reverse().map((topup, i) => (
-                                    <div key={i} className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-lg text-xs">
-                                      <div className="flex justify-between items-start mb-1">
-                                        <span className="font-bold text-zinc-300">{topup.method}</span>
-                                        <span className="text-emerald-400 font-mono">{topup.amount > 0 ? '+' : ''}{topup.amount} ฿</span>
-                                      </div>
-                                      <div className="flex justify-between items-center text-zinc-500 text-[10px]">
-                                        <span>อ้างอิง: {topup.refCode || '-'}</span>
-                                        <span>{new Date(topup.date).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>

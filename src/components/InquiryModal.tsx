@@ -6,9 +6,10 @@ import { StockItem } from '../types';
 interface InquiryModalProps {
   item: StockItem | null;
   onClose: () => void;
+  onBuy?: (item: StockItem, qty: number) => void;
 }
 
-export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose }) => {
+export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy }) => {
   const [quantity, setQuantity] = useState(1);
   const [copied, setCopied] = useState(false);
 
@@ -151,6 +152,14 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose }) => 
                   >
                     +
                   </button>
+                  <button
+                    type="button"
+                    disabled={quantity >= item.quantity}
+                    onClick={() => setQuantity(item.quantity)}
+                    className="px-2 h-7 rounded-md bg-amber-500/20 text-amber-500 text-[10px] font-bold uppercase transition-colors hover:bg-amber-500/30 disabled:opacity-30 ml-1"
+                  >
+                    Max
+                  </button>
                 </div>
               </div>
 
@@ -194,70 +203,88 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose }) => 
               </div>
             </div>
 
-            {/* Clipboard Message Copy Center */}
-            <div className="space-y-1.5">
-              <span className="text-[10px] text-zinc-450 font-sans block">กล่องแชทข้อความสั่งซื้อด่วน:</span>
-              <div className="relative">
-                <pre className="text-[10px] font-mono leading-relaxed bg-zinc-900 border border-zinc-900 py-2 px-2.5 rounded-lg text-zinc-350 whitespace-pre h-16 overflow-y-auto overflow-x-hidden scrollbar">
-                  {purchaseMessage}
-                </pre>
-                <div className="absolute top-1.5 right-1.5">
-                  <button
-                    onClick={handleCopy}
-                    className={`p-1.5 rounded border transition-all duration-350 cursor-pointer ${
-                      copied
-                        ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
-                        : 'bg-black border-zinc-800 text-zinc-450 hover:text-white hover:border-zinc-700 shadow-md'
-                    }`}
-                    id="btn-copy-msg"
-                    title="คัดลอกข้อความ"
-                  >
-                    {copied ? <Check className="w-3 h-3 animate-bounce" /> : <Copy className="w-3 h-3" />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Social connections & Action instructions */}
-            <div className="border-t border-zinc-900 pt-3 space-y-2.5 flex-shrink-0">
-              <div className="flex items-center justify-between text-[9px] text-zinc-550 leading-none">
-                <span className="flex items-center gap-1">
-                  <Users className="w-3 h-3 text-zinc-600" />
-                  <span>ผู้ดูแลร้าน: Kuwashii El</span>
-                </span>
-                <span>Facebook: <strong className="text-blue-400 font-mono">m.me/kuwashii</strong></span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={handleCopy}
-                  className={`py-1.5 px-3 rounded-lg font-bold text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    copied
-                      ? 'bg-emerald-500 text-black border-emerald-500 hover:bg-emerald-400 shadow-lg shadow-emerald-500/10'
-                      : 'bg-white hover:bg-zinc-150 text-black border-white shadow-md active:scale-[0.98]'
-                  }`}
-                  id="btn-action-copy-buy"
-                >
-                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  <span>{copied ? 'คัดลอกแล้ว!' : 'คัดลอกคำสั่ง'}</span>
-                </button>
-
+            {onBuy ? (
+              <div className="border-t border-zinc-900 pt-3 mt-3">
                 <button
                   type="button"
                   onClick={() => {
-                    window.open("https://m.me/kuwashii", "_blank");
+                    onBuy(item, quantity);
+                    onClose();
                   }}
-                  className="py-1.5 px-3 rounded-lg font-bold text-[11px] bg-zinc-900 hover:bg-zinc-850 text-zinc-350 hover:text-white border border-zinc-850 text-center transition-all flex items-center justify-center gap-1 cursor-pointer"
-                  id="btn-join-facebook"
+                  className="w-full py-2.5 px-3 rounded-[0.85rem] font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
-                  <span>แชท Facebook</span>
-                  <ExternalLink className="w-3 h-3 text-zinc-500" />
+                  <Coins className="w-4 h-4" />
+                  <span>ยืนยันคำสั่งซื้อ: ฿{totalPrice.toLocaleString()}</span>
                 </button>
               </div>
-              <p className="text-[9px] text-zinc-600 text-center font-sans">
-                *คัดลอกข้อความแชทแล้วทักไปแจ้งแอดมิน เพื่อส่งมอบและตัดสต๊อกของได้ทันที!
-              </p>
-            </div>
+            ) : (
+              <>
+                {/* Clipboard Message Copy Center */}
+                <div className="space-y-1.5 mt-3">
+                  <span className="text-[10px] text-zinc-450 font-sans block">กล่องแชทข้อความสั่งซื้อด่วน:</span>
+                  <div className="relative">
+                    <pre className="text-[10px] font-mono leading-relaxed bg-zinc-900 border border-zinc-900 py-2 px-2.5 rounded-lg text-zinc-350 whitespace-pre h-16 overflow-y-auto overflow-x-hidden scrollbar">
+                      {purchaseMessage}
+                    </pre>
+                    <div className="absolute top-1.5 right-1.5">
+                      <button
+                        onClick={handleCopy}
+                        className={`p-1.5 rounded border transition-all duration-350 cursor-pointer ${
+                          copied
+                            ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
+                            : 'bg-black border-zinc-800 text-zinc-450 hover:text-white hover:border-zinc-700 shadow-md'
+                        }`}
+                        id="btn-copy-msg"
+                        title="คัดลอกข้อความ"
+                      >
+                        {copied ? <Check className="w-3 h-3 animate-bounce" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Social connections & Action instructions */}
+                <div className="border-t border-zinc-900 pt-3 space-y-2.5 flex-shrink-0">
+                  <div className="flex items-center justify-between text-[9px] text-zinc-550 leading-none">
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3 h-3 text-zinc-600" />
+                      <span>ผู้ดูแลร้าน: Kuwashii El</span>
+                    </span>
+                    <span>Facebook: <strong className="text-blue-400 font-mono">m.me/kuwashii</strong></span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={handleCopy}
+                      className={`py-1.5 px-3 rounded-lg font-bold text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        copied
+                          ? 'bg-emerald-500 text-black border-emerald-500 hover:bg-emerald-400 shadow-lg shadow-emerald-500/10'
+                          : 'bg-white hover:bg-zinc-150 text-black border-white shadow-md active:scale-[0.98]'
+                      }`}
+                      id="btn-action-copy-buy"
+                    >
+                      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      <span>{copied ? 'คัดลอกแล้ว!' : 'คัดลอกคำสั่ง'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.open("https://m.me/kuwashii", "_blank");
+                      }}
+                      className="py-1.5 px-3 rounded-lg font-bold text-[11px] bg-zinc-900 hover:bg-zinc-850 text-zinc-350 hover:text-white border border-zinc-850 text-center transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      id="btn-join-facebook"
+                    >
+                      <span>แชท Facebook</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-500" />
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-zinc-600 text-center font-sans">
+                    *คัดลอกข้อความแชทแล้วทักไปแจ้งแอดมิน เพื่อส่งมอบและตัดสต๊อกของได้ทันที!
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </motion.div>
       </div>

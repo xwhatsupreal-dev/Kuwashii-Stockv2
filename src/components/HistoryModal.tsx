@@ -52,6 +52,10 @@ export function HistoryModal({ isOpen, onClose, purchases, topups = [] }: Histor
               <div>
                 <h3 className="font-display text-xl font-bold text-white">ประวัติการทำรายการ</h3>
                 <p className="text-sm text-zinc-400">รายการซื้อสุ่มและประวัติการเติมเงิน</p>
+                <p className="text-[10px] text-amber-500 mt-1 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                  ระบบ Auto Delete: จะถูกลบอัตโนมัติเมื่ออายุเกิน 3 วัน (ป้องกันข้อมูลเต็ม)
+                </p>
               </div>
             </div>
             <button
@@ -157,6 +161,19 @@ export function HistoryModal({ isOpen, onClose, purchases, topups = [] }: Histor
                               );
                             })}
                           </div>
+                          
+                          {/* Contact Button for winning drops */}
+                          {purchase.gachaDrops!.some(drop => !(drop as any).isSalt) && (
+                            <div className="mt-3">
+                              <button
+                                onClick={() => window.open("https://m.me/DazzRFkaz", "_blank")}
+                                className="w-full py-2 px-3 rounded-lg bg-[#0084FF]/10 hover:bg-[#0084FF]/20 text-[#0084FF] hover:text-white border border-[#0084FF]/30 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                              >
+                                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" fill="none"><path d="M12.0001 2.37891C6.47194 2.37891 1.98926 6.55169 1.98926 11.6974C1.98926 14.5971 3.53594 17.18 5.92211 18.8475V21.6212L8.91893 19.9725C9.89417 20.2526 10.9272 20.4079 12.0001 20.4079C17.5283 20.4079 22.011 16.2351 22.011 11.6974C22.011 6.55169 17.5283 2.37891 12.0001 2.37891ZM12.5701 14.5369L10.3752 12.1979L6.11545 14.5369L10.7938 9.56947L13.0119 11.9084L17.2483 9.56947L12.5701 14.5369Z"/></svg>
+                                <span>ติดต่อแอดมินเพื่อเคลมของรางวัล</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

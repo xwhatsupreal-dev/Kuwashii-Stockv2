@@ -106,6 +106,34 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
               )}
             </div>
 
+            {/* View Gacha Pool Details */}
+            {item.gachaPool && item.gachaPool.length > 0 && (
+              <div className="mb-5 bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+                <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-widest mb-2 border-b border-zinc-800 pb-2">
+                  🎁 ของจำลองในกล่องสุ่มนี้ (Gacha Pool)
+                </h3>
+                <ul className="space-y-1.5 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 pr-1">
+                  {item.gachaPool.map((drop) => {
+                    const dropColor = drop.color || '#a1a1aa';
+                    const hasGuarantee = drop.guaranteedAtStock !== undefined || (drop.guaranteedAtStocks && drop.guaranteedAtStocks.length > 0);
+                    return (
+                      <li key={drop.id} className="text-xs flex items-center justify-between p-1.5 rounded-lg bg-zinc-950/50 border border-zinc-800/50">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: dropColor }}></span>
+                          <span className="font-medium" style={{ color: dropColor }}>{drop.name}</span>
+                        </div>
+                        {hasGuarantee ? (
+                          <span className="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded uppercase font-bold">แรร์ไอเทม!</span>
+                        ) : (
+                          <span className="text-[9px] text-zinc-600">ทั่วไป</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
             {/* Purchase area */}
             <div className="mt-2 flex flex-col gap-4">
               <div className="flex items-center justify-between font-bold text-base">

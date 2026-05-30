@@ -13,7 +13,7 @@ export async function testFirestoreConnection() {
 /**
  * Fetch all items from Backend database (free server JSON persistence).
  */
-export async function getFirebaseItems(defaultPresets: StockItem[]): Promise<StockItem[]> {
+export async function getServerItems(defaultPresets: StockItem[]): Promise<StockItem[]> {
   try {
     const response = await fetch('/api/items');
     if (!response.ok) {
@@ -22,7 +22,7 @@ export async function getFirebaseItems(defaultPresets: StockItem[]): Promise<Sto
     const data = await response.json();
     return data as StockItem[];
   } catch (error) {
-    console.error('Error in getFirebaseItems API call:', error);
+    console.error('Error in getServerItems API call:', error);
     throw error;
   }
 }
@@ -30,7 +30,7 @@ export async function getFirebaseItems(defaultPresets: StockItem[]): Promise<Sto
 /**
  * Save (create or update) a StockItem document in local JSON db via Express server
  */
-export async function saveFirebaseItem(item: StockItem): Promise<void> {
+export async function saveServerItem(item: StockItem): Promise<void> {
   try {
     const response = await fetch('/api/items', {
       method: 'POST',
@@ -43,7 +43,7 @@ export async function saveFirebaseItem(item: StockItem): Promise<void> {
       throw new Error(`Failed to save item! Status: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error in saveFirebaseItem API call:', error);
+    console.error('Error in saveServerItem API call:', error);
     throw error;
   }
 }
@@ -51,7 +51,7 @@ export async function saveFirebaseItem(item: StockItem): Promise<void> {
 /**
  * Delete a StockItem document from local JSON db via Express server
  */
-export async function deleteFirebaseItem(id: string): Promise<void> {
+export async function deleteServerItem(id: string): Promise<void> {
   try {
     const response = await fetch(`/api/items/${id}`, {
       method: 'DELETE'
@@ -60,7 +60,7 @@ export async function deleteFirebaseItem(id: string): Promise<void> {
       throw new Error(`Failed to delete item! Status: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error in deleteFirebaseItem API call:', error);
+    console.error('Error in deleteServerItem API call:', error);
     throw error;
   }
 }
@@ -68,7 +68,7 @@ export async function deleteFirebaseItem(id: string): Promise<void> {
 /**
  * Bulk overwrite / reset database items (restore presets)
  */
-export async function resetFirebaseDatabase(itemsList: StockItem[]): Promise<void> {
+export async function resetServerDatabase(itemsList: StockItem[]): Promise<void> {
   try {
     const response = await fetch('/api/items/reset', {
       method: 'POST',
@@ -81,7 +81,7 @@ export async function resetFirebaseDatabase(itemsList: StockItem[]): Promise<voi
       throw new Error(`Failed to reset database! Status: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error in resetFirebaseDatabase API call:', error);
+    console.error('Error in resetServerDatabase API call:', error);
     throw error;
   }
 }
