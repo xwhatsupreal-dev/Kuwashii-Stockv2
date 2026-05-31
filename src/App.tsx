@@ -2263,11 +2263,11 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-16"
           >
-            <h1 className="font-display text-2xl sm:text-3xl font-black text-white tracking-wider uppercase">
-              SELECT <span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">GAME</span>
+            <h1 className="font-display text-xl sm:text-2xl font-black text-white tracking-wide">
+              เลือกเกมที่<span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">สนใจ</span>ได้เลย 🎮
             </h1>
-            <p className="text-zinc-400 mt-3 text-xs sm:text-sm max-w-xl mx-auto">
-              ยินดีต้อนรับ! กรุณาเลือกเกมที่คุณสนใจ เพื่อเข้าดูสินค้าทั้งหมดในร้านของเราได้เลย
+            <p className="text-zinc-400 mt-2 text-[11px] sm:text-sm max-w-xl mx-auto">
+              สวัสดีค้าบ 🙏 สนใจเกมไหนดูก่อนได้เลยน้า ร้านเรามีของให้เลือกเพียบ ทั้งพาสของใช้ แถมมีระบบสุ่มกล่องด้วย ทักเข้ามาสอบถามได้ตลอดเลยค้าบผม!
             </p>
           </motion.div>
 
@@ -2333,6 +2333,35 @@ export default function App() {
       <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
         <AnnouncementPopup appScreen={appScreen} />
         <Snowfall />
+
+        {/* Dynamic Floating Toast Notification */}
+        <AnimatePresence>
+          {toastMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -50, x: '-50%' }}
+              animate={{ opacity: 1, y: 0, x: '-50%' }}
+              exit={{ opacity: 0, y: -30, x: '-50%' }}
+              style={{ zIndex: 9999 }}
+              className={`fixed top-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold tracking-wide border backdrop-blur-md ${
+                toastMessage.type === 'success'
+                  ? 'bg-emerald-950/90 text-emerald-400 border-emerald-500/30'
+                  : toastMessage.type === 'error'
+                  ? 'bg-red-950/90 text-red-400 border-red-500/30'
+                  : 'bg-zinc-900/90 text-zinc-300 border-zinc-705'
+              }`}
+            >
+              {toastMessage.type === 'success' ? (
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+              ) : toastMessage.type === 'error' ? (
+                <AlertTriangle className="w-4 h-4 text-red-500" />
+              ) : (
+                <Info className="w-4 h-4 text-blue-400" />
+              )}
+              <span>{toastMessage.text}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Hero Header Section */}
         <header className="relative border-b border-zinc-900 bg-zinc-950 py-7 overflow-hidden">
           {/* Background Atmosphere */}

@@ -95,31 +95,31 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
           )}
 
           {announcements.length > 1 && (
-            <div className="flex justify-center gap-2 pt-4 bg-zinc-950">
+            <div className="flex justify-center gap-1.5 pt-3 pb-1 bg-zinc-950">
               {announcements.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCurrentIndex(idx)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    currentIndex === idx ? 'bg-amber-500 w-4' : 'bg-zinc-700'
+                  className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                    currentIndex === idx ? 'bg-amber-500 w-3' : 'bg-zinc-700'
                   }`}
                 />
               ))}
             </div>
           )}
           
-          <div className="p-4 bg-zinc-950 flex flex-col sm:flex-row items-center gap-2 justify-center">
+          <div className="p-3 bg-zinc-950 flex flex-row items-center gap-2 justify-center">
             <button
                onClick={handleClose}
-               className="flex-1 w-full justify-center flex items-center gap-2 py-2 px-4 rounded-xl text-zinc-300 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white font-bold text-xs transition-colors"
+               className="flex-1 justify-center flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-zinc-300 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white font-medium text-[11px] transition-colors"
             >
-               <X className="w-3.5 h-3.5" /> ปิดหน้าต่างนี้
+               <X className="w-3 h-3" /> ปิดหน้าต่างนี้
             </button>
             <button
                onClick={handleMute}
-               className="flex-1 w-full justify-center flex items-center gap-2 py-2 px-4 rounded-xl text-zinc-400 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white font-bold text-xs transition-colors"
+               className="flex-1 justify-center flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-zinc-400 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white font-medium text-[11px] transition-colors"
             >
-               <Clock className="w-3.5 h-3.5" /> ไม่แสดงอีก 1 ชม.
+               <Clock className="w-3 h-3" /> ไม่แสดง 1 ชม.
             </button>
           </div>
         </motion.div>

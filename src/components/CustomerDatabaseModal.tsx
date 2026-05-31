@@ -140,7 +140,9 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
     setNewBalance('');
   };
 
-  const filteredUsers = users.filter(u => u && (u.username || '').toLowerCase().includes((search || '').toLowerCase()));
+  const filteredUsers = users
+    .filter(u => u && (u.username || '').toLowerCase().includes((search || '').toLowerCase()))
+    .sort((a, b) => (a.username || '').localeCompare(b.username || ''));
 
   return (
     <AnimatePresence>
