@@ -7,6 +7,13 @@
   --font-mono: "JetBrains Mono", monospace;
 }
 
+html, body, #root {
+  min-height: 100vh;
+  background-color: #09090b; /* zinc-950 */
+  margin: 0;
+  padding: 0;
+}
+
 /* Custom glow borders and custom aesthetics */
 .mythic-glow {
   box-shadow: 0 0 15px -1px rgba(239, 68, 68, 0.35), 0 0 8px -1px rgba(239, 68, 68, 0.2);

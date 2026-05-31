@@ -3542,6 +3542,16 @@ export default function App() {
                   <span>ระบบผู้ดูแลสต๊อกทั้งหมด</span>
                 </button>
 
+                {/* Add product button AOTR */}
+                <button
+                  type="button"
+                  onClick={() => setIsFormOpen(true)}
+                  className="py-2 px-3 border border-blue-500/30 hover:border-blue-500/80 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>เพิ่มสินค้า AOTR</span>
+                </button>
+
                 {/* Delete all products button */}
                 <button
                   type="button"
