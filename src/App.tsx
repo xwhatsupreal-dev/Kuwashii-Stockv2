@@ -1722,11 +1722,11 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl p-6 sm:p-8 w-full max-w-sm relative z-10"
+              className="bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl p-5 w-full max-w-sm relative z-10 max-h-[85vh] overflow-y-auto custom-scrollbar"
             >
-              <div className="text-center mb-6">
-                <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-500 mb-3">
-                  <Wallet className="w-6 h-6" />
+              <div className="text-center mb-5">
+                <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-500 mb-2">
+                  <Wallet className="w-5 h-5" />
                 </div>
                 <h3 className="font-display text-lg font-bold text-white mb-1">
                   เลือกช่องทาง <span className="text-red-500">ชำระเงิน</span>
@@ -1864,28 +1864,28 @@ export default function App() {
                    )}
 
                    {topupModalStep === 'bank' && (
-                     <div className="mb-2 bg-blue-500/10 border border-blue-500/20 p-2 rounded-xl flex flex-col items-center text-center">
-                       <div className="flex flex-col items-center justify-center gap-0.5">
-                          <p className="text-[9px] text-blue-300">กรุณาโอนเงินมาที่บัญชี (QR Code):</p>
-                          <div className="flex items-center gap-1.5">
-                             <p className="text-[11px] font-bold text-white tracking-widest font-mono">213-3-81446-1</p>
-                             <button type="button" onClick={() => { navigator.clipboard.writeText('2133814461'); showToast('คัดลอกเลขบัญชีแล้ว', 'success'); }} className="p-0.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 rounded">
-                                <Copy className="w-2 h-2" />
+                     <div className="mb-2 bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-xl flex flex-col items-center text-center">
+                       <div className="flex flex-col items-center justify-center gap-1.5">
+                          <p className="text-[10px] text-blue-300">กรุณาโอนเงินมาที่บัญชี (QR Code):</p>
+                          <div className="flex items-center gap-2">
+                             <p className="text-base md:text-lg font-bold text-white tracking-widest font-mono">213-3-81446-1</p>
+                             <button type="button" onClick={() => { navigator.clipboard.writeText('2133814461'); showToast('คัดลอกเลขบัญชีแล้ว', 'success'); }} className="p-1 justify-center bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 rounded transition-colors duration-200">
+                                <Copy className="w-4 h-4" />
                              </button>
                           </div>
-                          <p className="text-[9px] text-blue-400">นายธีรเทพ ทองเกตุ</p>
+                          <p className="text-sm md:text-base font-semibold text-blue-400">นายธีรเทพ ทองเกตุ</p>
                        </div>
                        
-                       <a href="https://img2.pic.in.th/1000098251.jpg" download target="_blank" rel="noreferrer" className="block w-full max-w-[80px] border border-blue-500/30 rounded-lg overflow-hidden my-1.5 hover:opacity-90 transition-opacity">
+                       <a href="https://img2.pic.in.th/1000098251.jpg" download target="_blank" rel="noreferrer" className="block w-full max-w-[150px] border-2 border-blue-500/30 rounded-lg overflow-hidden my-2 hover:opacity-90 transition-opacity">
                          <img src="https://img2.pic.in.th/1000098251.jpg" alt="Bank QR" className="w-full h-auto" />
                        </a>
                        
-                       <div className="w-full space-y-1">
-                          <p className="text-[8px] text-blue-400/70 border-t border-blue-500/20 pt-1 leading-tight">
+                       <div className="w-full space-y-1.5">
+                          <p className="text-[9px] text-blue-400/80 border-t border-blue-500/20 pt-1.5 leading-tight">
                             คลิกที่รูปเพื่อดูรูปใหญ่ หรือดาวน์โหลดเก็บไว้<br/>เมื่อโอนเสร็จสิ้น ให้อัปโหลด "ภาพสลิปโอนเงิน" ด้านล่าง
                           </p>
-                          <div className="bg-red-500/10 border border-red-500/20 rounded px-1.5 py-0.5 text-[8px] text-red-400 font-medium leading-tight">
-                             ⚠️ โปรดอัปโหลดสลิปภายใน 3-5 นาที หลังจากโอนเสร็จสิ้น หากเกินเวลาโปรดแจ้งแอดมิน
+                          <div className="bg-red-500/10 border border-red-500/20 rounded px-2 py-1 text-[9px] text-red-400 font-medium leading-tight inline-block">
+                             ⚠️ โปรดอัปโหลดสลิปภายใน 3-5 นาที หลังจากโอนเสร็จสิ้น
                           </div>
                        </div>
                      </div>
@@ -2094,95 +2094,101 @@ export default function App() {
 
   if (appScreen === 'LOADING' || appScreen === 'TRANSITION') {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center relative overflow-hidden">
-        {/* Cinematic Backdrop */}
-        <div className="absolute inset-0 bg-zinc-950">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.03)_0%,transparent_70%)]" />
-        </div>
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-mono">
+        {/* Abstract CRT Scanline Effect */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:100%_4px] z-50 pointer-events-none opacity-50" />
         
-        {/* Ambient Light */}
-        <motion.div 
-          animate={{ opacity: [0.1, 0.3, 0.1], scale: [0.8, 1.2, 0.8] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute w-[50rem] h-[50rem] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen"
-        />
-        <motion.div 
-          animate={{ opacity: [0.1, 0.2, 0.1], scale: [1.2, 0.8, 1.2] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute w-[40rem] h-[40rem] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen -bottom-20 right-0"
-        />
+        {/* Dynamic Dark Gradients */}
+        <div className="absolute top-0 left-1/4 w-[40rem] h-[40rem] bg-indigo-900/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[40rem] h-[40rem] bg-emerald-900/10 rounded-full blur-[120px]" />
         
-        <div className="z-10 flex flex-col items-center">
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="relative w-56 h-56 flex items-center justify-center drop-shadow-[0_0_30px_rgba(79,70,229,0.3)]"
-            >
-              {/* Outer stroke */}
-              <svg className="w-full h-full transform -rotate-90 drop-shadow-xl" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="2" />
-                <motion.circle 
-                  cx="50" cy="50" r="42" fill="none" stroke="url(#progress-gradient)" strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeDasharray="264"
-                  initial={{ strokeDashoffset: 264 }}
-                  animate={{ strokeDashoffset: 264 - (264 * loadingProgress) / 100 }}
-                  transition={{ duration: 0.1, ease: 'linear' }}
-                />
-                <defs>
-                  <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#818cf8" />
-                    <stop offset="50%" stopColor="#2dd4bf" />
-                    <stop offset="100%" stopColor="#34d399" />
-                  </linearGradient>
-                </defs>
-              </svg>
+        <div className="z-10 flex flex-col items-center relative gap-8">
+            
+            {/* The Core Container */}
+            <div className="relative w-48 h-48 flex items-center justify-center">
               
-              <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-5xl font-black font-display text-transparent bg-clip-text bg-gradient-to-br from-indigo-300 via-teal-300 to-emerald-400 tracking-tighter filter drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-                  {loadingProgress}
-                  <span className="text-2xl text-zinc-500 font-normal">%</span>
-                </span>
-                <span className="text-[9px] text-zinc-600 font-bold font-mono tracking-[0.2em] uppercase mt-1">
-                  System Load
-                </span>
-              </div>
-            </motion.div>
+              {/* Outer Spinners */}
+              <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 rounded-full border border-zinc-800 border-l-indigo-500/50"
+              />
+              <motion.div 
+                animate={{ rotate: -360 }}
+                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-2 rounded-full border border-dashed border-zinc-800 border-r-emerald-500/50 opacity-60"
+              />
+              <motion.div 
+                animate={{ rotate: 360, scale: [1, 1.05, 1] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-6 rounded-full border border-zinc-800 border-t-amber-500/30 opacity-40"
+              />
 
+              {/* Central Diamond Unit */}
+              <motion.div 
+                initial={{ rotate: 45, scale: 0.8, opacity: 0 }}
+                animate={{ rotate: 45, scale: [1, 1.1, 1], opacity: 1 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="relative w-16 h-16 bg-zinc-900/80 border border-zinc-700 flex items-center justify-center overflow-hidden shadow-[0_0_40px_rgba(79,70,229,0.2)] backdrop-blur-md"
+              >
+                <motion.div 
+                   animate={{ y: ['-100%', '100%'] }}
+                   transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                   className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-400/20 to-transparent"
+                />
+              </motion.div>
+
+              {/* Absolute Progress Data superimposed on Diamond */}
+              <div className="absolute flex flex-col items-center justify-center drop-shadow-xl z-10 pointer-events-none">
+                 <span className="text-xl font-bold text-white tracking-widest">{loadingProgress}</span>
+              </div>
+            </div>
+
+            {/* Typography / Terminal readout */}
             <motion.div 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
-              className="mt-10 text-center"
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="flex flex-col items-center"
             >
-              <h2 className="text-white font-black tracking-[0.4em] uppercase text-sm mb-3 font-display">
-                {appScreen === 'TRANSITION' ? (targetScreen === 'AOTR' ? 'Connecting to Paradis...' : 'Entering Multiverse...') : 'Loading Data...'}
-              </h2>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                 <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin"/>
-                 <p className="text-zinc-500 font-mono text-[11px] uppercase tracking-[0.1em]">
-                   {appScreen === 'TRANSITION' ? 'กำลังเตรียมการเข้าสู่ระบบ' : 'กำลังเชื่อมต่อเซิร์ฟเวอร์ข้อมูล'}
-                   <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>...</motion.span>
-                 </p>
+              <div className="flex items-center gap-3 mb-4">
+                 <div className="w-2 h-2 bg-indigo-500 rounded-sm animate-pulse" />
+                 <h2 className="text-zinc-200 font-bold tracking-[0.3em] uppercase text-xs">
+                   {appScreen === 'TRANSITION' ? (targetScreen === 'AOTR' ? 'Diving: Paradis' : 'Diving: Multiverse') : 'Initializing System'}
+                 </h2>
+                 <div className="w-2 h-2 bg-emerald-500 rounded-sm animate-pulse delay-75" />
               </div>
               
-              {/* Dynamic Status Text */}
-              <div className="h-4 overflow-hidden relative w-48 mx-auto mt-2 text-center">
-                 <motion.div
-                    animate={{ y: [0, -16, -32, -48] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                    className="flex flex-col text-[9px] font-mono text-emerald-500/70 tracking-widest uppercase items-center"
-                 >
-                    <span>Establishing Secure Link</span>
-                    <span>Validating Credentials</span>
-                    <span>Synchronizing Database</span>
-                    <span>Fetching Asset Bundles</span>
-                    <span>Establishing Secure Link</span>
-                 </motion.div>
+              <div className="bg-black/40 border border-zinc-900 rounded-lg p-3 w-64 text-left">
+                <div className="flex justify-between items-center mb-2 border-b border-zinc-800 pb-2">
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Sys_Status</span>
+                  <span className="text-[9px] text-emerald-400 uppercase tracking-widest animate-pulse">Running</span>
+                </div>
+                
+                {/* Simulated CLI scrolling text */}
+                <div className="h-10 overflow-hidden relative w-full text-left" style={{ maskImage: "linear-gradient(to bottom, white 50%, transparent)"}}>
+                   <motion.div
+                      animate={{ y: [0, -18, -36, -54, -72] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                      className="flex flex-col text-[10px] text-indigo-300/60 font-mono leading-tight space-y-1"
+                   >
+                      <p>{'>'} Decrypting asset chunks...</p>
+                      <p>{'>'} Mounting local virtual dom...</p>
+                      <p>{'>'} Establishing websocket tunnel...</p>
+                      <p>{'>'} Verifying user authorization...</p>
+                      <p>{'>'} Decrypting asset chunks...</p>
+                   </motion.div>
+                </div>
               </div>
             </motion.div>
+        </div>
+
+        {/* Floating background coordinates */}
+        <div className="absolute top-8 left-8 text-[9px] text-zinc-800 font-mono hidden md:block">
+          SYS.LOC.::45.9921_12.0019
+        </div>
+        <div className="absolute bottom-8 right-8 text-[9px] text-zinc-800 font-mono hidden md:block">
+          {`MEM::[0x${Math.floor(Math.random() * 1000000).toString(16).toUpperCase()}]`}
         </div>
       </div>
     );
@@ -2521,7 +2527,7 @@ export default function App() {
             </div>
 
             {/* Statistics summary row - Real Data for ASTD */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 mt-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-8">
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">จำนวนสินค้าทั้งหมด</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
@@ -2531,26 +2537,10 @@ export default function App() {
               </div>
 
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">จำนวนพร้อมส่งด่วน</span>
-                <div className="mt-1.5 flex items-baseline gap-2">
-                  <span className="font-mono text-2xl font-black text-emerald-400">{inStockCount}</span>
-                  <span className="text-xs text-zinc-500">ประเภทคลัง</span>
-                </div>
-              </div>
-
-              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">สินค้าสะสมในสต๊อก</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
                   <span className="font-mono text-2xl font-black text-yellow-500">{totalStockUnits.toLocaleString()}</span>
                   <span className="text-xs text-zinc-500">ชิ้น</span>
-                </div>
-              </div>
-
-              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">มูลค่าสต๊อกประเมินทั้งหมด</span>
-                <div className="mt-1.5 flex items-baseline gap-1">
-                  <span className="text-zinc-500 font-mono text-xs">฿</span>
-                  <span className="font-mono text-2xl font-black text-white">{totalStockValue.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -2834,6 +2824,41 @@ export default function App() {
             </div>
           )}
         </main>
+        
+        {/* ASTD Custom Footer */}
+        <footer className="border-t border-zinc-900 bg-zinc-950 text-xs py-10 mt-12 bg-gradient-to-b from-transparent to-black/90 relative z-10 w-full">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              
+              {/* Left section info */}
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span className="font-display font-medium text-white text-sm">All Star Tower Defense Stock Checker</span>
+                </div>
+                <p className="text-zinc-500">
+                  ระบบจัดการและเช็คจำนวนคงเหลือสต๊อกไอเทมและสเตตัสในเกม All Star Tower Defense แบบเรียลไทม์
+                </p>
+              </div>
+
+              {/* Right section - signature citation requested explicitly */}
+              <div className="text-center md:text-right space-y-1">
+                <p className="text-zinc-600 uppercase tracking-widest text-[10px]">Development Credit</p>
+                <p className="text-zinc-300 font-sans">
+                  Made with passion by{' '}
+                  <strong className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer font-bold font-mono">
+                    Kuwashii El ( @_.texraxit )
+                  </strong>
+                </p>
+                <p className="text-zinc-600 text-[10px]">
+                  ลิขสิทธิ์ดีไซน์เป็นไปตามข้อตกลงและเกม All Star Tower Defense Roblox
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </footer>
+
         {renderModals()}
       </div>
     );
