@@ -71,6 +71,7 @@ import { UserSettingsModal } from './components/UserSettingsModal';
 import { CouponManagerModal } from './components/CouponManagerModal';
 import { AnnouncementManagerModal } from './components/AnnouncementManagerModal';
 import { AnnouncementPopup } from './components/AnnouncementPopup';
+import Snowfall from './components/Snowfall';
 import jsQR from 'jsqr';
 
 const readQRFromImage = (file: File): Promise<string | null> => {
@@ -105,6 +106,7 @@ export default function App() {
   const [appScreen, setAppScreen] = useState<'LOADING' | 'SELECT' | 'TRANSITION' | 'AOTR' | 'ASTD'>('LOADING');
   const [targetScreen, setTargetScreen] = useState<'AOTR' | 'ASTD' | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingVariant, setLoadingVariant] = useState(1);
   const [isAstdMenuOpen, setIsAstdMenuOpen] = useState(false);
   
   const [gachaResult, setGachaResult] = useState<{ drops: { name: string; color?: string; }[]; item: StockItem; } | null>(null);
@@ -2195,82 +2197,41 @@ export default function App() {
         <div className="absolute bottom-0 right-1/4 w-[40rem] h-[40rem] bg-emerald-900/10 rounded-full blur-[120px]" />
         
         <div className="z-10 flex flex-col items-center relative gap-8">
-            
-            {/* The Core Container */}
-            <div className="relative w-48 h-48 flex items-center justify-center">
-              
-              {/* Outer Spinners */}
-              <motion.div 
-                animate={{ rotate: 360 }}
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 rounded-full border border-zinc-800 border-l-indigo-500/50"
-              />
-              <motion.div 
-                animate={{ rotate: -360 }}
-                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-2 rounded-full border border-dashed border-zinc-800 border-r-emerald-500/50 opacity-60"
-              />
-              <motion.div 
-                animate={{ rotate: 360, scale: [1, 1.05, 1] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute inset-6 rounded-full border border-zinc-800 border-t-amber-500/30 opacity-40"
-              />
-
-              {/* Central Diamond Unit */}
-              <motion.div 
-                initial={{ rotate: 45, scale: 0.8, opacity: 0 }}
-                animate={{ rotate: 45, scale: [1, 1.1, 1], opacity: 1 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="relative w-16 h-16 bg-zinc-900/80 border border-zinc-700 flex items-center justify-center overflow-hidden shadow-[0_0_40px_rgba(79,70,229,0.2)] backdrop-blur-md"
-              >
-                <motion.div 
-                   animate={{ y: ['-100%', '100%'] }}
-                   transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                   className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-400/20 to-transparent"
-                />
-              </motion.div>
-
-              {/* Absolute Progress Data superimposed on Diamond */}
-              <div className="absolute flex flex-col items-center justify-center drop-shadow-xl z-10 pointer-events-none">
-                 <span className="text-xl font-bold text-white tracking-widest">{loadingProgress}</span>
-              </div>
-            </div>
-
-            {/* Typography / Terminal readout */}
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="flex flex-col items-center"
+              <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={
+                loadingProgress === 100 
+                ? {
+                    opacity: [1, 0, 1, 0, 0.5, 0],
+                    scale: [1, 1.05, 0.95, 1.1, 0.9, 1.2],
+                    filter: ['hue-rotate(0deg)', 'hue-rotate(90deg)', 'invert(0.8)', 'blur(4px)', 'none'],
+                    x: [0, -10, 15, -20, 10, 0],
+                    y: [0, 10, -10, 15, -5, 0],
+                  }
+                : { opacity: 1, scale: 1 }
+              }
+              transition={{ 
+                duration: loadingProgress === 100 ? 0.2 : 0.8, 
+                ease: loadingProgress === 100 ? "linear" : "easeInOut"
+              }}
+              className="relative flex flex-col items-center justify-center gap-6"
             >
-              <div className="flex items-center gap-3 mb-4">
-                 <div className="w-2 h-2 bg-indigo-500 rounded-sm animate-pulse" />
-                 <h2 className="text-zinc-200 font-bold tracking-[0.3em] uppercase text-xs">
-                   {appScreen === 'TRANSITION' ? (targetScreen === 'AOTR' ? 'Diving: Paradis' : 'Diving: Multiverse') : 'Initializing System'}
-                 </h2>
-                 <div className="w-2 h-2 bg-emerald-500 rounded-sm animate-pulse delay-75" />
-              </div>
+              <img 
+                src="https://s.imgz.io/2026/05/31/100009859524d3e1b8f0277601.gif" 
+                alt="Loading" 
+                className="w-48 h-48 sm:w-64 sm:h-64 object-contain opacity-90 rounded-2xl drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+              />
               
-              <div className="bg-black/40 border border-zinc-900 rounded-lg p-3 w-64 text-left">
-                <div className="flex justify-between items-center mb-2 border-b border-zinc-800 pb-2">
-                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Sys_Status</span>
-                  <span className="text-[9px] text-emerald-400 uppercase tracking-widest animate-pulse">Running</span>
-                </div>
-                
-                {/* Simulated CLI scrolling text */}
-                <div className="h-10 overflow-hidden relative w-full text-left" style={{ maskImage: "linear-gradient(to bottom, white 50%, transparent)"}}>
-                   <motion.div
-                      animate={{ y: [0, -18, -36, -54, -72] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                      className="flex flex-col text-[10px] text-indigo-300/60 font-mono leading-tight space-y-1"
-                   >
-                      <p>{'>'} Decrypting asset chunks...</p>
-                      <p>{'>'} Mounting local virtual dom...</p>
-                      <p>{'>'} Establishing websocket tunnel...</p>
-                      <p>{'>'} Verifying user authorization...</p>
-                      <p>{'>'} Decrypting asset chunks...</p>
-                   </motion.div>
-                </div>
+              <div className="flex flex-col items-center w-full max-w-[16rem]">
+                 <div className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-zinc-400 to-white tracking-[0.2em] uppercase text-[10px] mb-3 opacity-80 animate-pulse">
+                   {appScreen === 'LOADING' ? 'SYSTEM STARTUP...' : 'SECURING CONNECTION...'}
+                 </div>
+                 <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden shadow-inner">
+                   <div 
+                     className="h-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-all duration-300 ease-out"
+                     style={{ width: `${loadingProgress}%` }}
+                   />
+                 </div>
               </div>
             </motion.div>
         </div>
@@ -2288,10 +2249,15 @@ export default function App() {
 
   if (appScreen === 'SELECT') {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-[30rem] bg-gradient-to-b from-purple-900/10 to-transparent filter blur-[80px] pointer-events-none" />
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 relative overflow-hidden text-white">
+        <div 
+          className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat opacity-50 z-0"
+          style={{ backgroundImage: "url('https://s.imgz.io/2026/05/31/1000098494b68242f76bd7e2f7.gif')" }}
+        />
+        <div className="absolute inset-0 bg-zinc-950/60 z-0 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-[30rem] bg-gradient-to-b from-purple-900/20 to-transparent filter blur-[80px] pointer-events-none z-0" />
         
-        <div className="z-10 w-full max-w-5xl">
+        <div className="z-10 w-full max-w-5xl relative">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2366,6 +2332,7 @@ export default function App() {
     return (
       <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
         <AnnouncementPopup appScreen={appScreen} />
+        <Snowfall />
         {/* Hero Header Section */}
         <header className="relative border-b border-zinc-900 bg-zinc-950 py-7 overflow-hidden">
           {/* Background Atmosphere */}
@@ -2994,6 +2961,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
       <AnnouncementPopup appScreen={appScreen} />
+      <Snowfall />
       {/* Return to Hub floating button */}
       <div className="fixed bottom-6 right-6 z-40 hidden md:block">
         <button 
