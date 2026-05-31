@@ -10,7 +10,8 @@ interface AnnouncementPopupProps {
 export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [settings, setSettings] = useState<AnnouncementSettings | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [activeAnnouncements, setActiveAnnouncements] = useState<{ image: string, link: string, originalIndex: number }[]>([]);
+  const [currentActiveIndex, setCurrentActiveIndex] = useState(0);
 
   useEffect(() => {
     const rawSettings = localStorage.getItem('KUWASHII_ANNOUNCEMENT_SETTINGS');
@@ -24,74 +25,96 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
       if ((appScreen === 'ATOR' || appScreen === 'AOTR') && !parsed.showInATOR) return;
       if (appScreen === 'ASTD' && !parsed.showInASTD) return;
 
-      // Check user mute duration
-      const hideUntil = localStorage.getItem('KUWASHII_HIDE_ANNOUNCEMENT_UNTIL');
-      if (hideUntil && parseInt(hideUntil) > Date.now()) {
-        const lastUpdated = localStorage.getItem('KUWASHII_ANNOUNCEMENT_UPDATED_AT');
-        if (!lastUpdated || parseInt(hideUntil) > parseInt(lastUpdated)) {
-           return;
-        }
+      const allAnnouncements = [
+        { image: parsed.imageUrl || 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e', link: parsed.linkUrl }
+      ];
+      if (parsed.imageUrl2) {
+        allAnnouncements.push({ image: parsed.imageUrl2, link: parsed.linkUrl2 });
       }
 
+      // Check user mute duration per announcement
+      const mutedDataRaw = localStorage.getItem('KUWASHII_MUTED_ANNOUNCEMENTS');
+      const mutedData = mutedDataRaw ? JSON.parse(mutedDataRaw) : {};
+      const now = Date.now();
+      const lastUpdated = localStorage.getItem('KUWASHII_ANNOUNCEMENT_UPDATED_AT') || '0';
+
+      const visible = allAnnouncements
+        .map((a, index) => ({ ...a, originalIndex: index }))
+        .filter(a => {
+           const hideUntil = mutedData[a.image];
+           if (hideUntil && parseInt(hideUntil) > now) {
+              if (parseInt(hideUntil) > parseInt(lastUpdated)) {
+                 return false;
+              }
+           }
+           // Also check global legacy mute
+           const globalHideUntil = localStorage.getItem('KUWASHII_HIDE_ANNOUNCEMENT_UNTIL');
+           if (globalHideUntil && parseInt(globalHideUntil) > now) {
+              if (parseInt(globalHideUntil) > parseInt(lastUpdated)) {
+                 return false;
+              }
+           }
+           return true;
+        });
+
+      if (visible.length === 0) return;
+
       setSettings(parsed);
+      setActiveAnnouncements(visible);
       setIsVisible(true);
-      setCurrentIndex(0);
+      setCurrentActiveIndex(0);
     } catch (e) {
       console.error(e);
     }
   }, [appScreen]);
 
-  const getAnnouncementsCount = () => {
-    if (!settings) return 0;
-    let count = 1;
-    if (settings.imageUrl2) count++;
-    return count;
-  };
-
   const handleClose = () => {
-    if (currentIndex < getAnnouncementsCount() - 1) {
-      setCurrentIndex(currentIndex + 1);
+    if (currentActiveIndex < activeAnnouncements.length - 1) {
+      setCurrentActiveIndex(currentActiveIndex + 1);
     } else {
       setIsVisible(false);
     }
   };
 
   const handleMute = () => {
+    const currentInfo = activeAnnouncements[currentActiveIndex];
     const hideUntil = Date.now() + 60 * 60 * 1000; // 1 hour
-    localStorage.setItem('KUWASHII_HIDE_ANNOUNCEMENT_UNTIL', hideUntil.toString());
     
-    if (currentIndex < getAnnouncementsCount() - 1) {
-      setCurrentIndex(currentIndex + 1);
+    try {
+      const mutedDataRaw = localStorage.getItem('KUWASHII_MUTED_ANNOUNCEMENTS');
+      const mutedData = mutedDataRaw ? JSON.parse(mutedDataRaw) : {};
+      mutedData[currentInfo.image] = hideUntil.toString();
+      localStorage.setItem('KUWASHII_MUTED_ANNOUNCEMENTS', JSON.stringify(mutedData));
+    } catch (e) {
+      console.error(e);
+    }
+    
+    if (currentActiveIndex < activeAnnouncements.length - 1) {
+      setCurrentActiveIndex(currentActiveIndex + 1);
     } else {
       setIsVisible(false);
     }
   };
 
-  if (!settings) return null;
+  if (!settings || activeAnnouncements.length === 0) return null;
 
-  const announcements = [
-    { image: settings.imageUrl || 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e', link: settings.linkUrl }
-  ];
-  if (settings.imageUrl2) {
-    announcements.push({ image: settings.imageUrl2, link: settings.linkUrl2 });
-  }
-
-  const current = announcements[currentIndex];
+  const current = activeAnnouncements[currentActiveIndex];
 
   return (
     <AnimatePresence>
       {isVisible && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-          />
+        <motion.div 
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentIndex}
+              key={currentActiveIndex}
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -114,14 +137,14 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
                 />
               )}
 
-              {announcements.length > 1 && (
+              {activeAnnouncements.length > 1 && (
                 <div className="flex justify-center gap-1.5 pt-3 pb-1 bg-zinc-950">
-                  {announcements.map((_, idx) => (
+                  {activeAnnouncements.map((_, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setCurrentIndex(idx)}
+                      onClick={() => setCurrentActiveIndex(idx)}
                       className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                        currentIndex === idx ? 'bg-amber-500 w-3' : 'bg-zinc-700'
+                        currentActiveIndex === idx ? 'bg-amber-500 w-3' : 'bg-zinc-700'
                       }`}
                     />
                   ))}
@@ -144,7 +167,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
               </div>
             </motion.div>
           </AnimatePresence>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
