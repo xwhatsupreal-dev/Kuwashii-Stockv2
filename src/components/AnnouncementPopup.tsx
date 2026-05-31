@@ -4,7 +4,7 @@ import { X, Clock } from 'lucide-react';
 import { AnnouncementSettings } from './AnnouncementManagerModal';
 
 interface AnnouncementPopupProps {
-  appScreen: 'ATOR' | 'ASTD';
+  appScreen: 'ATOR' | 'AOTR' | 'ASTD' | string;
 }
 
 export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen }) => {
@@ -21,7 +21,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
       
       // Check if disabled globally or for this screen
       if (!parsed.enabled) return;
-      if (appScreen === 'ATOR' && !parsed.showInATOR) return;
+      if ((appScreen === 'ATOR' || appScreen === 'AOTR') && !parsed.showInATOR) return;
       if (appScreen === 'ASTD' && !parsed.showInASTD) return;
 
       // Check user mute duration
@@ -41,14 +41,30 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
     }
   }, [appScreen]);
 
+  const getAnnouncementsCount = () => {
+    if (!settings) return 0;
+    let count = 1;
+    if (settings.imageUrl2) count++;
+    return count;
+  };
+
   const handleClose = () => {
-    setIsVisible(false);
+    if (currentIndex < getAnnouncementsCount() - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setIsVisible(false);
+    }
   };
 
   const handleMute = () => {
     const hideUntil = Date.now() + 60 * 60 * 1000; // 1 hour
     localStorage.setItem('KUWASHII_HIDE_ANNOUNCEMENT_UNTIL', hideUntil.toString());
-    setIsVisible(false);
+    
+    if (currentIndex < getAnnouncementsCount() - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setIsVisible(false);
+    }
   };
 
   if (!isVisible || !settings) return null;
