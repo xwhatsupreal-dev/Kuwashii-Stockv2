@@ -744,8 +744,8 @@ export default function App() {
                 // slipTime is in milliseconds. Compare with 'now'
                 const diffMinutes = Math.floor((now - slipTime) / (1000 * 60));
                 
-                // Allow a small clock skew (e.g., -2 minutes) but reject if it's more than 5 minutes old
-                if (diffMinutes > 5) {
+                // Allow a small clock skew (e.g., -2 minutes) but reject if it's more than 10 minutes old
+                if (diffMinutes > 10) {
                    const timeErr = `สลิปนี้หมดอายุแล้ว (โอนผ่านไปแล้ว ${diffMinutes} นาที) กรุณาติดต่อแอดมินเพื่อตรวจสอบ`;
                    setTopupError(timeErr);
                    showToast(timeErr, 'error');
@@ -1970,12 +1970,12 @@ export default function App() {
                          <img src="https://img2.pic.in.th/1000098251.jpg" alt="Bank QR" className="w-full h-auto" />
                        </a>
                        
-                       <div className="w-full space-y-1.5">
-                          <p className="text-[9px] text-blue-400/80 border-t border-blue-500/20 pt-1.5 leading-tight">
+                       <div className="w-full space-y-2 mt-2">
+                          <p className="text-xs text-blue-400/90 border-t border-blue-500/20 pt-2 leading-tight">
                             คลิกที่รูปเพื่อดูรูปใหญ่ หรือดาวน์โหลดเก็บไว้<br/>เมื่อโอนเสร็จสิ้น ให้อัปโหลด "ภาพสลิปโอนเงิน" ด้านล่าง
                           </p>
-                          <div className="bg-red-500/10 border border-red-500/20 rounded px-2 py-1 text-[9px] text-red-400 font-medium leading-tight inline-block">
-                             ⚠️ โปรดอัปโหลดสลิปภายใน 3-5 นาที หลังจากโอนเสร็จสิ้น
+                          <div className="bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2 text-xs md:text-sm text-red-500 font-bold leading-tight inline-block shadow-sm">
+                             ⚠️ โปรดอัปโหลดสลิปภายใน 10 นาที หลังจากโอนเสร็จสิ้น
                           </div>
                        </div>
                      </div>
@@ -2267,7 +2267,7 @@ export default function App() {
               เลือกเกมที่<span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">สนใจ</span>ได้เลย 🎮
             </h1>
             <p className="text-zinc-400 mt-2 text-[11px] sm:text-sm max-w-xl mx-auto">
-              สวัสดีค้าบ 🙏 สนใจเกมไหนดูก่อนได้เลยน้า ร้านเรามีของให้เลือกเพียบ ทั้งพาสของใช้ แถมมีระบบสุ่มกล่องด้วย ทักเข้ามาสอบถามได้ตลอดเลยค้าบผม!
+              สวัสดีค้าบ 🙏 สนใจเกมไหนดูก่อนได้เลยน้า ร้านเรามีของให้เลือกเพียบ แถมมีระบบสุ่มกล่องด้วย ทักเข้ามาสอบถามได้ตลอดเลยค้าบผม!
             </p>
           </motion.div>
 
