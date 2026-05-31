@@ -72,7 +72,18 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
 
           <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800">
             <AnimatePresence>
-              {result.drops.map((drop, idx) => (
+              {Object.values(
+                result.drops.reduce((acc: any, drop) => {
+                  const key = drop.name;
+                  if (!acc[key]) acc[key] = { ...drop, count: 0 };
+                  acc[key].count++;
+                  return acc;
+                }, {})
+              ).sort((a: any, b: any) => {
+                if (a.isSalt && !b.isSalt) return 1;
+                if (!a.isSalt && b.isSalt) return -1;
+                return 0;
+              }).map((drop: any, idx) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, x: -20 }}
@@ -90,11 +101,18 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
                   >
                     {drop.isSalt ? '🧂' : '✨'}
                   </div>
-                  <div className="flex-1 text-left">
-                    <div className={`${drop.isSalt ? 'text-zinc-400' : 'text-white'} font-bold text-lg`}>{drop.name}</div>
-                    <div className="text-xs font-mono text-zinc-500 uppercase tracking-widest mt-0.5">
-                      {drop.isSalt ? 'SALT / ไม่มีรางวัล' : 'Epic Drop Reward'}
+                  <div className="flex-1 text-left flex justify-between items-center">
+                    <div>
+                      <div className={`${drop.isSalt ? 'text-zinc-400' : 'text-white'} font-bold text-lg`}>{drop.name}</div>
+                      <div className="text-xs font-mono text-zinc-500 uppercase tracking-widest mt-0.5">
+                        {drop.isSalt ? 'SALT / ไม่มีรางวัล' : 'Epic Drop Reward'}
+                      </div>
                     </div>
+                    {drop.count > 1 && (
+                      <div className="text-xl font-bold font-mono text-zinc-300 bg-zinc-800 px-3 py-1 rounded-xl">
+                        x{drop.count}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               ))}

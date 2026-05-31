@@ -30,10 +30,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [name, setName] = useState('');
   const [category, setCategory] = useState<StockItem['category']>('Serum');
   const [rarity, setRarity] = useState<StockItem['rarity']>('Common');
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | string>(1);
   const [initialQuantity, setInitialQuantity] = useState<number | string>('');
   const [piecesPerUnit, setPiecesPerUnit] = useState<number | string>('');
-  const [price, setPrice] = useState(10);
+  const [price, setPrice] = useState<number | string>(10);
   const [description, setDescription] = useState('');
   const [isPinned, setIsPinned] = useState(false);
   const [isPopular, setIsPopular] = useState(false);
@@ -141,9 +141,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
+    const qty = typeof quantity === 'number' ? quantity : parseInt(quantity as string, 10);
+    const p = typeof price === 'number' ? price : parseInt(price as string, 10);
     if (!name.trim()) newErrors.name = 'กรุณากรอกชื่อไอเทม';
-    if (quantity < 0) newErrors.quantity = 'จำนวนสินค้าจะต้องไม่ติดลบ';
-    if (price < 0) newErrors.price = 'ราคาจำเป็นจะต้องมากกว่าหรือเท่ากับ 0 บาท';
+    if (isNaN(qty) || qty < 0) newErrors.quantity = 'จำนวนสินค้าจะต้องไม่ติดลบ';
+    if (isNaN(p) || p < 0) newErrors.price = 'ราคาจำเป็นจะต้องมากกว่าหรือเท่ากับ 0 บาท';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -159,7 +161,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       finalImageUrl = uploadBase64;
     }
 
-    const currentQty = quantity;
+    const currentQty = typeof quantity === 'number' ? quantity : (parseInt(quantity as string, 10) || 0);
+    const currentPrice = typeof price === 'number' ? price : (parseInt(price as string, 10) || 0);
     const initQty = typeof initialQuantity === 'number' ? initialQuantity : parseInt(initialQuantity as string, 10);
     const finalInitialQuantity = (!isNaN(initQty) && initQty >= currentQty) ? initQty : currentQty;
 
@@ -172,10 +175,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       name: name.trim(),
       category,
       rarity,
-      quantity,
+      quantity: currentQty,
       initialQuantity: finalInitialQuantity,
       piecesPerUnit: finalPiecesPerUnit,
-      price,
+      price: currentPrice,
       description: description.trim(),
       imageUrl: finalImageUrl || undefined,
       isPinned,
@@ -326,7 +329,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   type="number"
                   min="0"
                   value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 0)}
+                  onChange={(e) => setQuantity(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-bold"
                 />
                 {errors.quantity && <p className="text-xs text-red-500 mt-1">{errors.quantity}</p>}
@@ -371,7 +374,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   type="number"
                   min="0"
                   value={price}
-                  onChange={(e) => setPrice(parseInt(e.target.value, 10) || 0)}
+                  onChange={(e) => setPrice(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-850 text-zinc-100 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-medium"
                 />
                 {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
@@ -380,14 +383,15 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
             {/* Live Calculation Preview Block */}
             {(() => {
+              const currentQty = typeof quantity === 'number' ? quantity : (parseInt(quantity as string, 10) || 0);
               const pCount = piecesPerUnit ? (parseInt(piecesPerUnit as string, 10) || 1) : 1;
-              const totalItems = quantity * pCount;
+              const totalItems = currentQty * pCount;
               if (pCount > 1) {
                 return (
                   <div className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span className="text-xs text-amber-300 font-medium">💡 คำนวณคลังเสมือนจริง:</span>
                     <span className="text-xs font-mono text-zinc-300">
-                      ได้สินค้า <strong className="text-amber-400 font-extrabold">{pCount}</strong> ชิ้นต่อชุด × สต๊อกมี <strong className="text-emerald-400 font-extrabold">{quantity}</strong> ชุด = จะมีของข้างในรวมทั้งหมด <strong className="text-white text-sm bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800 font-extrabold">{totalItems} ชิ้น</strong>
+                      ได้สินค้า <strong className="text-amber-400 font-extrabold">{pCount}</strong> ชิ้นต่อชุด × สต๊อกมี <strong className="text-emerald-400 font-extrabold">{currentQty}</strong> ชุด = จะมีของข้างในรวมทั้งหมด <strong className="text-white text-sm bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800 font-extrabold">{totalItems} ชิ้น</strong>
                     </span>
                   </div>
                 );
@@ -518,6 +522,27 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             className="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:border-amber-500 transition-all font-mono"
                           />
                         </div>
+
+                        {/* Status Check if dropped */}
+                        {(() => {
+                           const currentQty = typeof quantity === 'number' ? quantity : (parseInt(quantity as string, 10) || 0);
+                           let stocksToCheck: number[] = [];
+                           if (reward.guaranteedAtStocks) stocksToCheck = reward.guaranteedAtStocks;
+                           else if (reward.guaranteedAtStock !== undefined) stocksToCheck = [reward.guaranteedAtStock];
+                           
+                           if (stocksToCheck.length > 0) {
+                              const droppedCount = stocksToCheck.filter(s => s > currentQty).length;
+                              const unDroppedCount = stocksToCheck.length - droppedCount;
+                              return (
+                                <div className="text-[10px] flex items-center justify-between px-1">
+                                  {droppedCount > 0 && <span className="text-red-400 font-bold">ออกไปแล้ว: {droppedCount} ชุด</span>}
+                                  {unDroppedCount > 0 && <span className="text-emerald-400 font-bold">รอออกกระดานหน้า: {unDroppedCount} ชุด</span>}
+                                </div>
+                              );
+                           }
+                           return null;
+                        })()}
+
                       </div>
                     ))}
                   </div>

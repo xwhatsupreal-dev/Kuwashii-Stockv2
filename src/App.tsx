@@ -866,6 +866,7 @@ export default function App() {
         if (!v2Users[usernameTrimmed]) {
           v2Users[usernameTrimmed] = {
             username: usernameTrimmed,
+            email: typeof userData !== 'string' ? userData?.email : undefined,
             password: authPassword,
             balance: 0,
             joinDate: typeof userData !== 'string' && userData?.createdAt ? userData.createdAt : new Date().toISOString(),
@@ -932,19 +933,27 @@ export default function App() {
       }
 
       const usersData = localStorage.getItem('KUWASHII_USERS');
+      const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
       let users: Record<string, any> = usersData ? JSON.parse(usersData) : {};
+      let v2Users: Record<string, any> = usersDataV2 ? JSON.parse(usersDataV2) : {};
       
-      if (users[authUsername.trim()]) {
+      const targetUsername = authUsername.trim();
+      
+      // Case-insensitive check for both databases
+      const usernameExists = Object.keys(users).some(u => u.toLowerCase() === targetUsername.toLowerCase()) || 
+                             Object.keys(v2Users).some(u => u.toLowerCase() === targetUsername.toLowerCase());
+
+      if (usernameExists) {
         setAuthError('ชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว!');
         return;
       }
-      if (authUsername.trim().toLowerCase() === 'kuwashii_admin') {
+      if (targetUsername.toLowerCase() === 'kuwashii_admin') {
          setAuthError('ไม่สามารถใช้ชื่อผู้ดูแลนี้ได้');
          return;
       }
       
       // Store object instead of string
-      users[authUsername.trim()] = {
+      users[targetUsername] = {
         password: authPassword,
         email: authEmail.trim(),
         createdAt: new Date().toISOString()
@@ -952,10 +961,9 @@ export default function App() {
       localStorage.setItem('KUWASHII_USERS', JSON.stringify(users));
       
       // Sync to V2 format
-      const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
-      let v2Users = usersDataV2 ? JSON.parse(usersDataV2) : {};
-      v2Users[authUsername.trim()] = {
-        username: authUsername.trim(),
+      v2Users[targetUsername] = {
+        username: targetUsername,
+        email: authEmail.trim(),
         password: authPassword,
         balance: 0,
         joinDate: new Date().toISOString(),
@@ -1123,41 +1131,73 @@ export default function App() {
       return;
     }
 
-    // Perform Gacha Roll if applicable
-    let drops: { name: string; color?: string; isSalt?: boolean }[] = [];
-    if (item.gachaPool && item.gachaPool.length > 0) {
-      for (let i = 0; i < purchaseQty; i++) {
-        const currentOpenStock = item.quantity - i;
-        
-        let dropped = null;
-        
-        // Check for guaranteed drop at this specific stock count
-        const guaranteedReward = item.gachaPool.find(r => 
-          (r.guaranteedAtStock !== undefined && r.guaranteedAtStock === currentOpenStock) ||
-          (r.guaranteedAtStocks && r.guaranteedAtStocks.includes(currentOpenStock))
-        );
-        
-        if (guaranteedReward) {
-          dropped = guaranteedReward;
-        }
-        
-        if (dropped) {
-          drops.push({ name: dropped.name, color: dropped.color });
-        } else {
-          // If it isn't at guaranteed stock, it's salt
-          drops.push({ name: 'เกลือ (ไม่ได้อะไรเลย)', color: '#6b7280', isSalt: true });
-        }
-      }
-    }
-
     setIsProcessingPurchase(true);
     
     // Simulate payment processing delay
     setTimeout(() => {
+      // Re-fetch users to prevent race conditions during the delay
+      const liveUsersData = localStorage.getItem('KUWASHII_V2_USERS');
+      if (!liveUsersData) {
+         showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลลูกค้า โปรดลองอีกครั้ง', 'error');
+         setIsProcessingPurchase(false);
+         return;
+      }
+      const liveParsed = JSON.parse(liveUsersData);
+      const liveUser = liveParsed[currentUser.username];
+      
+      if (!liveUser || liveUser.balance < totalPrice) {
+         showToast('ยอดเงินไม่เพียงพอ หรือข้อมูลไม่ถูกต้อง', 'error');
+         setIsProcessingPurchase(false);
+         return;
+      }
+
+      // Read LIVE items to ensure stock is still enough and accurately evaluate gacha drops
+      const storageKey = item.game === 'ASTD' ? 'ASTD_STOCK_ITEMS' : 'AOTR_STOCK_ITEMS';
+      const liveItemsData = localStorage.getItem(storageKey);
+      let liveItemQty = item.quantity;
+      if (liveItemsData) {
+        try {
+          const fetchedItems = JSON.parse(liveItemsData);
+          const found = fetchedItems.find((it: any) => it.id === item.id);
+          if (found) liveItemQty = found.quantity;
+        } catch(e) {}
+      }
+
+      if (purchaseQty > liveItemQty) {
+         showToast('ขออภัย สินค้าในสต๊อกถูกซื้อไปหมดหรือมีไม่เพียงพอแล้ว', 'error');
+         setIsProcessingPurchase(false);
+         return;
+      }
+
+      // Perform Gacha Roll based on CURRENT LIVE stock
+      let drops: { name: string; color?: string; isSalt?: boolean }[] = [];
+      if (item.gachaPool && item.gachaPool.length > 0) {
+        for (let i = 0; i < purchaseQty; i++) {
+          const currentOpenStock = liveItemQty - i;
+          
+          let dropped = null;
+          
+          const guaranteedReward = item.gachaPool.find(r => 
+            (r.guaranteedAtStock !== undefined && r.guaranteedAtStock === currentOpenStock) ||
+            (r.guaranteedAtStocks && r.guaranteedAtStocks.includes(currentOpenStock))
+          );
+          
+          if (guaranteedReward) {
+            dropped = guaranteedReward;
+          }
+          
+          if (dropped) {
+            drops.push({ name: dropped.name, color: dropped.color });
+          } else {
+            drops.push({ name: 'เกลือ', color: '#6b7280', isSalt: true });
+          }
+        }
+      }
+
       // Process Purchase
-      user.balance -= totalPrice;
-      if (!user.purchases) user.purchases = [];
-      user.purchases.push({
+      liveUser.balance -= totalPrice;
+      if (!liveUser.purchases) liveUser.purchases = [];
+      liveUser.purchases.push({
         id: `PUR-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
         itemId: item.id,
         itemName: item.name,
@@ -1166,10 +1206,10 @@ export default function App() {
         gachaDrops: drops.length > 0 ? drops : undefined
       });
 
-      localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(parsedUsers));
+      localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(liveParsed));
       
-      // Reduce Stock
-      handleQuickQuantityChange(item.id, -purchaseQty);
+      // Reduce Stock (pass true to skip the toast inside the helper if we had one)
+      handleQuickQuantityChange(item.id, -purchaseQty, true);
       
       setInquiringItem(null);
       setIsProcessingPurchase(false);
@@ -1189,30 +1229,38 @@ export default function App() {
     }, 1500);
   };
 
-  const handleQuickQuantityChange = async (id: string, delta: number) => {
-    const target = items.find((it) => it.id === id);
-    if (!target) return;
+  const handleQuickQuantityChange = async (id: string, delta: number, silent: boolean = false) => {
+    setItems((prevItems) => {
+      const target = prevItems.find((it) => it.id === id);
+      if (!target) return prevItems;
 
-    const nextQty = Math.max(0, target.quantity + delta);
-    const updated: StockItem = {
-      ...target,
-      quantity: nextQty,
-      initialQuantity: target.initialQuantity !== undefined 
-        ? Math.max(target.initialQuantity, nextQty)
-        : nextQty,
-      updatedAt: new Date().toISOString(),
-    };
+      const nextQty = Math.max(0, target.quantity + delta);
+      const updated: StockItem = {
+        ...target,
+        quantity: nextQty,
+        initialQuantity: target.initialQuantity !== undefined 
+          ? Math.max(target.initialQuantity, nextQty)
+          : nextQty,
+        updatedAt: new Date().toISOString(),
+      };
 
-    const newItems = items.map((it) => (it.id === id ? updated : it));
-    saveItemsToStorage(newItems);
-    showToast('อัปเดตจำนวนสต็อกเรียบร้อย!', 'success');
-    if (nextQty <= 5 && nextQty < target.quantity) {
-      playChime('warning');
-    } else if (nextQty > target.quantity) {
-      playChime('success');
-    } else {
-      playChime('info');
-    }
+      const newItems = prevItems.map((it) => (it.id === id ? updated : it));
+      localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(newItems));
+      
+      if (!silent) {
+        setTimeout(() => {
+          showToast('อัปเดตจำนวนสต็อกเรียบร้อย!', 'success');
+          if (nextQty <= 5 && nextQty < target.quantity) {
+            playChime('warning');
+          } else if (nextQty > target.quantity) {
+            playChime('success');
+          } else {
+            playChime('info');
+          }
+        }, 0);
+      }
+      return newItems;
+    });
   };
 
   const handleTogglePin = async (id: string) => {
@@ -1260,10 +1308,10 @@ export default function App() {
     }
   };
 
-  const getLatestUpdatedRelativeTime = (): string => {
-    if (!items || items.length === 0) return 'ไม่มีบันทึกข้อมูล';
+  const getLatestUpdatedRelativeTime = (list: StockItem[]): string => {
+    if (!list || list.length === 0) return 'ไม่มีบันทึกข้อมูล';
     try {
-      const timestamps = items.map(it => new Date(it.updatedAt).getTime()).filter(t => !isNaN(t));
+      const timestamps = list.map(it => new Date(it.updatedAt).getTime()).filter(t => !isNaN(t));
       if (timestamps.length === 0) return 'ไม่มีบันทึกข้อมูล';
       const latestTime = Math.max(...timestamps);
       const date = new Date(latestTime);
@@ -2081,7 +2129,6 @@ export default function App() {
         isOpen={isAccountSettingsOpen}
         onClose={() => setIsAccountSettingsOpen(false)}
         currentUser={currentUser}
-        onDeleteAccount={handleDeleteAccount}
         onChangePassword={handleChangePassword}
       />
 
@@ -2350,7 +2397,7 @@ export default function App() {
                       <>
                         <span className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
                           <Coins className="w-3.5 h-3.5" />
-                          <span>เครดิต: ฿{JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.balance || 0}</span>
+                          <span>เครดิต: ฿{Number(JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</span>
                         </span>
                         <button
                           type="button"
@@ -2456,7 +2503,7 @@ export default function App() {
                                  {isAdmin ? <ShieldCheck className="w-4 h-4 text-amber-500" /> : <div className="w-2 h-2 rounded-full bg-indigo-500" />}
                                  <span className="text-sm font-semibold text-zinc-200">{currentUser.username}</span>
                                  {!isAdmin && (
-                                   <span className="ml-auto text-xs font-mono text-emerald-400">฿{JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.balance || 0}</span>
+                                   <span className="ml-auto text-xs font-mono text-emerald-400">฿{Number(JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</span>
                                  )}
                                </div>
                                {isAdmin && (
@@ -2655,7 +2702,7 @@ export default function App() {
               <div className="flex flex-1 sm:flex-none items-center justify-center sm:justify-start gap-1.5 sm:gap-2 bg-zinc-950/50 px-2 sm:px-3 py-1.5 rounded-lg sm:rounded-xl border border-zinc-850">
                 <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-550/80" />
                 <span className="text-[10px] sm:text-[11px] text-zinc-300">
-                  อัปเดตล่าสุด: <strong className="text-indigo-400">เมื่อสักครู่</strong>
+                  อัปเดตล่าสุด: <strong className="text-indigo-400">{getLatestUpdatedRelativeTime(currentContextItems)}</strong>
                 </span>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
@@ -3115,7 +3162,7 @@ export default function App() {
                 อัปเดตคลังล่าสุด: {isLoadingStock ? (
                   <span className="h-3 w-16 bg-zinc-900/80 animate-pulse rounded inline-block align-middle ml-1" />
                 ) : (
-                  <strong className="text-amber-400">{getLatestUpdatedRelativeTime()}</strong>
+                  <strong className="text-amber-400">{getLatestUpdatedRelativeTime(currentContextItems)}</strong>
                 )}
               </span>
             </div>

@@ -141,22 +141,45 @@ export function HistoryModal({ isOpen, onClose, purchases, topups = [] }: Histor
                             ไอเทมที่ได้รับจากกล่องสุ่ม
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {purchase.gachaDrops!.map((drop, idx) => {
-                              const isSalt = (drop as any).isSalt;
+                            {Object.values(
+                              purchase.gachaDrops!.reduce((acc: any, drop) => {
+                                const key = drop.name;
+                                if (!acc[key]) acc[key] = { ...drop, count: 0 };
+                                acc[key].count++;
+                                return acc;
+                              }, {})
+                            ).sort((a: any, b: any) => {
+                              if (a.isSalt && !b.isSalt) return 1;
+                              if (!a.isSalt && b.isSalt) return -1;
+                              return 0;
+                            }).map((drop: any, idx) => {
+                              const isSalt = drop.isSalt;
                               return (
-                                <div key={idx} className="flex items-center gap-2.5 p-2.5 bg-zinc-900/80 rounded-xl border border-zinc-800/80 shadow-sm">
+                                <div key={idx} className="flex items-center gap-2.5 p-2.5 bg-zinc-900/80 rounded-xl border border-zinc-800/80 shadow-sm relative overflow-hidden">
                                   <div 
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shadow-inner bg-zinc-950 border border-zinc-800"
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shadow-inner bg-zinc-950 border border-zinc-800 shrink-0"
                                     style={{ color: drop.color || (isSalt ? '#6b7280' : '#F59E0B') }}
                                   >
                                     {isSalt ? '🧂' : '✨'}
                                   </div>
-                                  <div className="flex-1 truncate">
-                                    <p className={`text-sm font-bold truncate ${isSalt ? 'text-zinc-400' : 'text-zinc-200'}`}>{drop.name}</p>
-                                    <p className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase truncate">
-                                      {isSalt ? 'SALT' : 'DROP REWARD'}
-                                    </p>
+                                  <div className="flex-1 truncate flex justify-between items-center gap-2">
+                                    <div className="truncate">
+                                      <p className={`text-sm font-bold truncate ${isSalt ? 'text-zinc-400' : 'text-zinc-200'}`}>{drop.name}</p>
+                                      <p className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase truncate">
+                                        {isSalt ? 'SALT' : 'DROP REWARD'}
+                                      </p>
+                                    </div>
+                                    {drop.count > 1 && (
+                                      <div className="text-xs font-bold font-mono text-zinc-300 bg-zinc-800 px-2 py-0.5 rounded-md shrink-0 border border-zinc-700/50 shadow-sm hidden sm:block">
+                                        x{drop.count}
+                                      </div>
+                                    )}
                                   </div>
+                                  {drop.count > 1 && (
+                                      <div className="absolute top-0 right-0 sm:hidden text-[10px] font-bold font-mono text-zinc-300 bg-zinc-800/80 px-1.5 py-0.5 rounded-bl-lg shrink-0 border-b border-l border-zinc-700/50 backdrop-blur-sm">
+                                        x{drop.count}
+                                      </div>
+                                    )}
                                 </div>
                               );
                             })}

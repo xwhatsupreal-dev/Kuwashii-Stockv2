@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Settings, AlertTriangle, KeySquare } from 'lucide-react';
+import { X, User, Settings, KeySquare } from 'lucide-react';
 
 interface UserSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: { username: string } | null;
-  onDeleteAccount: () => void;
   onChangePassword: (newPass: string) => void;
 }
 
@@ -14,12 +13,10 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   isOpen,
   onClose,
   currentUser,
-  onDeleteAccount,
   onChangePassword,
 }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   const handleSave = () => {
     if (newPassword) {
@@ -35,6 +32,30 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   };
 
   if (!isOpen || !currentUser) return null;
+
+  // Retrieve user email
+  let userEmail = '-';
+  if (currentUser) {
+     const v2UsersStr = localStorage.getItem('KUWASHII_V2_USERS');
+     if (v2UsersStr) {
+       const v2Users = JSON.parse(v2UsersStr);
+       const userStr = v2Users[currentUser.username];
+       if (userStr && userStr.email) {
+          userEmail = userStr.email;
+       }
+     }
+     
+     if (userEmail === '-') {
+        const v1UsersStr = localStorage.getItem('KUWASHII_USERS');
+        if (v1UsersStr) {
+           const v1Users = JSON.parse(v1UsersStr);
+           const v1User = v1Users[currentUser.username];
+           if (v1User && typeof v1User !== 'string' && v1User.email) {
+              userEmail = v1User.email;
+           }
+        }
+     }
+  }
 
   return (
     <AnimatePresence>
@@ -67,7 +88,8 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-black text-white">ตั้งค่าบัญชี</h2>
-              <p className="text-xs text-zinc-500">จัดการข้อมูลผู้ใช้: <span className="font-mono text-zinc-300">{currentUser.username}</span></p>
+              <p className="text-xs text-zinc-400 mt-1">ผู้ใช้: <span className="font-mono text-zinc-200">{currentUser.username}</span></p>
+              <p className="text-xs text-zinc-500 mt-0.5">อีเมล: <span className="font-sans text-zinc-400">{userEmail}</span></p>
             </div>
           </div>
 
@@ -100,44 +122,6 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             >
               บันทึกการตั้งค่า
             </button>
-
-            <hr className="border-zinc-800/50 my-6" />
-
-            <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-center">
-              <AlertTriangle className="w-5 h-5 text-red-400 mx-auto mb-2" />
-              <h3 className="text-red-400 text-xs font-bold mb-1">อันตราย</h3>
-              <p className="text-[10px] text-red-400/80 mb-3">หากลบบัญชี ข้อมูลเครดิตและประวัติการซื้อทั้งหมดจะสูญหายอย่างถาวร</p>
-              
-              {showConfirmDelete ? (
-                <div className="space-y-2">
-                  <p className="text-[10px] text-white">คุณแน่ใจหรือไม่?</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setShowConfirmDelete(false)}
-                      className="flex-1 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs text-white rounded-lg transition-colors"
-                    >
-                      ยกเลิก
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowConfirmDelete(false);
-                        onDeleteAccount();
-                      }}
-                      className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-xs text-white font-bold rounded-lg transition-colors"
-                    >
-                      ยืนยันลบบัญชี
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowConfirmDelete(true)}
-                  className="w-full py-1.5 border border-red-500/50 hover:bg-red-500/20 text-red-400 text-[11px] font-bold rounded-lg transition-colors"
-                >
-                  ลบบัญชีถาวร
-                </button>
-              )}
-            </div>
           </div>
         </motion.div>
       </div>

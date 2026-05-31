@@ -15,32 +15,38 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
   const [search, setSearch] = useState('');
   const [editingBalanceUser, setEditingBalanceUser] = useState<string | null>(null);
   const [newBalance, setNewBalance] = useState('');
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<string | null>(null);
 
-  // Load from multiple sources optionally, but focus on KUWASHII_V2_USERS
+      // Load from multiple sources optionally, but focus on KUWASHII_V2_USERS
   useEffect(() => {
     const loadData = () => {
       const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
+      const usersDataV1 = localStorage.getItem('KUWASHII_USERS');
+      let v1 = usersDataV1 ? JSON.parse(usersDataV1) : {};
+      
       let parsedUsers: Record<string, UserData> = {};
       
       if (usersDataV2) {
         parsedUsers = JSON.parse(usersDataV2);
-        // Ensure username exists on all objects
+        // Ensure username exists on all objects, and sync missing emails from v1
         Object.keys(parsedUsers).forEach(key => {
           if (!parsedUsers[key].username) {
              parsedUsers[key].username = key;
+          }
+          if (!parsedUsers[key].email && v1[key] && typeof v1[key] !== 'string' && v1[key].email) {
+             parsedUsers[key].email = v1[key].email;
           }
         });
       }
       
       // Fallback migration mapping for any users still stuck in V1
-      const usersDataV1 = localStorage.getItem('KUWASHII_USERS');
       if (usersDataV1) {
-        const v1 = JSON.parse(usersDataV1);
         let hasNewMigrations = false;
         Object.keys(v1).forEach(username => {
           if (!parsedUsers[username]) {
             parsedUsers[username] = {
               username,
+              email: typeof v1[username] !== 'string' ? v1[username].email : undefined,
               password: typeof v1[username] === 'string' ? v1[username] : (v1[username]?.password || ''),
               balance: 0,
               joinDate: v1[username]?.createdAt || new Date().toISOString(),
@@ -68,6 +74,29 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
     window.addEventListener('sync-update', handleSync);
     return () => window.removeEventListener('sync-update', handleSync);
   }, [isOpen]);
+
+  const handleDeleteUserByAdmin = (username: string) => {
+    // Remove from V2
+    const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
+    if (usersDataV2) {
+      const parsedUsers = JSON.parse(usersDataV2);
+      if (parsedUsers[username]) {
+        delete parsedUsers[username];
+        localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(parsedUsers));
+        setUsers(Object.values(parsedUsers));
+      }
+    }
+    // Remove from V1
+    const usersDataV1 = localStorage.getItem('KUWASHII_USERS');
+    if (usersDataV1) {
+      const v1 = JSON.parse(usersDataV1);
+      if (v1[username]) {
+        delete v1[username];
+        localStorage.setItem('KUWASHII_USERS', JSON.stringify(v1));
+      }
+    }
+    setConfirmDeleteUser(null);
+  };
 
   const handleUpdateBalance = (username: string) => {
     const amount = Number(newBalance);
@@ -191,14 +220,17 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                                {user.username || 'Unknown'}
                                {user.username === 'Kuwashii_admin' && <span className="bg-amber-500/20 text-amber-400 text-[10px] px-1.5 py-0.5 rounded-md border border-amber-500/30">Admin</span>}
                             </h3>
-                            <div className="text-xs text-zinc-500 flex items-center gap-3 mt-1">
+                            {user.email && (
+                              <div className="text-[10px] text-zinc-400 font-sans mt-0.5">{user.email}</div>
+                            )}
+                            <div className="text-[10px] text-zinc-500 flex flex-wrap items-center gap-3 mt-1">
                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> เข้าร่วม: {user.joinDate ? new Date(user.joinDate).toLocaleDateString('th-TH') : '-'}</span>
                                <span className="flex items-center gap-1 text-emerald-400/70"><History className="w-3 h-3" /> ยอดซื้อ: {user.purchases?.length || 0} ครั้ง</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-zinc-800/50">
                            {editingBalanceUser === user.username ? (
                              <div className="flex items-center gap-2">
                                 <input 
@@ -226,16 +258,43 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                              <>
                                <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
                                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                                 <span className="text-emerald-400 font-mono font-bold">{user.balance || 0}</span>
+                                 <span className="text-emerald-400 font-mono font-bold">{(user.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                                </div>
                                {user.username !== 'Kuwashii_admin' && (
-                                 <button 
-                                   onClick={() => { setEditingBalanceUser(user.username); setNewBalance(String(user.balance || 0)); }}
-                                   className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0"
-                                   title="แก้ไขยอดเงิน (เติมเครดิต)"
-                                 >
-                                   <Edit2 className="w-4 h-4" />
-                                 </button>
+                                 confirmDeleteUser === user.username ? (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] text-red-400 font-bold hidden sm:inline">ยืนยันลบ?</span>
+                                      <button 
+                                        onClick={() => handleDeleteUserByAdmin(user.username)}
+                                        className="py-1 px-2.5 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold rounded-lg transition-colors shadow-lg shadow-red-500/20"
+                                      >
+                                        ลบ
+                                      </button>
+                                      <button 
+                                        onClick={() => setConfirmDeleteUser(null)}
+                                        className="py-1 px-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] font-bold rounded-lg transition-colors border border-zinc-700"
+                                      >
+                                        ยกเลิก
+                                      </button>
+                                    </div>
+                                 ) : (
+                                   <>
+                                     <button 
+                                       onClick={() => { setEditingBalanceUser(user.username); setNewBalance(String(user.balance || 0)); }}
+                                       className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0"
+                                       title="แก้ไขยอดเงิน (เติมเครดิต)"
+                                     >
+                                       <Edit2 className="w-4 h-4" />
+                                     </button>
+                                     <button
+                                       onClick={() => setConfirmDeleteUser(user.username)}
+                                       className="p-1.5 rounded-lg hover:bg-red-900/50 text-red-500/70 hover:text-red-400 transition-colors cursor-pointer shrink-0"
+                                       title="ลบบัญชีผู้ใช้นี้ถาวร"
+                                     >
+                                       <X className="w-4 h-4" />
+                                     </button>
+                                   </>
+                                 )
                                )}
                                <button
                                  onClick={() => onViewUserHistory(user.username)}

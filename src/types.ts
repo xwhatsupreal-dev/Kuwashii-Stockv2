@@ -34,6 +34,7 @@ export interface TopupRecord {
 
 export interface UserData {
   username: string;
+  email?: string;
   password?: string;
   avatar?: string;
   balance: number;
