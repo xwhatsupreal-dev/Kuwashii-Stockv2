@@ -1228,6 +1228,14 @@ export default function App() {
         gachaDrops: drops.length > 0 ? drops : undefined
       });
 
+      if (item.game === 'ASTD') {
+         const currentSales = parseInt(localStorage.getItem('KUWASHII_GLOBAL_SALES_ASTD') || '0');
+         localStorage.setItem('KUWASHII_GLOBAL_SALES_ASTD', (currentSales + purchaseQty).toString());
+      } else if (item.game === 'AOTR') {
+         const currentSales = parseInt(localStorage.getItem('KUWASHII_GLOBAL_SALES_AOTR') || '0');
+         localStorage.setItem('KUWASHII_GLOBAL_SALES_AOTR', (currentSales + purchaseQty).toString());
+      }
+
       localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(liveParsed));
       
       // Reduce Stock (pass true to skip the toast inside the helper if we had one)
@@ -2619,7 +2627,7 @@ export default function App() {
             </div>
 
             {/* Statistics summary row - Real Data for ASTD */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-8">
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">จำนวนสินค้าทั้งหมด</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
@@ -2632,6 +2640,50 @@ export default function App() {
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">สินค้าสะสมในสต๊อก</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
                   <span className="font-mono text-2xl font-black text-yellow-500">{totalStockUnits.toLocaleString()}</span>
+                  <span className="text-xs text-zinc-500">ชิ้น</span>
+                </div>
+              </div>
+              
+              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl relative group">
+                {isAdmin && (
+                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => {
+                       const currentVal = localStorage.getItem('KUWASHII_GLOBAL_SALES_ASTD') || '0';
+                       const newVal = window.prompt("แก้ไขยอดขายไปแล้วทั้งหมด (ASTD)", currentVal);
+                       if (newVal !== null && !isNaN(parseInt(newVal))) {
+                          localStorage.setItem('KUWASHII_GLOBAL_SALES_ASTD', parseInt(newVal).toString());
+                          setSyncCounter(c => c + 1);
+                          showToast('อัปเดตยอดขายแล้ว (ASTD)', 'success');
+                       }
+                    }} className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white">
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={toggleHideGlobalStats} className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white">
+                      {hideGlobalStats ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                )}
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">ขายไปแล้วทั้งหมด</span>
+                <div className="mt-1.5 flex items-baseline gap-2">
+                  <span className="font-mono text-2xl font-black text-emerald-400">
+                    {hideGlobalStats ? '***' : (() => {
+                      try {
+                        let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_SALES_ASTD');
+                        let total = savedTotal !== null ? parseInt(savedTotal) : null;
+                        if ((total === null || total === 0) && localStorage.getItem('KUWASHII_V2_USERS')) {
+                          const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
+                          total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
+                            return acc + (curr.purchases || []).reduce((sum: number, p: any) => {
+                              const itDetails = items.find(it => it.id === p.itemId);
+                              return sum + ((itDetails && itDetails.game === 'ASTD') ? 1 : 0);
+                            }, 0);
+                          }, 0);
+                          localStorage.setItem('KUWASHII_GLOBAL_SALES_ASTD', (total || 0).toString());
+                        }
+                        return (total || 0).toLocaleString();
+                      } catch(e) { return "0"; }
+                    })()}
+                  </span>
                   <span className="text-xs text-zinc-500">ชิ้น</span>
                 </div>
               </div>
