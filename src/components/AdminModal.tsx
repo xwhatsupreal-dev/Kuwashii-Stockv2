@@ -93,17 +93,53 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Converts native file selection to Base64 cleanly
+  // Converts native file selection to Base64 and resizes to save space
   const processFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('กรุณาอัปโหลดรูปภาพเท่านั้น!');
       return;
     }
+    if (file.size > 1024 * 1024 * 5) {
+      alert('รูปภาพมีขนาดใหญ่เกินไป (เกิน 5MB) กรุณาใช้รูปลิงก์ URL รูปภาพแทนช่องทางนี้เพื่อประสิทธิภาพสูงสุด');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result) {
-        setUploadBase64(e.target.result as string);
-        setImageType('upload');
+        // Create an image object
+        const img = new Image();
+        img.onload = () => {
+          // Max dimension 800px
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          } else if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // Compress to 60% quality jpeg
+            setUploadBase64(dataUrl);
+            setImageType('upload');
+          } else {
+            setUploadBase64(e.target!.result as string);
+            setImageType('upload');
+          }
+        };
+        img.src = e.target.result as string;
       }
     };
     reader.readAsDataURL(file);

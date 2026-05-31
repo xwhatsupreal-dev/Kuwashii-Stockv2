@@ -52,7 +52,8 @@ import {
   Info,
   UploadCloud,
   Eye,
-  EyeOff
+  EyeOff,
+  Edit3
 } from 'lucide-react';
 
 import { StockItem, CategoryFilter, RarityFilter, StockStatusFilter } from './types';
@@ -462,6 +463,7 @@ export default function App() {
   const saveItemsToStorage = (newItems: StockItem[]) => {
     setItems(newItems);
     localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(newItems));
+    window.dispatchEvent(new Event('sync-update'));
   };
 
   const showToast = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
@@ -1057,11 +1059,22 @@ export default function App() {
   // --- Add/Edit/Delete controllers ---
   const handleSaveItem = async (itemData: Omit<StockItem, 'updatedAt'>) => {
     const timestamp = new Date().toISOString();
-    const existingIndex = items.findIndex((it) => it.id === itemData.id);
+    
+    // Fetch latest to prevent race condition
+    let currentItems = items;
+    const liveData = localStorage.getItem('AOTR_STOCK_ITEMS');
+    if (liveData) {
+      try {
+        currentItems = JSON.parse(liveData);
+      } catch(e) {}
+    }
+
+    const existingIndex = currentItems.findIndex((it) => it.id === itemData.id);
 
     let finalItem: StockItem;
     if (existingIndex >= 0) {
       finalItem = {
+        ...currentItems[existingIndex],
         ...itemData,
         updatedAt: timestamp,
       } as StockItem;
@@ -1076,20 +1089,28 @@ export default function App() {
 
     // Update state to render instantly
     const updatedList = existingIndex >= 0
-      ? items.map((it) => (it.id === itemData.id ? finalItem : it))
-      : [finalItem, ...items];
+      ? currentItems.map((it) => (it.id === itemData.id ? finalItem : it))
+      : [finalItem, ...currentItems];
 
     saveItemsToStorage(updatedList);
-    showToast(existingIndex >= 0 ? `แก้ไขไอเทม ${itemData.name} สำเร็จ` : `เพิ่มไอเทม ${itemData.name} ลงระบบ`, 'success');
     setEditingItem(null);
   };
 
   const handleDeleteItem = async (id: string) => {
-    const itemToDelete = items.find((it) => it.id === id);
+    // Fetch latest to prevent race condition
+    let currentItems = items;
+    const liveData = localStorage.getItem('AOTR_STOCK_ITEMS');
+    if (liveData) {
+      try {
+        currentItems = JSON.parse(liveData);
+      } catch(e) {}
+    }
+
+    const itemToDelete = currentItems.find((it) => it.id === id);
     if (!itemToDelete) return;
 
     if (confirm(`คุณมั่นใจหรือไม่ที่จะลบ "${itemToDelete.name}" ออกจากคลังสต๊อกสินค้า?`)) {
-      const remainingItems = items.filter((it) => it.id !== id);
+      const remainingItems = currentItems.filter((it) => it.id !== id);
       saveItemsToStorage(remainingItems);
       showToast('ลบสินค้าออกจากระบบและฐานข้อมูลเรียบร้อย', 'info');
     }
@@ -1152,8 +1173,7 @@ export default function App() {
       }
 
       // Read LIVE items to ensure stock is still enough and accurately evaluate gacha drops
-      const storageKey = item.game === 'ASTD' ? 'ASTD_STOCK_ITEMS' : 'AOTR_STOCK_ITEMS';
-      const liveItemsData = localStorage.getItem(storageKey);
+      const liveItemsData = localStorage.getItem('AOTR_STOCK_ITEMS');
       let liveItemQty = item.quantity;
       if (liveItemsData) {
         try {
@@ -1231,8 +1251,17 @@ export default function App() {
 
   const handleQuickQuantityChange = async (id: string, delta: number, silent: boolean = false) => {
     setItems((prevItems) => {
-      const target = prevItems.find((it) => it.id === id);
-      if (!target) return prevItems;
+      // Fetch latest from localStorage to prevent race conditions or stale state
+      let currentItems = prevItems;
+      const liveData = localStorage.getItem('AOTR_STOCK_ITEMS');
+      if (liveData) {
+        try {
+          currentItems = JSON.parse(liveData);
+        } catch(e) {}
+      }
+
+      const target = currentItems.find((it) => it.id === id);
+      if (!target) return prevItems; // fallback if not found
 
       const nextQty = Math.max(0, target.quantity + delta);
       const updated: StockItem = {
@@ -1244,8 +1273,9 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       };
 
-      const newItems = prevItems.map((it) => (it.id === id ? updated : it));
+      const newItems = currentItems.map((it) => (it.id === id ? updated : it));
       localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(newItems));
+      window.dispatchEvent(new Event('sync-update'));
       
       if (!silent) {
         setTimeout(() => {
@@ -2632,9 +2662,22 @@ export default function App() {
 
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl relative group">
                 {isAdmin && (
-                  <button onClick={toggleHideGlobalStats} className="absolute top-2 right-2 p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                    {hideGlobalStats ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
+                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => {
+                       const currentRev = localStorage.getItem('KUWASHII_GLOBAL_REVENUE_ASTD') || '0';
+                       const newVal = window.prompt("แก้ไขยอดการเติมเงินรวม ASTD", currentRev);
+                       if (newVal !== null && !isNaN(parseFloat(newVal))) {
+                          localStorage.setItem('KUWASHII_GLOBAL_REVENUE_ASTD', parseFloat(newVal).toString());
+                          setSyncCounter(c => c + 1);
+                          showToast('อัปเดตยอดเติมเงินรวม (ASTD) แล้ว', 'success');
+                       }
+                    }} className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white">
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={toggleHideGlobalStats} className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white">
+                      {hideGlobalStats ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 )}
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">ยอดการเติมเงินรวม</span>
                 <div className="mt-1.5 flex items-baseline gap-1">
@@ -2658,12 +2701,30 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
+              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl relative group">
+                {isAdmin && (
+                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => {
+                       const currentRev = localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD') || '0';
+                       const newVal = window.prompt("แก้ไขยอดเครดิตฟรีแจกแล้ว ASTD", currentRev);
+                       if (newVal !== null && !isNaN(parseFloat(newVal))) {
+                          localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD', parseFloat(newVal).toString());
+                          setSyncCounter(c => c + 1);
+                          showToast('อัปเดตยอดเครดิตฟรี (ASTD) แล้ว', 'success');
+                       }
+                    }} className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white">
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={toggleHideGlobalStats} className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white">
+                      {hideGlobalStats ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                )}
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">เครดิตฟรีแจกแล้ว</span>
                 <div className="mt-1.5 flex items-baseline gap-1">
                   <span className="text-zinc-500 font-mono text-xs">C</span>
                   <span className="font-mono text-2xl font-black text-yellow-400">
-                    {(() => {
+                    {hideGlobalStats ? '***' : (() => {
                       try {
                         let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD');
                         let total = savedTotal !== null ? parseFloat(savedTotal) : null;
