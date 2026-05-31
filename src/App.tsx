@@ -2263,11 +2263,11 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-16"
           >
-            <h1 className="font-display text-3xl sm:text-4xl font-black text-white tracking-widest uppercase">
-              SELECT <span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">DATABASE</span>
+            <h1 className="font-display text-2xl sm:text-3xl font-black text-white tracking-wider uppercase">
+              SELECT <span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">GAME</span>
             </h1>
-            <p className="text-zinc-400 mt-3 font-mono text-sm max-w-xl mx-auto">
-              Welcome back, Admin. Please select the target game world to establish a connection with the local storage terminal.
+            <p className="text-zinc-400 mt-3 text-xs sm:text-sm max-w-xl mx-auto">
+              ยินดีต้อนรับ! กรุณาเลือกเกมที่คุณสนใจ เพื่อเข้าดูสินค้าทั้งหมดในร้านของเราได้เลย
             </p>
           </motion.div>
 

@@ -11,6 +11,8 @@ export interface AnnouncementSettings {
   enabled: boolean;
   imageUrl: string;
   linkUrl: string;
+  imageUrl2: string;
+  linkUrl2: string;
   showInATOR: boolean;
   showInASTD: boolean;
 }
@@ -19,6 +21,8 @@ const DEFAULT_SETTINGS: AnnouncementSettings = {
   enabled: false,
   imageUrl: '',
   linkUrl: '',
+  imageUrl2: '',
+  linkUrl2: '',
   showInATOR: true,
   showInASTD: true,
 };
@@ -97,30 +101,45 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
 
             <div>
               <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
-                <ImageIcon className="w-3 h-3" /> ลิงก์รูปภาพแจ้งเตือน (Image URL)
+                <ImageIcon className="w-3 h-3" /> ลิงก์รูปภาพแจ้งเตือน 1 (Image URL 1)
               </label>
               <input
                 type="text"
                 value={settings.imageUrl}
                 onChange={(e) => setSettings({ ...settings, imageUrl: e.target.value })}
                 placeholder="https://..."
-                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans"
+                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans mb-3"
               />
-              {settings.imageUrl && (
-                <div className="mt-3 relative w-full h-32 rounded-xl overflow-hidden border border-zinc-800">
-                  <img src={settings.imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                </div>
-              )}
-            </div>
-
-            <div>
               <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
-                 ลิงก์โปรโมท (Link URL เมื่อคลิกรูป)
+                 ลิงก์โปรโมท 1 (Link URL 1)
               </label>
               <input
                 type="text"
                 value={settings.linkUrl}
                 onChange={(e) => setSettings({ ...settings, linkUrl: e.target.value })}
+                placeholder="https://... (เว้นว่างได้)"
+                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans"
+              />
+            </div>
+
+            <div className="pt-4 border-t border-zinc-800/50">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
+                <ImageIcon className="w-3 h-3" /> ลิงก์รูปภาพแจ้งเตือน 2 (Image URL 2 - เสริม)
+              </label>
+              <input
+                type="text"
+                value={settings.imageUrl2 || ''}
+                onChange={(e) => setSettings({ ...settings, imageUrl2: e.target.value })}
+                placeholder="https://... (เว้นว่างได้)"
+                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans mb-3"
+              />
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
+                 ลิงก์โปรโมท 2 (Link URL 2)
+              </label>
+              <input
+                type="text"
+                value={settings.linkUrl2 || ''}
+                onChange={(e) => setSettings({ ...settings, linkUrl2: e.target.value })}
                 placeholder="https://... (เว้นว่างได้)"
                 className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans"
               />

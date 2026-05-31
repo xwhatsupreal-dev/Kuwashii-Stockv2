@@ -10,6 +10,7 @@ interface AnnouncementPopupProps {
 export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [settings, setSettings] = useState<AnnouncementSettings | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     const rawSettings = localStorage.getItem('KUWASHII_ANNOUNCEMENT_SETTINGS');
@@ -34,6 +35,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
 
       setSettings(parsed);
       setIsVisible(true);
+      setCurrentIndex(0);
     } catch (e) {
       console.error(e);
     }
@@ -51,6 +53,15 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
 
   if (!isVisible || !settings) return null;
 
+  const announcements = [
+    { image: settings.imageUrl || 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e', link: settings.linkUrl }
+  ];
+  if (settings.imageUrl2) {
+    announcements.push({ image: settings.imageUrl2, link: settings.linkUrl2 });
+  }
+
+  const current = announcements[currentIndex];
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -62,39 +73,53 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
         />
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 30 }}
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 30 }}
-          className="relative max-w-lg w-full bg-white rounded-3xl shadow-2xl flex flex-col font-sans overflow-hidden"
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          className="relative max-w-sm w-full bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col font-sans overflow-hidden"
         >
-          {settings.linkUrl ? (
-            <a href={settings.linkUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
+          {current.link ? (
+            <a href={current.link} target="_blank" rel="noopener noreferrer" className="block w-full">
                <img 
-                 src={settings.imageUrl || 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e'} 
+                 src={current.image} 
                  alt="Announcement" 
-                 className="w-full object-cover" 
+                 className="w-full h-auto object-cover" 
                />
             </a>
           ) : (
             <img 
-              src={settings.imageUrl || 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e'} 
+              src={current.image} 
               alt="Announcement" 
-              className="w-full object-cover" 
+              className="w-full h-auto object-cover" 
             />
           )}
+
+          {announcements.length > 1 && (
+            <div className="flex justify-center gap-2 pt-4 bg-zinc-950">
+              {announcements.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    currentIndex === idx ? 'bg-amber-500 w-4' : 'bg-zinc-700'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
           
-          <div className="p-4 bg-white border-t flex items-center gap-3 justify-center sm:justify-end">
+          <div className="p-4 bg-zinc-950 flex flex-col sm:flex-row items-center gap-2 justify-center">
             <button
                onClick={handleClose}
-               className="flex items-center gap-2 py-2.5 px-5 rounded-xl text-rose-500 border border-rose-500/30 hover:bg-rose-50 hover:border-rose-500 font-bold text-sm transition-colors"
+               className="flex-1 w-full justify-center flex items-center gap-2 py-2 px-4 rounded-xl text-zinc-300 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white font-bold text-xs transition-colors"
             >
-               <X className="w-4 h-4" /> ปิดหน้าต่างนี้
+               <X className="w-3.5 h-3.5" /> ปิดหน้าต่างนี้
             </button>
             <button
                onClick={handleMute}
-               className="flex items-center gap-2 py-2.5 px-5 rounded-xl text-cyan-600 border border-cyan-500/30 hover:bg-cyan-50 hover:border-cyan-500 font-bold text-sm transition-colors"
+               className="flex-1 w-full justify-center flex items-center gap-2 py-2 px-4 rounded-xl text-zinc-400 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white font-bold text-xs transition-colors"
             >
-               <Clock className="w-4 h-4" /> ไม่แสดงอีก 1 ชม.
+               <Clock className="w-3.5 h-3.5" /> ไม่แสดงอีก 1 ชม.
             </button>
           </div>
         </motion.div>
