@@ -603,8 +603,8 @@ export default function App() {
             
             localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
 
-            const msg = `เติมเงินสำเร็จ! จำนวน ${amount} บาท (หักค่าธรรมเนียม ${fee}) จากซองของ: ${ownerName}`;
-            showToast(msg, 'success');
+            const msg = `เติมเงินสำเร็จ! จำนวน ${amount.toLocaleString()} บาท\n(หักค่าธรรมเนียม ${fee})\nจากซองของ: ${ownerName}`;
+            showToast(`เติมเงินสำเร็จ ${amount} บาท`, 'success');
             setTopupSuccessMessage(msg);
             setTopupModalStep('success');
             setTopupCode('');
@@ -1826,7 +1826,17 @@ export default function App() {
                     <CheckCircle className="w-8 h-8 text-emerald-400" />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">ทำรายการสำเร็จ!</h3>
-                  <p className="text-emerald-300 text-sm mb-6 px-4 leading-relaxed font-mono tracking-wide">{topupSuccessMessage || 'ยอดเครดิตของคุณได้รับการอัปเดตเรียบร้อยแล้ว'}</p>
+                  <div className="text-emerald-300 text-sm mb-6 px-4 leading-relaxed font-mono tracking-wide flex flex-col gap-2">
+                    {topupSuccessMessage ? (
+                      topupSuccessMessage.split('\n').map((line, idx) => (
+                        <p key={idx} className={line.includes('จากซองของ:') ? 'text-amber-400 font-bold bg-amber-500/10 py-1.5 px-2 rounded-lg' : ''}>
+                           {line}
+                        </p>
+                      ))
+                    ) : (
+                      <p>ยอดเครดิตของคุณได้รับการอัปเดตเรียบร้อยแล้ว</p>
+                    )}
+                  </div>
                   <button
                     onClick={() => {
                       setShowTopupModal(false);
@@ -1943,6 +1953,11 @@ export default function App() {
                          'ยืนยันการทำรายการ'
                        )}
                     </button>
+                    {isProcessingTopup && (
+                      <p className="text-center text-[10px] text-amber-400 mt-2 font-semibold animate-pulse tracking-wide font-sans">
+                        ⚠️ ห้าม ปิด/ออก หน้านี้จนกว่าทำรายการสำเร็จ
+                      </p>
+                    )}
                    </div>
                 </form>
               )}
@@ -2272,7 +2287,7 @@ export default function App() {
 
   if (appScreen === 'ASTD') {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
+      <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
         <AnnouncementPopup appScreen={appScreen} />
         {/* Hero Header Section */}
         <header className="relative border-b border-zinc-900 bg-zinc-950 py-7 overflow-hidden">
@@ -2488,7 +2503,11 @@ export default function App() {
                          </button>
                          <button 
                            onClick={() => {
-                             setShowTopupModal(true);
+                             if (!currentUser) {
+                               showToast('กรุณาเข้าสู่ระบบก่อนทำการเติมเงิน', 'error');
+                             } else {
+                               setShowTopupModal(true);
+                             }
                              setIsAstdMenuOpen(false);
                            }}
                            className="w-full text-left px-4 py-2.5 rounded-xl hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
@@ -2619,7 +2638,7 @@ export default function App() {
         </header>
 
         {/* Main Container */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 flex-grow w-full">
           
           {/* Banner announcement board */}
           <div className="mb-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-indigo-950/20 via-zinc-900/50 to-zinc-900/20 border border-zinc-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
@@ -2865,7 +2884,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
+    <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
       <AnnouncementPopup appScreen={appScreen} />
       {/* Return to Hub floating button */}
       <div className="fixed bottom-6 right-6 z-40 hidden md:block">
@@ -2962,6 +2981,20 @@ export default function App() {
                     <span>{currentUser.username} {isAdmin && '(Admin)'}</span>
                   </span>
                   {/* In AOTR, no credits/topup/history should be shown */}
+                  {/* Add Product Shortcut (Only Admins) */}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingItem(null);
+                        setIsFormOpen(true);
+                      }}
+                      className="py-1.5 px-3 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-md shadow-white/5 active:scale-95"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      เพิ่มสินค้า AOTR
+                    </button>
+                  )}
                   {/* Logout Button */}
                   <button
                     type="button"
@@ -3060,7 +3093,7 @@ export default function App() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 flex-grow w-full">
 
 
         
