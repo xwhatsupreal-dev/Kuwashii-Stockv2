@@ -146,6 +146,26 @@ export default function App() {
     return () => window.removeEventListener('sync-update', handleSync);
   }, []);
 
+  // Auto-refresh when tab is inactive for a long time (10 minutes)
+  useEffect(() => {
+    let hiddenTime: number | null = null;
+    const REFRESH_THRESHOLD = 10 * 60 * 1000; // 10 minutes
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        hiddenTime = Date.now();
+      } else {
+        if (hiddenTime && Date.now() - hiddenTime > REFRESH_THRESHOLD) {
+          window.location.reload();
+        }
+        hiddenTime = null;
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
   // Loading Screen Timer
   useEffect(() => {
     if (appScreen === 'LOADING') {
