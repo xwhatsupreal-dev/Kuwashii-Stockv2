@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, PackageOpen } from 'lucide-react';
+import { supabase } from '../supabase';
 
 export interface LiveActivity {
   id: string;
@@ -25,11 +26,22 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
   const [activities, setActivities] = useState<LiveActivity[]>([]);
 
   useEffect(() => {
-    const loadData = () => {
+    const loadData = async () => {
       try {
-        const raw = localStorage.getItem('KUWASHII_LIVE_ACTIVITY');
-        if (raw) {
-          const parsed: LiveActivity[] = JSON.parse(raw);
+        const { data: raw, error } = await supabase.from('activities').select('*').order('timestamp', { ascending: false }).limit(20);
+        if (raw && !error) {
+          const parsed: LiveActivity[] = raw.map((d: any) => ({
+            id: d.id,
+            type: d.type,
+            username: d.username,
+            itemName: d.item_name,
+            quantity: d.quantity,
+            price: d.price,
+            remainingStock: d.remaining_stock,
+            game: d.game,
+            gachaDrops: d.gacha_drops,
+            timestamp: d.timestamp
+          }));
           // filter by game (either undefined/legacy or matching game)
           const filtered = parsed.filter(a => {
              // 3 hours expiry

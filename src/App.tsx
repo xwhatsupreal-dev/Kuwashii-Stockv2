@@ -211,20 +211,23 @@ export const sendDiscordPurchaseEmbed = async (username: string, itemName: strin
 };
 
 import { LiveActivities, LiveActivity } from './components/LiveActivities';
+import { supabase } from './supabase';
 
-export const addLiveActivity = (activity: Omit<LiveActivity, 'id' | 'timestamp'>) => {
+export const addLiveActivity = async (activity: Omit<LiveActivity, 'id' | 'timestamp'>) => {
   try {
-    const raw = localStorage.getItem('KUWASHII_LIVE_ACTIVITY') || '[]';
-    let activities: LiveActivity[] = JSON.parse(raw);
-    const newActivity: LiveActivity = {
-      ...activity,
-      id: Math.random().toString(36).substring(2, 9),
-      timestamp: new Date().toISOString()
-    };
-    activities.unshift(newActivity);
-    activities = activities.slice(0, 50); // Keep last 50
-    localStorage.setItem('KUWASHII_LIVE_ACTIVITY', JSON.stringify(activities));
-    window.dispatchEvent(new Event('sync-update'));
+    const { error } = await supabase.from('activities').insert([{
+      type: activity.type,
+      username: activity.username,
+      item_name: activity.itemName,
+      quantity: activity.quantity,
+      price: activity.price,
+      remaining_stock: activity.remainingStock,
+      game: activity.game,
+      gacha_drops: activity.gachaDrops
+    }]);
+    if (!error) {
+      window.dispatchEvent(new Event('sync-update'));
+    }
   } catch(e){}
 };
 
