@@ -53,7 +53,22 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
     return () => window.removeEventListener('sync-update', handleSync);
   }, [appScreen, syncCounter]);
 
-  if (activities.length === 0) return null;
+  if (activities.length === 0) {
+    return (
+      <div className="mb-8 mt-4 p-4 sm:p-5 rounded-3xl border border-zinc-800 shadow-2xl bg-zinc-950/90 relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-zinc-600/50 to-transparent" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-800/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+        <div className="flex flex-col mb-5 gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-zinc-500 font-sans flex items-center gap-2 relative z-10">
+              กิจกรรมล่าสุด
+            </h2>
+            <p className="text-xs text-zinc-600 mt-1 relative z-10">กำลังรอกิจกรรมใหม่จากผู้เล่น...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const getTimeAgo = (isoString: string) => {
     const minDiff = Math.floor((Date.now() - new Date(isoString).getTime()) / 60000);
