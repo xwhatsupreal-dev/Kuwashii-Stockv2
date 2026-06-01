@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { StockItem } from './App';
+import { StockItem } from './types';
 
 export async function fetchItems() {
   const { data, error } = await supabase.from('items').select('*');

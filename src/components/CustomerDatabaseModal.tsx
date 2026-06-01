@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Users, Search, DollarSign, Clock, Package, Edit2, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { supabase } from '../supabase';
 import { UserData } from '../types';
 
 interface CustomerModalProps {
@@ -19,48 +20,20 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
 
       // Load from multiple sources optionally, but focus on KUWASHII_V2_USERS
   useEffect(() => {
-    const loadData = () => {
-      const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
-      const usersDataV1 = localStorage.getItem('KUWASHII_USERS');
-      let v1 = usersDataV1 ? JSON.parse(usersDataV1) : {};
-      
-      let parsedUsers: Record<string, UserData> = {};
-      
-      if (usersDataV2) {
-        parsedUsers = JSON.parse(usersDataV2);
-        // Ensure username exists on all objects, and sync missing emails from v1
-        Object.keys(parsedUsers).forEach(key => {
-          if (!parsedUsers[key].username) {
-             parsedUsers[key].username = key;
-          }
-          if (!parsedUsers[key].email && v1[key] && typeof v1[key] !== 'string' && v1[key].email) {
-             parsedUsers[key].email = v1[key].email;
-          }
-        });
+    const loadData = async () => {
+      const { data, error } = await supabase.from('profiles').select('*').neq('username', 'Kuwashii_admin').order('created_at', { ascending: false });
+      if (data && !error) {
+        const arr = data.map((d: any) => ({
+          username: d.username,
+          email: d.email,
+          balance: Number(d.balance),
+          joinDate: d.created_at,
+          password: d.password,
+          purchases: [],
+          topups: []
+        }));
+        setUsers(arr);
       }
-      
-      // Fallback migration mapping for any users still stuck in V1
-      if (usersDataV1) {
-        let hasNewMigrations = false;
-        Object.keys(v1).forEach(username => {
-          if (!parsedUsers[username]) {
-            parsedUsers[username] = {
-              username,
-              email: typeof v1[username] !== 'string' ? v1[username].email : undefined,
-              password: typeof v1[username] === 'string' ? v1[username] : (v1[username]?.password || ''),
-              balance: 0,
-              joinDate: v1[username]?.createdAt || new Date().toISOString(),
-              purchases: []
-            };
-            hasNewMigrations = true;
-          }
-        });
-        if (hasNewMigrations) {
-          localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(parsedUsers));
-        }
-      }
-
-      setUsers(Object.values(parsedUsers));
     };
 
     if (isOpen) {
@@ -75,67 +48,41 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
     return () => window.removeEventListener('sync-update', handleSync);
   }, [isOpen]);
 
-  const handleDeleteUserByAdmin = (username: string) => {
-    // Remove from V2
-    const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
-    if (usersDataV2) {
-      const parsedUsers = JSON.parse(usersDataV2);
-      if (parsedUsers[username]) {
-        delete parsedUsers[username];
-        localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(parsedUsers));
-        setUsers(Object.values(parsedUsers));
-      }
+  const handleDeleteUserByAdmin = async (username: string) => {
+    const { error } = await supabase.from('profiles').delete().eq('username', username);
+    if (!error) {
+      setUsers(users.filter(u => u.username !== username));
+      setConfirmDeleteUser(null);
     }
-    // Remove from V1
-    const usersDataV1 = localStorage.getItem('KUWASHII_USERS');
-    if (usersDataV1) {
-      const v1 = JSON.parse(usersDataV1);
-      if (v1[username]) {
-        delete v1[username];
-        localStorage.setItem('KUWASHII_USERS', JSON.stringify(v1));
-      }
-    }
-    setConfirmDeleteUser(null);
   };
 
-  const handleUpdateBalance = (username: string) => {
+  const handleUpdateBalance = async (username: string) => {
     const amount = Number(newBalance);
     if (isNaN(amount) || amount < 0) return;
 
-    const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
-    if (usersDataV2) {
-      const parsedUsers = JSON.parse(usersDataV2);
-      if (parsedUsers[username]) {
-        const oldBalance = parsedUsers[username].balance || 0;
-        const difference = amount - oldBalance;
-        parsedUsers[username].balance = amount;
+    const user = users.find(u => u.username === username);
+    if (user) {
+      const oldBalance = user.balance || 0;
+      const difference = amount - oldBalance;
+      
+      const { error } = await supabase.from('profiles').update({ balance: amount }).eq('username', username);
+      if (!error) {
+        setUsers(users.map(u => u.username === username ? { ...u, balance: amount } : u));
         
         if (difference !== 0) {
           const targetGame = appScreen === 'ASTD' ? 'ASTD' : 'AOTR';
-          
-          parsedUsers[username].topups = [
-            ...(parsedUsers[username].topups || []),
-            {
-              id: `manual-${Date.now()}`,
-              amount: difference,
-              date: new Date().toISOString(),
-              method: difference > 0 ? 'Admin เพิ่มเครดิต' : 'Admin ลดเครดิต',
-              refCode: 'manual',
-              game: targetGame
-            }
-          ];
-          
-          if (difference > 0) {
-            const revKey = targetGame === 'ASTD' ? 'KUWASHII_GLOBAL_REVENUE_ASTD' : 'KUWASHII_GLOBAL_REVENUE_AOTR';
-            const currentRevenue = parseFloat(localStorage.getItem(revKey) || '0');
-            localStorage.setItem(revKey, (currentRevenue + difference).toString());
-          }
+          await supabase.from('topups').insert([{
+            username: username,
+            amount: difference,
+            method: difference > 0 ? 'Admin เพิ่มเครดิต' : 'Admin ลดเครดิต',
+            ref_code: 'manual',
+            game: targetGame
+          }]);
+          window.dispatchEvent(new Event('sync-update'));
         }
-        
-        localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(parsedUsers));
-        setUsers(Object.values(parsedUsers));
       }
     }
+    
     setEditingBalanceUser(null);
     setNewBalance('');
   };

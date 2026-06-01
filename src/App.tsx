@@ -102,7 +102,8 @@ const readQRFromImage = (file: File): Promise<string | null> => {
    });
 };
 
-const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1510998209936228493/r0qW4fwsKMJoTq4mWlwqY_6yNMKHVOcnG-gtrkURlCA6s2dZFr2it-Vx3I-b_IjeWY92';
+const DISCORD_WEBHOOK_URL_TOPUP = 'https://discord.com/api/webhooks/1510998209936228493/r0qW4fwsKMJoTq4mWlwqY_6yNMKHVOcnG-gtrkURlCA6s2dZFr2it-Vx3I-b_IjeWY92';
+const DISCORD_WEBHOOK_URL_PURCHASE = 'https://discord.com/api/webhooks/1511063935888134284/LoW99CKLEDuscJWdSCTpIOvP30EIdwYo1j8JUdp1RvWORA9392tHhygHwnBP-UC3VsHj';
 
 export const sendDiscordTopupEmbed = async (username: string, amount: number, channel: string, totalBalance: number, isSuccess: boolean = true) => {
   try {
@@ -142,7 +143,7 @@ export const sendDiscordTopupEmbed = async (username: string, amount: number, ch
       timestamp: new Date().toISOString()
     };
 
-    fetch(DISCORD_WEBHOOK_URL, {
+    fetch(DISCORD_WEBHOOK_URL_TOPUP, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ embeds: [embed] })
@@ -161,10 +162,17 @@ export const sendDiscordPurchaseEmbed = async (username: string, itemName: strin
       }
     });
 
-    const dropTexts = Object.entries(dropCounts).map(([name, data]) => {
+    let dropTexts = Object.entries(dropCounts).map(([name, data]) => {
       const prefix = data.isSalt ? `🧂 \`${name}\`` : `🎉 **${name}**`;
       return `${prefix} x${data.count}`;
-    }).join('\\n');
+    });
+    
+    if (dropTexts.length > 5) {
+      const remainingCount = dropTexts.length - 5;
+      dropTexts = [...dropTexts.slice(0, 5), `... และอื่นๆ อีก ${remainingCount} รายการ`];
+    }
+    
+    const finalDropText = dropTexts.join(', ');
     
     const embed = {
       title: "🛒 การสั่งซื้อสินค้า / สต๊อกลดลง",
@@ -192,7 +200,7 @@ export const sendDiscordPurchaseEmbed = async (username: string, itemName: strin
         },
         {
           name: "🎁 สิ่งที่ได้รับ",
-          value: dropTexts.length > 1024 ? dropTexts.substring(0, 1020) + "..." : dropTexts,
+          value: finalDropText || "-",
           inline: false
         }
       ],
@@ -202,7 +210,7 @@ export const sendDiscordPurchaseEmbed = async (username: string, itemName: strin
       timestamp: new Date().toISOString()
     };
 
-    fetch(DISCORD_WEBHOOK_URL, {
+    fetch(DISCORD_WEBHOOK_URL_PURCHASE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ embeds: [embed] })
@@ -233,12 +241,25 @@ export const addLiveActivity = async (activity: Omit<LiveActivity, 'id' | 'times
 };
 
 export default function App() {
-  const [isUnderMaintenance, setIsUnderMaintenance] = useState(true); // ปิดเว็บไซต์ชั่วคราวเพื่ออัปเดตระบบฐานข้อมูล supabase
+  const [globalStats, setGlobalStats] = useState<any>({ global_sales_astd: 0, global_revenue_astd: 0, global_free_credits_astd: 0, maintenance_mode: false });
+  const [currentUserData, setCurrentUserData] = useState<any>(null);
+
+  const isUnderMaintenance = globalStats?.maintenance_mode;
 
   // --- Global Hub State ---
   const [appScreen, setAppScreen] = useState<'LOADING' | 'SELECT' | 'TRANSITION' | 'AOTR' | 'ASTD'>('LOADING');
   const [targetScreen, setTargetScreen] = useState<'AOTR' | 'ASTD' | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  // User & Admin Authentications
+  const [currentUser, setCurrentUser] = useState<{ username: string } | null>(() => {
+    const saved = localStorage.getItem('KUWASHII_CURRENT_USER') || sessionStorage.getItem('KUWASHII_CURRENT_USER');
+    if (saved) return JSON.parse(saved);
+    return null;
+  });
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return localStorage.getItem('KUWASHII_IS_ADMIN') === 'true' || sessionStorage.getItem('KUWASHII_IS_ADMIN') === 'true';
+  });
+
   const [loadingVariant, setLoadingVariant] = useState(1);
   const [isAstdMenuOpen, setIsAstdMenuOpen] = useState(false);
   const [isStale, setIsStale] = useState(false);
@@ -307,26 +328,27 @@ export default function App() {
 
   // Sync Engine Listener
   useEffect(() => {
-    const handleSync = () => {
-      const savedItems = localStorage.getItem('AOTR_STOCK_ITEMS');
-      if (savedItems) {
-         try {
-           const parsed = JSON.parse(savedItems);
-           if (Array.isArray(parsed)) {
-             setItems(current => {
-               // Use a custom migrate check if needed, or just set it
-               // To avoid deep dependency loops, we just set the parsed array
-               // Since items were migrated when saved, they should be fine
-               return parsed;
-             });
-           }
-         } catch(e){}
+    const handleSync = async () => {
+      const dbItems = await fetchItems();
+      if (dbItems) setItems(dbItems);
+      
+      const config = await getSystemConfig();
+      if (config) setGlobalStats(config);
+      
+      if (currentUser?.username) {
+        const u = await fetchUser(currentUser.username);
+        if (u) setCurrentUserData(u);
       }
+      
       setSyncCounter(c => c + 1);
     };
+    
+    // Initial fetch
+    handleSync();
+    
     window.addEventListener('sync-update', handleSync);
     return () => window.removeEventListener('sync-update', handleSync);
-  }, []);
+  }, [currentUser]);
 
 
   // Loading Screen Timer
@@ -379,15 +401,7 @@ export default function App() {
     }
   }, [appScreen]);
 
-  // User & Admin Authentications
-  const [currentUser, setCurrentUser] = useState<{ username: string } | null>(() => {
-    const saved = localStorage.getItem('KUWASHII_CURRENT_USER') || sessionStorage.getItem('KUWASHII_CURRENT_USER');
-    if (saved) return JSON.parse(saved);
-    return null;
-  });
-  const [isAdmin, setIsAdmin] = useState(() => {
-    return localStorage.getItem('KUWASHII_IS_ADMIN') === 'true' || sessionStorage.getItem('KUWASHII_IS_ADMIN') === 'true';
-  });
+  // Modals controller
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [authUsername, setAuthUsername] = useState('');
@@ -436,6 +450,14 @@ export default function App() {
     const newState = !hideGlobalStats;
     setHideGlobalStats(newState);
     localStorage.setItem('KUWASHII_HIDE_STATS', String(newState));
+  };
+
+  const toggleMaintenanceMode = async () => {
+    if (confirm(`คุณต้องการ${globalStats?.maintenance_mode ? 'เปิด' : 'ปิด'}เว็บไซต์ใช่หรือไม่?`)) {
+      await supabase.from('system_config').upsert({ id: 'main', maintenance_mode: !globalStats?.maintenance_mode });
+      setSyncCounter(c => c + 1);
+      showToast(globalStats?.maintenance_mode ? 'เปิดเว็บไซต์เรียบร้อยแล้ว' : 'ปิดเว็บไซต์เรียบร้อยแล้ว', 'info');
+    }
   };
 
   // Floating notifications/toast
@@ -609,11 +631,11 @@ export default function App() {
               description: item.description,
               price: item.price,
               quantity: item.quantity,
-              image: item.image,
+              image: item.imageUrl,
               game: item.game,
               category: item.category,
               rarity: item.rarity,
-              popular: item.popular,
+              popular: item.isPopular,
               gacha_pool: item.gachaPool
             }));
             await supabase.from('items').insert(inserts);
@@ -641,11 +663,11 @@ export default function App() {
         description: item.description,
         price: item.price,
         quantity: item.quantity,
-        image: item.image,
+        image: item.imageUrl,
         game: item.game,
         category: item.category,
         rarity: item.rarity,
-        popular: item.popular,
+        popular: item.isPopular,
         gacha_pool: item.gachaPool
       }));
       await supabase.from('items').upsert(updates);
@@ -663,7 +685,7 @@ export default function App() {
     }, 3000);
   };
 
-  const handleTopupSubmit = (e: React.FormEvent) => {
+  const handleTopupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tosAccepted) {
       showToast('กรุณายอมรับข้อกำหนดในการให้บริการก่อนดำเนินการต่อ', 'error');
@@ -684,18 +706,10 @@ export default function App() {
     }
     
     const activeUsername = currentUser.username;
-    const usersData = localStorage.getItem('KUWASHII_V2_USERS');
-    let users: Record<string, any> = usersData ? JSON.parse(usersData) : {};
-    
-    // In case the user is old format or somehow not initialized
-    let currentUserData = users[activeUsername];
-    if (!currentUserData || typeof currentUserData === 'string') {
-       currentUserData = { 
-         username: activeUsername,
-         balance: 0,
-         joinDate: new Date().toISOString(),
-         purchases: []
-       };
+    const liveUser = await fetchUser(activeUsername);
+    if (!liveUser) {
+      showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลลูกค้า โปรดลองอีกครั้ง', 'error');
+      return;
     }
 
     if (topupModalStep === 'coupon') {
@@ -719,30 +733,27 @@ export default function App() {
 
          if (!coupon.usedBy) coupon.usedBy = [];
          coupon.usedBy.push(activeUsername);
-
          localStorage.setItem('KUWASHII_COUPONS', JSON.stringify(coupons));
          
-         let freeKey = appScreen === 'ASTD' ? 'KUWASHII_GLOBAL_FREE_CREDITS_ASTD' : 'KUWASHII_GLOBAL_FREE_CREDITS_AOTR';
-         const currentFree = parseFloat(localStorage.getItem(freeKey) || '0');
-         localStorage.setItem(freeKey, (currentFree + coupon.amount).toString());
+         const configData = await getSystemConfig();
+         if (appScreen === 'ASTD') {
+            const currentFree = configData ? Number(configData.global_free_credits_astd || 0) : 0;
+            await supabase.from('system_config').upsert({ id: 'main', global_free_credits_astd: currentFree + coupon.amount });
+         } else {
+            const currentFree = configData ? Number(configData.global_free_credits_aotr || 0) : 0;
+            await supabase.from('system_config').upsert({ id: 'main', global_free_credits_aotr: currentFree + coupon.amount });
+         }
 
-         users[activeUsername] = {
-           ...currentUserData,
-           balance: (currentUserData.balance || 0) + coupon.amount,
-           topups: [
-             ...(currentUserData.topups || []),
-             {
-               id: `topup-${Date.now()}`,
-               amount: coupon.amount,
-               date: new Date().toISOString(),
-               method: 'Coupon',
-               refCode: coupon.code,
-               game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
-             }
-           ]
-         };
+         const newBalance = Number(liveUser.balance) + coupon.amount;
+         await supabase.from('profiles').update({ balance: newBalance }).eq('username', activeUsername);
+         await supabase.from('topups').insert([{
+           username: activeUsername,
+           amount: coupon.amount,
+           method: 'Coupon',
+           ref_code: coupon.code,
+           game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
+         }]);
          
-         localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
          window.dispatchEvent(new Event('sync-update'));
          
          showToast(`ใช้คูปองสำเร็จ! ได้รับ ${coupon.amount.toLocaleString()} เครดิต`, 'success');
@@ -774,27 +785,25 @@ export default function App() {
             const amount = Number((rawAmount - fee).toFixed(2));
             const ownerName = data.owner_profile || 'ไม่ทราบชื่อ';
             
-            let revKey = appScreen === 'ASTD' ? 'KUWASHII_GLOBAL_REVENUE_ASTD' : 'KUWASHII_GLOBAL_REVENUE_AOTR';
-            const currentRevenue = parseFloat(localStorage.getItem(revKey) || '0');
-            localStorage.setItem(revKey, (currentRevenue + amount).toString());
+            const configData = await getSystemConfig();
+            if (appScreen === 'ASTD') {
+              const currentRev = configData ? Number(configData.global_revenue_astd || 0) : 0;
+              await supabase.from('system_config').upsert({ id: 'main', global_revenue_astd: currentRev + amount });
+            } else {
+              const currentRev = configData ? Number(configData.global_revenue_aotr || 0) : 0;
+              await supabase.from('system_config').upsert({ id: 'main', global_revenue_aotr: currentRev + amount });
+            }
 
-            users[activeUsername] = {
-              ...currentUserData,
-              balance: (currentUserData.balance || 0) + amount,
-              topups: [
-                ...(currentUserData.topups || []),
-                {
-                  id: `topup-${Date.now()}`,
-                  amount: amount,
-                  date: new Date().toISOString(),
-                  method: 'TrueMoney (Angpao)',
-                  refCode: topupCode.trim(),
-                  game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
-                }
-              ]
-            };
+            const newBalance = Number(liveUser.balance) + amount;
+            await supabase.from('profiles').update({ balance: newBalance }).eq('username', activeUsername);
+            await supabase.from('topups').insert([{
+              username: activeUsername,
+              amount: amount,
+              method: 'TrueMoney (Angpao)',
+              ref_code: topupCode.trim(),
+              game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
+            }]);
             
-            localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
             window.dispatchEvent(new Event('sync-update'));
 
             const msg = `เติมเงินสำเร็จ! จำนวน ${amount.toLocaleString()} บาท\n(หักค่าธรรมเนียม ${fee})\nจากซองของ: ${ownerName}`;
@@ -802,14 +811,13 @@ export default function App() {
             setTopupSuccessMessage(msg);
             setTopupModalStep('success');
             setTopupCode('');
-            const newBalance = users[activeUsername].balance;
             if (currentUser) setCurrentUser({ ...currentUser });
-            sendDiscordTopupEmbed(currentUserData.username, amount, 'angpao', newBalance, true);
+            sendDiscordTopupEmbed(activeUsername, amount, 'angpao', newBalance, true);
           } else {
             const errorMsg = data.info || data.message || data.msg || data.error || 'ซองขวัญไม่ถูกต้อง หรือถูกใช้งานไปแล้ว';
             setTopupError(`API แจ้งเตือน: ${errorMsg}`);
             showToast(errorMsg, 'error');
-            sendDiscordTopupEmbed(currentUserData.username, 0, 'angpao', currentUserData.balance || 0, false);
+            sendDiscordTopupEmbed(activeUsername, 0, 'angpao', liveUser.balance || 0, false);
           }
         } catch (error: any) {
           console.error("Topup fetch error:", error);
@@ -859,7 +867,6 @@ export default function App() {
                                  stringifiedData.includes('ธีรเทพ ทองเกตุ');
 
              if (!isNameMatch) {
-                // Try to extract the name the API returned to show it
                 let displayFoundName = data.receiver_name || data.receiverName || data.data?.receiver?.name || data.data?.receiver?.displayName || data.data?.receiver?.accountName;
                 if (!displayFoundName) {
                    const foundNameMatch = stringifiedData.match(/"name"\s*:\s*"([^"]+)"/) || stringifiedData.match(/"receiver_name"\s*:\s*"([^"]+)"/);
@@ -872,15 +879,9 @@ export default function App() {
                 return;
              }
 
-             // Check if used locally in ALL users
-             let isUsed = false;
-             Object.values(users).forEach((u: any) => {
-               if (u.topups?.some((t: any) => t.refCode === transactionId)) {
-                  isUsed = true;
-               }
-             });
-
-             if (isUsed) {
+             // Check if used in Supabase
+             const { data: existingTopup } = await supabase.from('topups').select('id').eq('ref_code', transactionId).limit(1);
+             if (existingTopup && existingTopup.length > 0) {
                 const usedErr = 'สลิปนี้ถูกใช้งานไปแล้วในระบบของเรา';
                 setTopupError(usedErr);
                 showToast(usedErr, 'error');
@@ -888,10 +889,8 @@ export default function App() {
                 return;
              }
 
-             // --- Check Slip Time (within 5 minutes) ---
+             // Time check
              let slipTime: number | null = null;
-             let rawD = '';
-             let rawT = '';
              try {
                 const stringData = JSON.stringify(data);
                 let dVal = data.date || data.transDate || data.data?.transDate || data.data?.date;
@@ -903,9 +902,6 @@ export default function App() {
                    if (dMatch) dVal = dMatch[1];
                    if (tMatch) tVal = tMatch[1];
                 }
-                
-                rawD = String(dVal || '');
-                rawT = String(tVal || '');
                 
                 if (dVal && tVal) {
                    let cleanD = String(dVal).replace(/[-/]/g, '');
@@ -924,20 +920,12 @@ export default function App() {
                       slipTime = new Date(tsMatch[1]).getTime();
                    }
                 }
-             } catch(e) {
-                console.error("Slip time parse error", e);
-             }
-
-             if (!slipTime || isNaN(slipTime)) {
-                console.warn(`ไม่สามารถอ่านเวลาจากสลิปได้ (D:${rawD} T:${rawT})`);
-             }
+             } catch(e) {}
 
              if (slipTime && !isNaN(slipTime)) {
                 const now = Date.now();
-                // slipTime is in milliseconds. Compare with 'now'
                 const diffMinutes = Math.floor((now - slipTime) / (1000 * 60));
                 
-                // Allow a small clock skew (e.g., -2 minutes) but reject if it's more than 10 minutes old
                 if (diffMinutes > 10) {
                    const timeErr = `สลิปนี้หมดอายุแล้ว (โอนผ่านไปแล้ว ${diffMinutes} นาที) กรุณาติดต่อแอดมินเพื่อตรวจสอบ`;
                    setTopupError(timeErr);
@@ -946,7 +934,6 @@ export default function App() {
                    return;
                 }
                 
-                // Also reject if it's somehow in the future > 5 minutes (user changed device time? No, our 'now' is from server/client timezone)
                 if (diffMinutes < -5) {
                    const timeErr = `เวลาในสลิปไม่ถูกต้อง (อนาคต) กรุณาติดต่อแอดมิน`;
                    setTopupError(timeErr);
@@ -955,28 +942,25 @@ export default function App() {
                    return;
                 }
              }
-             // --- End Check Slip Time ---
 
-             let revKey = appScreen === 'ASTD' ? 'KUWASHII_GLOBAL_REVENUE_ASTD' : 'KUWASHII_GLOBAL_REVENUE_AOTR';
-             const currentRevenue = parseFloat(localStorage.getItem(revKey) || '0');
-             localStorage.setItem(revKey, (currentRevenue + amount).toString());
+             const configData = await getSystemConfig();
+             if (appScreen === 'ASTD') {
+                const currentRev = configData ? Number(configData.global_revenue_astd || 0) : 0;
+                await supabase.from('system_config').upsert({ id: 'main', global_revenue_astd: currentRev + amount });
+             } else {
+                const currentRev = configData ? Number(configData.global_revenue_aotr || 0) : 0;
+                await supabase.from('system_config').upsert({ id: 'main', global_revenue_aotr: currentRev + amount });
+             }
 
-             users[activeUsername] = {
-                ...currentUserData,
-                balance: (currentUserData.balance || 0) + amount,
-                topups: [
-                  ...(currentUserData.topups || []),
-                  {
-                    id: `topup-${Date.now()}`,
-                    amount: amount,
-                    date: new Date().toISOString(),
-                    method: 'Bank Transfer',
-                    refCode: transactionId,
-                    game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
-                  }
-                ]
-             };
-             localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
+             const newBalance = Number(liveUser.balance) + amount;
+             await supabase.from('profiles').update({ balance: newBalance }).eq('username', activeUsername);
+             await supabase.from('topups').insert([{
+               username: activeUsername,
+               amount: amount,
+               method: 'Bank Transfer',
+               ref_code: transactionId,
+               game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
+             }]);
              window.dispatchEvent(new Event('sync-update'));
 
              const bankMsg = `เติมเงินสำเร็จ! ได้รับ ${amount} เครดิต (อ้างอิง: ${transactionId})`;
@@ -984,15 +968,14 @@ export default function App() {
              setTopupSuccessMessage(bankMsg);
              setTopupModalStep('success');
              setSlipFile(null);
-             const newBalance = users[activeUsername].balance;
              if (currentUser) setCurrentUser({ ...currentUser });
-             sendDiscordTopupEmbed(currentUserData.username, amount, 'bank', newBalance, true);
+             sendDiscordTopupEmbed(activeUsername, amount, 'bank', newBalance, true);
           } else {
              const errorMsg = data.message?.massage_th || data.message || 'รหัส QR จากสลิปไม่สามารถตรวจสอบได้';
              const finalErr = typeof errorMsg === 'string' ? errorMsg : 'สลิปไม่ถูกต้อง';
              setTopupError(`API แจ้งเตือน: ${finalErr}`);
              showToast(finalErr, 'error');
-             sendDiscordTopupEmbed(currentUserData.username, 0, 'bank', currentUserData.balance || 0, false);
+             sendDiscordTopupEmbed(activeUsername, 0, 'bank', liveUser.balance || 0, false);
           }
         } catch (error: any) {
            console.error("Bank check error:", error);
@@ -1008,7 +991,7 @@ export default function App() {
     }
   };
 
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (authMode === 'forgot') {
@@ -1029,7 +1012,6 @@ export default function App() {
 
     if (authMode === 'login') {
       const storage = rememberAuth ? localStorage : sessionStorage;
-      // remove from both to prevent ghost states
       localStorage.removeItem('KUWASHII_CURRENT_USER'); sessionStorage.removeItem('KUWASHII_CURRENT_USER');
       localStorage.removeItem('KUWASHII_IS_ADMIN'); sessionStorage.removeItem('KUWASHII_IS_ADMIN');
 
@@ -1048,37 +1030,14 @@ export default function App() {
         return;
       }
 
-      // Check localStorage database
-      const usersData = localStorage.getItem('KUWASHII_USERS');
-      const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
-      let users: Record<string, any> = usersData ? JSON.parse(usersData) : {};
-      let v2Users: Record<string, any> = usersDataV2 ? JSON.parse(usersDataV2) : {};
-      
       const usernameTrimmed = authUsername.trim();
-      const userData = users[usernameTrimmed];
-      const v2UserData = v2Users[usernameTrimmed];
-      
-      const isPasswordValid = (typeof userData === 'string' 
-        ? userData === authPassword 
-        : userData?.password === authPassword) || (v2UserData?.password === authPassword);
+      const user = await fetchUser(usernameTrimmed);
 
-      if (isPasswordValid) {
-        // Sync to V2 format if missing
-        if (!v2Users[usernameTrimmed]) {
-          v2Users[usernameTrimmed] = {
-            username: usernameTrimmed,
-            email: typeof userData !== 'string' ? userData?.email : undefined,
-            password: authPassword,
-            balance: 0,
-            joinDate: typeof userData !== 'string' && userData?.createdAt ? userData.createdAt : new Date().toISOString(),
-            purchases: []
-          };
-          localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(v2Users));
-        }
-
+      if (user && user.password === authPassword) {
         setCurrentUser({ username: usernameTrimmed });
         storage.setItem('KUWASHII_CURRENT_USER', JSON.stringify({ username: usernameTrimmed }));
         storage.setItem('KUWASHII_IS_ADMIN', 'false');
+        
         setShowAuthModal(false);
         setAuthUsername('');
         setAuthEmail('');
@@ -1094,29 +1053,20 @@ export default function App() {
         setAuthError('รูปแบบอีเมลไม่ถูกต้อง');
         return;
       }
-      const usersData = localStorage.getItem('KUWASHII_USERS');
-      let users: Record<string, any> = usersData ? JSON.parse(usersData) : {};
       
-      let foundUsername: string | null = null;
-      for (const [username, data] of Object.entries(users)) {
-        if (typeof data !== 'string' && data.email === authEmail.trim()) {
-          foundUsername = username;
-          break;
-        }
-      }
-
-      if (!foundUsername) {
+      const { data } = await supabase.from('profiles').select('*').eq('email', authEmail.trim()).limit(1).single();
+      
+      if (!data) {
         setAuthError('ไม่พบบัญชีที่ผูกกับอีเมลนี้');
         return;
       }
       
       const tempPassword = Math.random().toString(36).slice(-8);
-      users[foundUsername].password = tempPassword;
-      localStorage.setItem('KUWASHII_USERS', JSON.stringify(users));
+      await supabase.from('profiles').update({ password: tempPassword }).eq('username', data.username);
       
       setMockEmailModalData({
         email: authEmail.trim(),
-        username: foundUsername,
+        username: data.username,
         password: tempPassword
       });
       setShowMockEmailModal(true);
@@ -1133,53 +1083,40 @@ export default function App() {
         return;
       }
 
-      const usersData = localStorage.getItem('KUWASHII_USERS');
-      const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
-      let users: Record<string, any> = usersData ? JSON.parse(usersData) : {};
-      let v2Users: Record<string, any> = usersDataV2 ? JSON.parse(usersDataV2) : {};
-      
       const targetUsername = authUsername.trim();
       
-      // Case-insensitive check for both databases
-      const usernameExists = Object.keys(users).some(u => u.toLowerCase() === targetUsername.toLowerCase()) || 
-                             Object.keys(v2Users).some(u => u.toLowerCase() === targetUsername.toLowerCase());
-
-      if (usernameExists) {
-        setAuthError('ชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว!');
-        return;
-      }
       if (targetUsername.toLowerCase() === 'kuwashii_admin') {
          setAuthError('ไม่สามารถใช้ชื่อผู้ดูแลนี้ได้');
          return;
       }
       
-      // Store object instead of string
-      users[targetUsername] = {
-        password: authPassword,
-        email: authEmail.trim(),
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('KUWASHII_USERS', JSON.stringify(users));
+      const existing = await fetchUser(targetUsername);
+
+      if (existing) {
+        setAuthError('ชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว!');
+        return;
+      }
       
-      // Sync to V2 format
-      v2Users[targetUsername] = {
+      const { error } = await supabase.from('profiles').insert([{
         username: targetUsername,
         email: authEmail.trim(),
         password: authPassword,
-        balance: 0,
-        joinDate: new Date().toISOString(),
-        purchases: []
-      };
-      localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(v2Users));
+        balance: 0
+      }]);
+      
+      if (error) {
+        setAuthError('เกิดข้อผิดพลาดในการสมัครสมาชิก โปรดลองอีกครั้ง');
+        return;
+      }
       
       const storage = rememberAuth ? localStorage : sessionStorage;
       localStorage.removeItem('KUWASHII_CURRENT_USER'); sessionStorage.removeItem('KUWASHII_CURRENT_USER');
       localStorage.removeItem('KUWASHII_IS_ADMIN'); sessionStorage.removeItem('KUWASHII_IS_ADMIN');
 
-      // Auto login after register
       setCurrentUser({ username: authUsername.trim() });
       storage.setItem('KUWASHII_CURRENT_USER', JSON.stringify({ username: authUsername.trim() }));
       storage.setItem('KUWASHII_IS_ADMIN', 'false');
+      
       setShowAuthModal(false);
       setAuthUsername('');
       setAuthEmail('');
@@ -1203,57 +1140,24 @@ export default function App() {
     showToast('ออกจากระบบแล้ว', 'info');
   };
 
-  const handleChangePassword = (newPass: string) => {
+  const handleChangePassword = async (newPass: string) => {
     if (!currentUser) return;
-    const usersStr = localStorage.getItem('KUWASHII_V2_USERS');
-    if (usersStr) {
-      const users = JSON.parse(usersStr);
-      if (users[currentUser.username]) {
-        users[currentUser.username].password = newPass;
-        localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
-        showToast('เปลี่ยนรหัสผ่านสำเร็จ', 'success');
-      }
-    }
-    
-    // Also update legacy DB just in case
-    const legacyStr = localStorage.getItem('KUWASHII_USERS');
-    if (legacyStr) {
-      const legacy = JSON.parse(legacyStr);
-      if (legacy[currentUser.username]) {
-        if (typeof legacy[currentUser.username] === 'string') {
-           legacy[currentUser.username] = newPass;
-        } else {
-           legacy[currentUser.username].password = newPass;
-        }
-        localStorage.setItem('KUWASHII_USERS', JSON.stringify(legacy));
-      }
+    const { error } = await supabase.from('profiles').update({ password: newPass }).eq('username', currentUser.username);
+    if (!error) {
+      showToast('เปลี่ยนรหัสผ่านสำเร็จ', 'success');
+    } else {
+      showToast('เกิดข้อผิดพลาดเปลี่ยนรหัสผ่านไม่ได้', 'error');
     }
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     if (!currentUser) return;
     const username = currentUser.username;
     
-    // 1. Remove from V2 Users
-    const usersStr = localStorage.getItem('KUWASHII_V2_USERS');
-    if (usersStr) {
-      const users = JSON.parse(usersStr);
-      if (users[username]) {
-        delete users[username];
-        localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
-      }
-    }
-
-    // 2. Remove from legacy users
-    const legacyStr = localStorage.getItem('KUWASHII_USERS');
-    if (legacyStr) {
-      const legacy = JSON.parse(legacyStr);
-      if (legacy[username]) {
-        delete legacy[username];
-        localStorage.setItem('KUWASHII_USERS', JSON.stringify(legacy));
-      }
-    }
-
+    await supabase.from('profiles').delete().eq('username', username);
+    await supabase.from('topups').delete().eq('username', username);
+    await supabase.from('purchases').delete().eq('username', username);
+    
     handleLogout();
     showToast('ลบบัญชีและข้อมูลทั้งหมดเรียบร้อยแล้ว', 'info');
   };
@@ -1263,13 +1167,7 @@ export default function App() {
     const timestamp = new Date().toISOString();
     
     // Fetch latest to prevent race condition
-    let currentItems = items;
-    const liveData = localStorage.getItem('AOTR_STOCK_ITEMS');
-    if (liveData) {
-      try {
-        currentItems = JSON.parse(liveData);
-      } catch(e) {}
-    }
+    let currentItems = await fetchItems() || items;
 
     const existingIndex = currentItems.findIndex((it) => it.id === itemData.id);
 
@@ -1294,26 +1192,27 @@ export default function App() {
       ? currentItems.map((it) => (it.id === itemData.id ? finalItem : it))
       : [finalItem, ...currentItems];
 
-    saveItemsToStorage(updatedList);
+    await saveItemsToStorage(updatedList);
     setEditingItem(null);
   };
 
   const handleDeleteItem = async (id: string) => {
     // Fetch latest to prevent race condition
-    let currentItems = items;
-    const liveData = localStorage.getItem('AOTR_STOCK_ITEMS');
-    if (liveData) {
-      try {
-        currentItems = JSON.parse(liveData);
-      } catch(e) {}
-    }
+    let currentItems = await fetchItems() || items;
 
     const itemToDelete = currentItems.find((it) => it.id === id);
     if (!itemToDelete) return;
 
     if (confirm(`คุณมั่นใจหรือไม่ที่จะลบ "${itemToDelete.name}" ออกจากคลังสต๊อกสินค้า?`)) {
       const remainingItems = currentItems.filter((it) => it.id !== id);
-      saveItemsToStorage(remainingItems);
+      
+      try {
+        await supabase.from('items').delete().eq('id', id);
+        setItems(remainingItems);
+        window.dispatchEvent(new Event('sync-update'));
+      } catch (e) {
+        console.error("Error deleting item:", e);
+      }
       
       // Cleanup Claimed Jackpots
       try {
@@ -1329,7 +1228,7 @@ export default function App() {
     }
   };
 
-  const handleBuyItem = (item: StockItem, purchaseQty: number = 1) => {
+  const handleBuyItem = async (item: StockItem, purchaseQty: number = 1) => {
     if (!currentUser) {
       showToast('กรุณาเข้าสู่ระบบก่อนทำการสั่งซื้อ!', 'error');
       setShowAuthModal(true);
@@ -1340,14 +1239,7 @@ export default function App() {
       return;
     }
 
-    const usersDataV2 = localStorage.getItem('KUWASHII_V2_USERS');
-    if (!usersDataV2) {
-      showToast('ไม่พบข้อมูลฐานลูกค้า เกิดข้อผิดพลาดโปรดเข้าสู่ระบบใหม่', 'error');
-      return;
-    }
-    
-    const parsedUsers = JSON.parse(usersDataV2);
-    const user = parsedUsers[currentUser.username];
+    const user = await fetchUser(currentUser.username);
     
     if (!user) {
       showToast('ไม่พบบัญชีส่วนตัวในฐานข้อมูล V2 (โปรดออกจากระบบและเข้าใหม่)', 'error');
@@ -1360,40 +1252,29 @@ export default function App() {
     }
 
     const totalPrice = item.price * purchaseQty;
-    if (user.balance < totalPrice) {
-      showToast(`ยอดเครดิตในระบบไม่เพียงพอ! (ขาดอีก ${totalPrice - (user.balance || 0)} ฿)`, 'error');
+    if (Number(user.balance) < totalPrice) {
+      showToast(`ยอดเครดิตในระบบไม่เพียงพอ! (ขาดอีก ${totalPrice - Number(user.balance)} ฿)`, 'error');
       return;
     }
 
     setIsProcessingPurchase(true);
     
     // Simulate payment processing delay
-    setTimeout(() => {
+    setTimeout(async () => {
       // Re-fetch users to prevent race conditions during the delay
-      const liveUsersData = localStorage.getItem('KUWASHII_V2_USERS');
-      if (!liveUsersData) {
-         showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลลูกค้า โปรดลองอีกครั้ง', 'error');
-         setIsProcessingPurchase(false);
-         return;
-      }
-      const liveParsed = JSON.parse(liveUsersData);
-      const liveUser = liveParsed[currentUser.username];
+      const liveUser = await fetchUser(currentUser.username);
       
-      if (!liveUser || liveUser.balance < totalPrice) {
+      if (!liveUser || Number(liveUser.balance) < totalPrice) {
          showToast('ยอดเงินไม่เพียงพอ หรือข้อมูลไม่ถูกต้อง', 'error');
          setIsProcessingPurchase(false);
          return;
       }
 
       // Read LIVE items to ensure stock is still enough and accurately evaluate gacha drops
-      const liveItemsData = localStorage.getItem('AOTR_STOCK_ITEMS');
+      const { data: dbItem } = await supabase.from('items').select('quantity').eq('id', item.id).single();
       let liveItemQty = item.quantity;
-      if (liveItemsData) {
-        try {
-          const fetchedItems = JSON.parse(liveItemsData);
-          const found = fetchedItems.find((it: any) => it.id === item.id);
-          if (found) liveItemQty = found.quantity;
-        } catch(e) {}
+      if (dbItem) {
+        liveItemQty = dbItem.quantity;
       }
 
       if (purchaseQty > liveItemQty) {
@@ -1449,30 +1330,29 @@ export default function App() {
         }
       }
       
-      // Update Claimed Jackpots
+      // Update Claimed Jackpots Local Cache
       localStorage.setItem('KUWASHII_CLAIMED_JACKPOTS', JSON.stringify(claimedJackpots));
 
       // Process Purchase
-      liveUser.balance -= totalPrice;
-      if (!liveUser.purchases) liveUser.purchases = [];
-      liveUser.purchases.push({
-        id: `PUR-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-        itemId: item.id,
-        itemName: item.name,
+      const newBalance = Number(liveUser.balance) - totalPrice;
+      await supabase.from('profiles').update({ balance: newBalance }).eq('username', currentUser.username);
+
+      await supabase.from('purchases').insert([{
+        username: currentUser.username,
+        item_id: item.id,
+        item_name: item.name,
         price: totalPrice,
         quantity: purchaseQty,
-        date: new Date().toISOString(),
-        gachaDrops: drops.length > 0 ? drops : undefined
-      });
+        gacha_drops: drops.length > 0 ? drops : null
+      }]);
 
       if (item.game === 'ASTD') {
-         const currentSales = parseInt(localStorage.getItem('KUWASHII_GLOBAL_SALES_ASTD') || '0');
-         localStorage.setItem('KUWASHII_GLOBAL_SALES_ASTD', (currentSales + purchaseQty).toString());
+         const configData = await getSystemConfig();
+         const currentSales = configData ? Number(configData.global_sales_astd || 0) : 0;
+         await supabase.from('system_config').upsert({ id: 'main', global_sales_astd: currentSales + purchaseQty });
       }
 
-      localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(liveParsed));
-      
-      // Reduce Stock (pass true to skip the toast inside the helper if we had one)
+      // Reduce Stock by updating app sync
       handleQuickQuantityChange(item.id, -purchaseQty, true);
       
       const hasGuaranteed = drops.some(d => !d.isSalt);
@@ -1494,6 +1374,7 @@ export default function App() {
       
       setInquiringItem(null);
       setIsProcessingPurchase(false);
+      window.dispatchEvent(new Event('sync-update'));
       
       if (drops.length > 0) {
         setGachaResult({ item, drops, purchaseQty: purchaseQty, remainingStock: liveItemQty - purchaseQty });
@@ -1513,42 +1394,28 @@ export default function App() {
   };
 
   const handleQuickQuantityChange = async (id: string, delta: number, silent: boolean = false) => {
-    let currentItems = items;
-    const liveData = localStorage.getItem('AOTR_STOCK_ITEMS');
-    if (liveData) {
-      try {
-        currentItems = JSON.parse(liveData);
-      } catch(e) {}
-    }
+    const { data: dbItem } = await supabase.from('items').select('quantity').eq('id', id).single();
+    if (!dbItem) return;
 
-    const target = currentItems.find((it) => it.id === id);
-    if (!target) return;
+    const nextQty = Math.max(0, dbItem.quantity + delta);
 
-    const nextQty = Math.max(0, target.quantity + delta);
-    const updated: StockItem = {
-      ...target,
-      quantity: nextQty,
-      initialQuantity: target.initialQuantity !== undefined 
-        ? Math.max(target.initialQuantity, nextQty)
-        : nextQty,
-      updatedAt: new Date().toISOString(),
-    };
-
-    const newItems = currentItems.map((it) => (it.id === id ? updated : it));
-    
-    setItems(newItems);
-    localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(newItems));
-    window.dispatchEvent(new Event('sync-update'));
-    
-    if (!silent) {
-      showToast('อัปเดตจำนวนสต็อกเรียบร้อย!', 'success');
-      if (nextQty <= 5 && nextQty < target.quantity) {
-        playChime('warning');
-      } else if (nextQty > target.quantity) {
-        playChime('success');
-      } else {
-        playChime('info');
+    const { error } = await supabase.from('items').update({ quantity: nextQty }).eq('id', id);
+    if (!error) {
+      setItems(items.map((it) => (it.id === id ? { ...it, quantity: nextQty } : it)));
+      window.dispatchEvent(new Event('sync-update'));
+      
+      if (!silent) {
+        showToast('อัปเดตจำนวนสต็อกเรียบร้อย!', 'success');
+        if (nextQty <= 5 && nextQty < dbItem.quantity) {
+          playChime('warning');
+        } else if (nextQty > dbItem.quantity) {
+          playChime('success');
+        } else {
+          playChime('info');
+        }
       }
+    } else {
+      showToast('เกิดข้อผิดพลาดในการอัปเดตจำนวนสต็อก', 'error');
     }
   };
 
@@ -2496,8 +2363,7 @@ export default function App() {
         <HistoryModal
           isOpen={showHistoryModal || !!viewingUserHistory}
           onClose={() => { setShowHistoryModal(false); setViewingUserHistory(null); }}
-          purchases={JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[viewingUserHistory || currentUser?.username || '']?.purchases || []}
-          topups={JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[viewingUserHistory || currentUser?.username || '']?.topups || []}
+          username={viewingUserHistory || currentUser?.username || ''}
         />
       )}
     
@@ -2536,23 +2402,25 @@ export default function App() {
     );
   };
 
-  if (isUnderMaintenance) {
+  if (isUnderMaintenance && !isAdmin && appScreen !== 'LOADING' && appScreen !== 'TRANSITION') {
     return (
       <div className="fixed inset-0 z-[99999] bg-black/95 flex flex-col items-center justify-center p-6 text-center select-none text-white font-sans">
-        <div className="max-w-md w-full bg-zinc-900/50 p-8 rounded-3xl border border-amber-500/30 shadow-2xl backdrop-blur-md">
+        <div className="max-w-md w-full bg-zinc-900/50 p-8 rounded-3xl border border-amber-500/30 shadow-2xl backdrop-blur-md relative">
           <div className="w-20 h-20 mx-auto bg-amber-500/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
             <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
           </div>
-          <h2 className="text-2xl font-black mb-3">ระบบอยู่ระหว่างการปรับปรุง</h2>
+          <h2 className="text-2xl font-black mb-3">ระบบอยู่ระหว่างการปรับปรุง 🛠️</h2>
           <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-            กำลังดำเนินการอัปเดตระบบฐานข้อมูลและลบโค้ด LocalStorage ออกตามที่คุณต้องการทั้งหมด กรุณาอดทนรอสักครู่ ระบบจะกลับมาใช้งานได้โดยอัตโนมัติเมื่อเสร็จสิ้น
+            ขณะนี้เว็บไซต์กำลังอยู่ในช่วงปรับปรุงระบบชั่วคราว กรุณาอดทนรอและระบบจะเปิดให้ใช้งานอีกครั้งโดยอัตโนมัติเมื่อเสร็จสิ้น! ขออภัยในความไม่สะดวกครับ
           </p>
           <div className="flex justify-center space-x-2 pb-2">
             <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce"></div>
             <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
           </div>
+          <button onClick={() => { setShowAuthModal(true); setAuthMode('login'); }} className="absolute bottom-4 right-4 text-[10px] text-zinc-700 hover:text-zinc-500 transition-colors">Admin Login</button>
         </div>
+        {renderModals()}
       </div>
     );
   }
@@ -2806,7 +2674,7 @@ export default function App() {
                       <>
                         <span className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hidden sm:flex">
                           <Coins className="w-3.5 h-3.5" />
-                          <span>เครดิต: ฿{Number(JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</span>
+                          <span>เครดิต: ฿{Number(currentUserData?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</span>
                         </span>
                       </>
                     )}
@@ -2905,7 +2773,7 @@ export default function App() {
                                  {isAdmin ? <ShieldCheck className="w-4 h-4 text-amber-500" /> : <div className="w-2 h-2 rounded-full bg-indigo-500" />}
                                  <span className="text-sm font-semibold text-zinc-200">{currentUser.username}</span>
                                  {!isAdmin && (
-                                   <span className="ml-auto text-xs font-mono text-emerald-400">฿{Number(JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</span>
+                                   <span className="ml-auto text-xs font-mono text-emerald-400">฿{Number(currentUserData?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</span>
                                  )}
                                </div>
                                {isAdmin && (
@@ -3015,11 +2883,11 @@ export default function App() {
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl relative group">
                 {isAdmin && (
                   <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => {
-                       const currentVal = localStorage.getItem('KUWASHII_GLOBAL_SALES_ASTD') || '0';
+                    <button onClick={async () => {
+                       const currentVal = String(globalStats?.global_sales_astd || 0);
                        const newVal = window.prompt("แก้ไขยอดขายไปแล้วทั้งหมด (ASTD)", currentVal);
                        if (newVal !== null && !isNaN(parseInt(newVal))) {
-                          localStorage.setItem('KUWASHII_GLOBAL_SALES_ASTD', parseInt(newVal).toString());
+                          await supabase.from('system_config').upsert({ id: 'main', global_sales_astd: parseInt(newVal) });
                           setSyncCounter(c => c + 1);
                           showToast('อัปเดตยอดขายแล้ว (ASTD)', 'success');
                        }
@@ -3034,24 +2902,7 @@ export default function App() {
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">ขายไปแล้วทั้งหมด</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
                   <span className="font-mono text-2xl font-black text-emerald-400">
-                    {hideGlobalStats ? '***' : (() => {
-                      try {
-                        let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_SALES_ASTD');
-                        let total = savedTotal !== null ? parseInt(savedTotal) : null;
-                        if ((total === null || total === 0) && localStorage.getItem('KUWASHII_V2_USERS')) {
-                          const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
-                          total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
-                            return acc + (curr.purchases || []).reduce((sum: number, p: any) => {
-                              const itDetails = items.find(it => it.id === p.itemId);
-                              const isAstd = itDetails ? (!itDetails.game || itDetails.game === 'ASTD') : (!p.game || p.game === 'ASTD');
-                              return sum + (isAstd ? (p.quantity || 1) : 0);
-                            }, 0);
-                          }, 0);
-                          localStorage.setItem('KUWASHII_GLOBAL_SALES_ASTD', (total || 0).toString());
-                        }
-                        return (total || 0).toLocaleString();
-                      } catch(e) { return "0"; }
-                    })()}
+                    {hideGlobalStats ? '***' : (Number(globalStats?.global_sales_astd || 0).toLocaleString())}
                   </span>
                   <span className="text-xs text-zinc-500">ชิ้น</span>
                 </div>
@@ -3066,12 +2917,7 @@ export default function App() {
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">จำนวนลูกค้าในเว็ป</span>
                 <div className="mt-1.5 flex items-baseline gap-2">
                   <span className="font-mono text-2xl font-black text-indigo-400">
-                    {hideGlobalStats ? '***' : (() => {
-                      try {
-                        const usersStr = localStorage.getItem('KUWASHII_V2_USERS');
-                        return usersStr ? Object.keys(JSON.parse(usersStr)).length : 0;
-                      } catch(e) { return 0; }
-                    })()}
+                    {hideGlobalStats ? '***' : (globalStats?.user_count || 0)}
                   </span>
                   <span className="text-xs text-zinc-500">บัญชี</span>
                 </div>
@@ -3080,11 +2926,11 @@ export default function App() {
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl relative group">
                 {isAdmin && (
                   <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => {
-                       const currentRev = localStorage.getItem('KUWASHII_GLOBAL_REVENUE_ASTD') || '0';
+                    <button onClick={async () => {
+                       const currentRev = String(globalStats?.global_revenue_astd || 0);
                        const newVal = window.prompt("แก้ไขยอดการเติมเงินรวม ASTD", currentRev);
                        if (newVal !== null && !isNaN(parseFloat(newVal))) {
-                          localStorage.setItem('KUWASHII_GLOBAL_REVENUE_ASTD', parseFloat(newVal).toString());
+                          await supabase.from('system_config').upsert({ id: 'main', global_revenue_astd: parseFloat(newVal) });
                           setSyncCounter(c => c + 1);
                           showToast('อัปเดตยอดเติมเงินรวม (ASTD) แล้ว', 'success');
                        }
@@ -3100,20 +2946,7 @@ export default function App() {
                 <div className="mt-1.5 flex items-baseline gap-1">
                   <span className="text-zinc-500 font-mono text-xs">฿</span>
                   <span className="font-mono text-2xl font-black text-white">
-                    {hideGlobalStats ? '***' : (() => {
-                      try {
-                        let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_REVENUE_ASTD');
-                        let total = savedTotal !== null ? parseFloat(savedTotal) : null;
-                        if ((total === null || total === 0) && localStorage.getItem('KUWASHII_V2_USERS')) {
-                          const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
-                          total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
-                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method !== 'Coupon' && (!tx.game || tx.game === 'ASTD') ? (tx.amount || 0) : 0), 0);
-                          }, 0);
-                          localStorage.setItem('KUWASHII_GLOBAL_REVENUE_ASTD', (total || 0).toString());
-                        }
-                        return (total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                      } catch(e) { return "0.00"; }
-                    })()}
+                    {hideGlobalStats ? '***' : (Number(globalStats?.global_revenue_astd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
                   </span>
                 </div>
               </div>
@@ -3121,11 +2954,11 @@ export default function App() {
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl relative group">
                 {isAdmin && (
                   <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => {
-                       const currentRev = localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD') || '0';
+                    <button onClick={async () => {
+                       const currentRev = String(globalStats?.global_free_credits_astd || 0);
                        const newVal = window.prompt("แก้ไขยอดเครดิตฟรีแจกแล้ว ASTD", currentRev);
                        if (newVal !== null && !isNaN(parseFloat(newVal))) {
-                          localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD', parseFloat(newVal).toString());
+                          await supabase.from('system_config').upsert({ id: 'main', global_free_credits_astd: parseFloat(newVal) });
                           setSyncCounter(c => c + 1);
                           showToast('อัปเดตยอดเครดิตฟรี (ASTD) แล้ว', 'success');
                        }
@@ -3141,20 +2974,7 @@ export default function App() {
                 <div className="mt-1.5 flex items-baseline gap-1">
                   <span className="text-zinc-500 font-mono text-xs">C</span>
                   <span className="font-mono text-2xl font-black text-yellow-400">
-                    {hideGlobalStats ? '***' : (() => {
-                      try {
-                        let savedTotal = localStorage.getItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD');
-                        let total = savedTotal !== null ? parseFloat(savedTotal) : null;
-                        if ((total === null || total === 0) && localStorage.getItem('KUWASHII_V2_USERS')) {
-                          const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
-                          total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
-                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method === 'Coupon' && (!tx.game || tx.game === 'ASTD') ? (tx.amount || 0) : 0), 0);
-                          }, 0);
-                          localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD', (total || 0).toString());
-                        }
-                        return (total || 0).toLocaleString();
-                      } catch(e) { return "0"; }
-                    })()}
+                    {hideGlobalStats ? '***' : (Number(globalStats?.global_free_credits_astd || 0).toLocaleString())}
                   </span>
                 </div>
               </div>
@@ -3315,6 +3135,9 @@ export default function App() {
                    <button onClick={() => setIsCustomerDbOpen(true)} className="py-2 px-4 rounded-xl bg-purple-500/20 text-purple-400 hover:text-white border border-purple-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-purple-500/10">
                      <Users className="w-4 h-4" /> ระบบฐานลูกค้า (Customer DB)
                    </button>
+                   <button onClick={toggleMaintenanceMode} className={`py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg ${globalStats?.maintenance_mode ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30'}`}>
+                     <AlertTriangle className="w-4 h-4" /> {globalStats?.maintenance_mode ? 'เปิดเว็บ' : 'ปิดเว็บซ่อมปรุง'}
+                   </button>
                    <button onClick={() => setIsCouponManagerOpen(true)} className="py-2 px-4 rounded-xl bg-emerald-500/20 text-emerald-400 hover:text-white border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/10">
                      <Gift className="w-4 h-4" /> จัดการโค้ดคูปอง
                    </button>
@@ -3336,7 +3159,7 @@ export default function App() {
           <div className="flex items-center justify-between gap-4 mb-5 text-xs text-zinc-500 font-sans">
             <span>เจอทั้งหมด: <strong className="text-zinc-300 font-bold">{sortedItems.length}</strong> รายการ</span>
             {(search || selectedCategory !== 'all' || selectedStatus !== 'all') && (
-              <button onClick={() => { setSearch(''); setSelectedCategory('all'); setSelectedStatus('all'); }} className="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer">
+              <button onClick={async () => { setSearch(''); setSelectedCategory('all'); setSelectedStatus('all'); }} className="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer">
                 <RotateCcw className="w-3 h-3" /> ล้างตัวกรอง
               </button>
             )}
@@ -3523,7 +3346,7 @@ export default function App() {
                   {!isAdmin && (
                     <span className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hidden sm:flex">
                       <Coins className="w-3.5 h-3.5" />
-                      <span>เครดิต: ฿{Number(JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</span>
+                      <span>เครดิต: ฿{Number(currentUserData?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</span>
                     </span>
                   )}
 
@@ -4103,6 +3926,13 @@ export default function App() {
                   className="py-2 px-3 border border-purple-500/30 hover:border-purple-500/80 bg-purple-950/20 hover:bg-purple-950/40 text-purple-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Users className="w-3.5 h-3.5" /> ลูกค้า
+                </button>
+                
+                <button 
+                  onClick={toggleMaintenanceMode} 
+                  className={`py-2 px-3 border border-red-500/30 hover:border-red-500/80 bg-red-950/20 hover:bg-red-950/40 text-red-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${globalStats?.maintenance_mode ? '!bg-amber-500/20 !border-amber-500/30 !text-amber-400' : ''}`}
+                >
+                  <AlertTriangle className="w-3.5 h-3.5" /> {globalStats?.maintenance_mode ? 'เปิดเว็บ' : 'ปิดเว็บ'}
                 </button>
 
                 <button

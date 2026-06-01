@@ -1,18 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, History, ShoppingCart, PackageOpen, Calendar, Clock, Sparkles, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 import { PurchaseRecord, TopupRecord } from '../types';
+import { fetchUserPurchases, fetchUserTopups } from '../queries';
 
 interface HistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  purchases: PurchaseRecord[];
-  topups?: TopupRecord[];
+  username: string;
 }
 
-export function HistoryModal({ isOpen, onClose, purchases, topups = [] }: HistoryModalProps) {
+export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
   const [activeTab, setActiveTab] = useState<'purchases' | 'topups'>('purchases');
   const [expandedPurchases, setExpandedPurchases] = useState<string[]>([]);
+  
+  const [purchases, setPurchases] = useState<PurchaseRecord[]>([]);
+  const [topups, setTopups] = useState<TopupRecord[]>([]);
+
+  useEffect(() => {
+    if (isOpen && username) {
+      fetchUserPurchases(username).then(data => {
+        if (data) setPurchases(data);
+      });
+      fetchUserTopups(username).then(data => {
+        if (data) setTopups(data);
+      });
+    }
+  }, [isOpen, username]);
 
   if (!isOpen) return null;
 
