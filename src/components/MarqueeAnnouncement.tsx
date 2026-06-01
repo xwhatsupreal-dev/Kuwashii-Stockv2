@@ -48,17 +48,19 @@ export const MarqueeAnnouncement: React.FC<MarqueeAnnouncementProps> = ({ appScr
         <div className="w-full pt-[env(safe-area-inset-top,0px)]">
           <div className="w-full pt-1.5 pb-1">
             <div 
-              className="whitespace-nowrap animate-marquee flex items-center h-full gap-8 leading-tight"
+              className="animate-marquee flex items-center h-full gap-8 leading-tight w-max"
               style={{ animationDuration: `${settings.marqueeSpeed || 15}s` }}
             >
-              {marqueeItems.map((text, idx) => (
-                <React.Fragment key={idx}>
-                  <span className="font-bold text-xs sm:text-sm tracking-wide px-4 flex items-center mt-0.5">
-                    {text}
-                  </span>
-                  {idx < marqueeItems.length - 1 && (
-                    <span className="opacity-30 text-[10px] sm:text-xs shrink-0 mt-0.5">✦</span>
-                  )}
+              {[...Array(20)].map((_, i) => (
+                <React.Fragment key={i}>
+                  {marqueeItems.map((text, idx) => (
+                    <React.Fragment key={`${i}-${idx}`}>
+                      <span className="font-bold text-xs sm:text-sm tracking-wide px-4 flex items-center mt-0.5 whitespace-nowrap">
+                        {text}
+                      </span>
+                      <span className="opacity-30 text-[10px] sm:text-xs shrink-0 mt-0.5 whitespace-nowrap">✦</span>
+                    </React.Fragment>
+                  ))}
                 </React.Fragment>
               ))}
             </div>

@@ -54,10 +54,15 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
     }
   }, [isOpen]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     localStorage.setItem('KUWASHII_ANNOUNCEMENT_SETTINGS', JSON.stringify(settings));
-    // Clear out user hide status when admin updates
     localStorage.setItem('KUWASHII_ANNOUNCEMENT_UPDATED_AT', Date.now().toString());
+    
+    try {
+      const { supabase } = await import('../supabase');
+      await supabase.from('system_config').upsert({ id: 'main', announcement_settings: settings });
+    } catch(e) {}
+    
     window.dispatchEvent(new Event('sync-announcement'));
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
@@ -205,14 +210,24 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
                     ความเร็ว (วินาทีต่อ 1 รอบ)
                   </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={settings.marqueeSpeed || 15}
-                    onChange={(e) => setSettings({ ...settings, marqueeSpeed: parseInt(e.target.value) || 15 })}
-                    className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans"
-                  />
+                  <div className="flex items-center gap-3 w-full">
+                    <input
+                      type="range"
+                      min="1"
+                      max="150"
+                      value={settings.marqueeSpeed || 15}
+                      onChange={(e) => setSettings({ ...settings, marqueeSpeed: parseInt(e.target.value) || 15 })}
+                      className="flex-1 accent-amber-500"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      max="150"
+                      value={settings.marqueeSpeed || 15}
+                      onChange={(e) => setSettings({ ...settings, marqueeSpeed: parseInt(e.target.value) || 15 })}
+                      className="w-16 bg-zinc-900 border border-zinc-800 text-zinc-100 px-2 py-1 rounded-lg focus:outline-none focus:border-amber-500 transition-all text-sm font-sans text-center"
+                    />
+                  </div>
                   <p className="text-[10px] text-zinc-500 mt-1 mb-3">ค่าน้อย = เร็ว / ค่ามาก = ช้า (แนะนำ: 10 - 20)</p>
 
                   <div className="grid grid-cols-2 gap-4">

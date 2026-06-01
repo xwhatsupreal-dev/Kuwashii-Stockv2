@@ -333,7 +333,13 @@ export default function App() {
       if (dbItems) setItems(dbItems);
       
       const config = await getSystemConfig();
-      if (config) setGlobalStats(config);
+      if (config) {
+        setGlobalStats(config);
+        if (config.announcement_settings) {
+          localStorage.setItem('KUWASHII_ANNOUNCEMENT_SETTINGS', JSON.stringify(config.announcement_settings));
+          window.dispatchEvent(new Event('sync-announcement'));
+        }
+      }
       
       if (currentUser?.username) {
         const u = await fetchUser(currentUser.username);
