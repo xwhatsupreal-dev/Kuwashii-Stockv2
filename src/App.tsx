@@ -102,6 +102,97 @@ const readQRFromImage = (file: File): Promise<string | null> => {
    });
 };
 
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1510998209936228493/r0qW4fwsKMJoTq4mWlwqY_6yNMKHVOcnG-gtrkURlCA6s2dZFr2it-Vx3I-b_IjeWY92';
+
+export const sendDiscordTopupEmbed = async (username: string, amount: number, channel: string, isSuccess: boolean = true) => {
+  try {
+    const embed = {
+      title: isSuccess ? "💰 เติมเงินสำเร็จ!" : "❌ เติมเงินล้มเหลว",
+      color: isSuccess ? 0x10B981 : 0xEF4444, // Green or Red
+      fields: [
+        {
+          name: "👤 บัญชีผู้ใช้",
+          value: `\`${username}\``,
+          inline: true
+        },
+        {
+          name: "💵 จำนวนเงิน",
+          value: `\`${amount.toLocaleString()} ฿\``,
+          inline: true
+        },
+        {
+          name: "🏦 ช่องทาง",
+          value: channel === 'angpao' ? "ซองอั่งเปา (TrueMoney)" : "โอนเงิน (Bank)",
+          inline: true
+        },
+        {
+          name: "⏰ เวลา",
+          value: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
+          inline: true
+        }
+      ],
+      footer: {
+        text: "Kuwashii El Web App"
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    fetch(DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ embeds: [embed] })
+    });
+  } catch(e) {}
+};
+
+export const sendDiscordPurchaseEmbed = async (username: string, itemName: string, quantity: number, remainingStock: number, drops: {name: string, isSalt?: boolean}[]) => {
+  try {
+    const dropTexts = drops.map(d => d.isSalt ? `🧂 \`${d.name}\`` : `🎉 **${d.name}**`).join('\\n');
+    
+    const embed = {
+      title: "🛒 การสั่งซื้อสินค้า / สต๊อกลดลง",
+      color: 0x3B82F6, // Blue
+      fields: [
+        {
+          name: "👤 ผู้ซื้อ",
+          value: `\`${username}\``,
+          inline: true
+        },
+        {
+          name: "📦 สินค้า",
+          value: `**${itemName}**`,
+          inline: true
+        },
+        {
+          name: "🔢 จำนวน",
+          value: `\`${quantity} ชิ้น\``,
+          inline: true
+        },
+        {
+          name: "📉 สต๊อกคงเหลือ",
+          value: `\`${remainingStock} ชิ้น\``,
+          inline: true
+        },
+        {
+          name: "🎁 สิ่งที่ได้รับ",
+          value: dropTexts.length > 1024 ? dropTexts.substring(0, 1020) + "..." : dropTexts,
+          inline: false
+        }
+      ],
+      footer: {
+        text: "Kuwashii Web App"
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    fetch(DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ embeds: [embed] })
+    });
+  } catch(e) {}
+};
+
 import { LiveActivities, LiveActivity } from './components/LiveActivities';
 
 export const addLiveActivity = (activity: Omit<LiveActivity, 'id' | 'timestamp'>) => {
@@ -637,10 +728,12 @@ export default function App() {
             setTopupModalStep('success');
             setTopupCode('');
             if (currentUser) setCurrentUser({ ...currentUser });
+            sendDiscordTopupEmbed(currentUserData.username, amount, 'angpao', true);
           } else {
             const errorMsg = data.info || data.message || data.msg || data.error || 'ซองขวัญไม่ถูกต้อง หรือถูกใช้งานไปแล้ว';
             setTopupError(`API แจ้งเตือน: ${errorMsg}`);
             showToast(errorMsg, 'error');
+            sendDiscordTopupEmbed(currentUserData.username, 0, 'angpao', false);
           }
         } catch (error: any) {
           console.error("Topup fetch error:", error);
@@ -816,11 +909,13 @@ export default function App() {
              setTopupModalStep('success');
              setSlipFile(null);
              if (currentUser) setCurrentUser({ ...currentUser });
+             sendDiscordTopupEmbed(currentUserData.username, amount, 'bank', true);
           } else {
              const errorMsg = data.message?.massage_th || data.message || 'รหัส QR จากสลิปไม่สามารถตรวจสอบได้';
              const finalErr = typeof errorMsg === 'string' ? errorMsg : 'สลิปไม่ถูกต้อง';
              setTopupError(`API แจ้งเตือน: ${finalErr}`);
              showToast(finalErr, 'error');
+             sendDiscordTopupEmbed(currentUserData.username, 0, 'bank', false);
           }
         } catch (error: any) {
            console.error("Bank check error:", error);
@@ -1312,6 +1407,9 @@ export default function App() {
         game: item.game || 'ASTD',
         gachaDrops: drops.length > 0 ? drops : undefined
       });
+      
+      const webhookDrops = drops.length > 0 ? drops : [{ name: `${item.name} x${purchaseQty}`, isSalt: false }];
+      sendDiscordPurchaseEmbed(currentUser.username, item.name, purchaseQty, liveItemQty - purchaseQty, webhookDrops);
       
       setInquiringItem(null);
       setIsProcessingPurchase(false);
