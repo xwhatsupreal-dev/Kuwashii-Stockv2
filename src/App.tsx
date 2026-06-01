@@ -1225,6 +1225,7 @@ export default function App() {
         itemId: item.id,
         itemName: item.name,
         price: totalPrice,
+        quantity: purchaseQty,
         date: new Date().toISOString(),
         gachaDrops: drops.length > 0 ? drops : undefined
       });
@@ -1232,9 +1233,6 @@ export default function App() {
       if (item.game === 'ASTD') {
          const currentSales = parseInt(localStorage.getItem('KUWASHII_GLOBAL_SALES_ASTD') || '0');
          localStorage.setItem('KUWASHII_GLOBAL_SALES_ASTD', (currentSales + purchaseQty).toString());
-      } else if (item.game === 'AOTR') {
-         const currentSales = parseInt(localStorage.getItem('KUWASHII_GLOBAL_SALES_AOTR') || '0');
-         localStorage.setItem('KUWASHII_GLOBAL_SALES_AOTR', (currentSales + purchaseQty).toString());
       }
 
       localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(liveParsed));
@@ -2676,7 +2674,7 @@ export default function App() {
                           total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
                             return acc + (curr.purchases || []).reduce((sum: number, p: any) => {
                               const itDetails = items.find(it => it.id === p.itemId);
-                              return sum + ((itDetails && itDetails.game === 'ASTD') ? 1 : 0);
+                              return sum + ((itDetails && itDetails.game === 'ASTD') ? (p.quantity || 1) : 0);
                             }, 0);
                           }, 0);
                           localStorage.setItem('KUWASHII_GLOBAL_SALES_ASTD', (total || 0).toString());

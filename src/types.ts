@@ -20,6 +20,7 @@ export interface PurchaseRecord {
   itemId: string;
   itemName: string;
   price: number;
+  quantity?: number;
   date: string;
   gachaDrops?: { name: string; color?: string; }[];
 }

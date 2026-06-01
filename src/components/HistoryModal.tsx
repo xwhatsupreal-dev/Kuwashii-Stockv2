@@ -114,7 +114,12 @@ export function HistoryModal({ isOpen, onClose, purchases, topups = [] }: Histor
                             {hasGachaDrops ? <PackageOpen className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
                           </div>
                           <div>
-                            <p className="text-zinc-100 font-bold truncate max-w-[200px] sm:max-w-[300px]">{purchase.itemName}</p>
+                            <p className="text-zinc-100 font-bold flex items-center gap-2">
+                              <span className="truncate max-w-[200px] sm:max-w-[300px]">{purchase.itemName}</span>
+                              {purchase.quantity && purchase.quantity > 1 && (
+                                <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 text-xs font-mono font-medium shrink-0">x{purchase.quantity}</span>
+                              )}
+                            </p>
                             <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1 font-mono">
                               <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {date}</span>
                               <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {time}</span>
