@@ -104,7 +104,7 @@ const readQRFromImage = (file: File): Promise<string | null> => {
 
 const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1510998209936228493/r0qW4fwsKMJoTq4mWlwqY_6yNMKHVOcnG-gtrkURlCA6s2dZFr2it-Vx3I-b_IjeWY92';
 
-export const sendDiscordTopupEmbed = async (username: string, amount: number, channel: string, isSuccess: boolean = true) => {
+export const sendDiscordTopupEmbed = async (username: string, amount: number, channel: string, totalBalance: number, isSuccess: boolean = true) => {
   try {
     const embed = {
       title: isSuccess ? "💰 เติมเงินสำเร็จ!" : "❌ เติมเงินล้มเหลว",
@@ -123,6 +123,11 @@ export const sendDiscordTopupEmbed = async (username: string, amount: number, ch
         {
           name: "🏦 ช่องทาง",
           value: channel === 'angpao' ? "ซองอั่งเปา (TrueMoney)" : "โอนเงิน (Bank)",
+          inline: true
+        },
+        {
+          name: "💰 ยอดรวมปัจจุบัน",
+          value: `\`${totalBalance.toLocaleString()} ฿\``,
           inline: true
         },
         {
@@ -147,7 +152,19 @@ export const sendDiscordTopupEmbed = async (username: string, amount: number, ch
 
 export const sendDiscordPurchaseEmbed = async (username: string, itemName: string, quantity: number, remainingStock: number, drops: {name: string, isSalt?: boolean}[]) => {
   try {
-    const dropTexts = drops.map(d => d.isSalt ? `🧂 \`${d.name}\`` : `🎉 **${d.name}**`).join('\\n');
+    const dropCounts: Record<string, { count: number, isSalt?: boolean }> = {};
+    drops.forEach(d => {
+      if (!dropCounts[d.name]) {
+        dropCounts[d.name] = { count: 1, isSalt: d.isSalt };
+      } else {
+        dropCounts[d.name].count++;
+      }
+    });
+
+    const dropTexts = Object.entries(dropCounts).map(([name, data]) => {
+      const prefix = data.isSalt ? `🧂 \`${name}\`` : `🎉 **${name}**`;
+      return `${prefix} x${data.count}`;
+    }).join('\\n');
     
     const embed = {
       title: "🛒 การสั่งซื้อสินค้า / สต๊อกลดลง",
@@ -212,6 +229,8 @@ export const addLiveActivity = (activity: Omit<LiveActivity, 'id' | 'timestamp'>
 };
 
 export default function App() {
+  const [isUnderMaintenance, setIsUnderMaintenance] = useState(true); // ปิดเว็บไซต์ชั่วคราวเพื่ออัปเดตระบบฐานข้อมูล supabase
+
   // --- Global Hub State ---
   const [appScreen, setAppScreen] = useState<'LOADING' | 'SELECT' | 'TRANSITION' | 'AOTR' | 'ASTD'>('LOADING');
   const [targetScreen, setTargetScreen] = useState<'AOTR' | 'ASTD' | null>(null);
@@ -776,13 +795,14 @@ export default function App() {
             setTopupSuccessMessage(msg);
             setTopupModalStep('success');
             setTopupCode('');
+            const newBalance = users[activeUsername].balance;
             if (currentUser) setCurrentUser({ ...currentUser });
-            sendDiscordTopupEmbed(currentUserData.username, amount, 'angpao', true);
+            sendDiscordTopupEmbed(currentUserData.username, amount, 'angpao', newBalance, true);
           } else {
             const errorMsg = data.info || data.message || data.msg || data.error || 'ซองขวัญไม่ถูกต้อง หรือถูกใช้งานไปแล้ว';
             setTopupError(`API แจ้งเตือน: ${errorMsg}`);
             showToast(errorMsg, 'error');
-            sendDiscordTopupEmbed(currentUserData.username, 0, 'angpao', false);
+            sendDiscordTopupEmbed(currentUserData.username, 0, 'angpao', currentUserData.balance || 0, false);
           }
         } catch (error: any) {
           console.error("Topup fetch error:", error);
@@ -957,14 +977,15 @@ export default function App() {
              setTopupSuccessMessage(bankMsg);
              setTopupModalStep('success');
              setSlipFile(null);
+             const newBalance = users[activeUsername].balance;
              if (currentUser) setCurrentUser({ ...currentUser });
-             sendDiscordTopupEmbed(currentUserData.username, amount, 'bank', true);
+             sendDiscordTopupEmbed(currentUserData.username, amount, 'bank', newBalance, true);
           } else {
              const errorMsg = data.message?.massage_th || data.message || 'รหัส QR จากสลิปไม่สามารถตรวจสอบได้';
              const finalErr = typeof errorMsg === 'string' ? errorMsg : 'สลิปไม่ถูกต้อง';
              setTopupError(`API แจ้งเตือน: ${finalErr}`);
              showToast(finalErr, 'error');
-             sendDiscordTopupEmbed(currentUserData.username, 0, 'bank', false);
+             sendDiscordTopupEmbed(currentUserData.username, 0, 'bank', currentUserData.balance || 0, false);
           }
         } catch (error: any) {
            console.error("Bank check error:", error);
@@ -1446,16 +1467,20 @@ export default function App() {
       
       // Reduce Stock (pass true to skip the toast inside the helper if we had one)
       handleQuickQuantityChange(item.id, -purchaseQty, true);
-      addLiveActivity({
-        type: 'purchase',
-        username: currentUser.username,
-        itemName: item.name,
-        quantity: purchaseQty,
-        price: totalPrice,
-        remainingStock: liveItemQty - purchaseQty,
-        game: item.game || 'ASTD',
-        gachaDrops: drops.length > 0 ? drops : undefined
-      });
+      
+      const hasGuaranteed = drops.some(d => !d.isSalt);
+      if (!(isAdmin && hasGuaranteed)) {
+        addLiveActivity({
+          type: 'purchase',
+          username: currentUser.username,
+          itemName: item.name,
+          quantity: purchaseQty,
+          price: totalPrice,
+          remainingStock: liveItemQty - purchaseQty,
+          game: item.game || 'ASTD',
+          gachaDrops: drops.length > 0 ? drops : undefined
+        });
+      }
       
       const webhookDrops = drops.length > 0 ? drops : [{ name: `${item.name} x${purchaseQty}`, isSalt: false }];
       sendDiscordPurchaseEmbed(currentUser.username, item.name, purchaseQty, liveItemQty - purchaseQty, webhookDrops);
@@ -2503,6 +2528,27 @@ export default function App() {
       </div>
     );
   };
+
+  if (isUnderMaintenance) {
+    return (
+      <div className="fixed inset-0 z-[99999] bg-black/95 flex flex-col items-center justify-center p-6 text-center select-none text-white font-sans">
+        <div className="max-w-md w-full bg-zinc-900/50 p-8 rounded-3xl border border-amber-500/30 shadow-2xl backdrop-blur-md">
+          <div className="w-20 h-20 mx-auto bg-amber-500/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
+            <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          </div>
+          <h2 className="text-2xl font-black mb-3">ระบบอยู่ระหว่างการปรับปรุง</h2>
+          <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+            กำลังดำเนินการอัปเดตระบบฐานข้อมูลและลบโค้ด LocalStorage ออกตามที่คุณต้องการทั้งหมด กรุณาอดทนรอสักครู่ ระบบจะกลับมาใช้งานได้โดยอัตโนมัติเมื่อเสร็จสิ้น
+          </p>
+          <div className="flex justify-center space-x-2 pb-2">
+            <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (appScreen === 'LOADING' || appScreen === 'TRANSITION') {
     return (
