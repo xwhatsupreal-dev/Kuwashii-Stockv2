@@ -353,7 +353,17 @@ export default function App() {
     handleSync();
     
     window.addEventListener('sync-update', handleSync);
-    return () => window.removeEventListener('sync-update', handleSync);
+    
+    const realtimeChannel = supabase.channel('public-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        handleSync();
+      })
+      .subscribe();
+
+    return () => {
+      window.removeEventListener('sync-update', handleSync);
+      supabase.removeChannel(realtimeChannel);
+    };
   }, [currentUser]);
 
 
@@ -461,7 +471,7 @@ export default function App() {
   const toggleMaintenanceMode = async () => {
     if (confirm(`คุณต้องการ${globalStats?.maintenance_mode ? 'เปิด' : 'ปิด'}เว็บไซต์ใช่หรือไม่?`)) {
       await supabase.from('system_config').upsert({ id: 'main', maintenance_mode: !globalStats?.maintenance_mode });
-      setSyncCounter(c => c + 1);
+      window.dispatchEvent(new Event('sync-update'));
       showToast(globalStats?.maintenance_mode ? 'เปิดเว็บไซต์เรียบร้อยแล้ว' : 'ปิดเว็บไซต์เรียบร้อยแล้ว', 'info');
     }
   };
@@ -2894,7 +2904,7 @@ export default function App() {
                        const newVal = window.prompt("แก้ไขยอดขายไปแล้วทั้งหมด (ASTD)", currentVal);
                        if (newVal !== null && !isNaN(parseInt(newVal))) {
                           await supabase.from('system_config').upsert({ id: 'main', global_sales_astd: parseInt(newVal) });
-                          setSyncCounter(c => c + 1);
+                          window.dispatchEvent(new Event('sync-update'));
                           showToast('อัปเดตยอดขายแล้ว (ASTD)', 'success');
                        }
                     }} className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white">
@@ -2937,7 +2947,7 @@ export default function App() {
                        const newVal = window.prompt("แก้ไขยอดการเติมเงินรวม ASTD", currentRev);
                        if (newVal !== null && !isNaN(parseFloat(newVal))) {
                           await supabase.from('system_config').upsert({ id: 'main', global_revenue_astd: parseFloat(newVal) });
-                          setSyncCounter(c => c + 1);
+                          window.dispatchEvent(new Event('sync-update'));
                           showToast('อัปเดตยอดเติมเงินรวม (ASTD) แล้ว', 'success');
                        }
                     }} className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white">
@@ -2965,7 +2975,7 @@ export default function App() {
                        const newVal = window.prompt("แก้ไขยอดเครดิตฟรีแจกแล้ว ASTD", currentRev);
                        if (newVal !== null && !isNaN(parseFloat(newVal))) {
                           await supabase.from('system_config').upsert({ id: 'main', global_free_credits_astd: parseFloat(newVal) });
-                          setSyncCounter(c => c + 1);
+                          window.dispatchEvent(new Event('sync-update'));
                           showToast('อัปเดตยอดเครดิตฟรี (ASTD) แล้ว', 'success');
                        }
                     }} className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white">
