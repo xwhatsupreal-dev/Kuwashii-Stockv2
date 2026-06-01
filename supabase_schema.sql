@@ -1,7 +1,7 @@
 -- ก๊อปปี้โค้ดทั้งหมดนี้ไปวางในเมนู SQL Editor ของ Supabase แล้วกด Run
 
 -- 1. สร้างตารางผู้ใช้งาน (Users)
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   username text UNIQUE NOT NULL,
   password text NOT NULL,
@@ -11,8 +11,11 @@ CREATE TABLE public.profiles (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
+-- เพิ่มคอลัมน์ banned เผื่อว่ามีตาราง profiles อยู่แล้วแต่ยังไม่มีคอลัมน์นี้
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banned boolean DEFAULT false;
+
 -- 2. สร้างตารางกิจกรรมล่าสุด (Live Activities)
-CREATE TABLE public.activities (
+CREATE TABLE IF NOT EXISTS public.activities (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   type text NOT NULL,
   username text NOT NULL,
@@ -26,7 +29,7 @@ CREATE TABLE public.activities (
 );
 
 -- 3. สร้างตารางประวัติการซื้อ (Purchases)
-CREATE TABLE public.purchases (
+CREATE TABLE IF NOT EXISTS public.purchases (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   username text NOT NULL,
   item_id text,
@@ -38,7 +41,7 @@ CREATE TABLE public.purchases (
 );
 
 -- 4. สร้างตารางประวัติการเติมเงิน (Topups)
-CREATE TABLE public.topups (
+CREATE TABLE IF NOT EXISTS public.topups (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   username text NOT NULL,
   amount numeric NOT NULL,
@@ -48,7 +51,7 @@ CREATE TABLE public.topups (
 );
 
 -- 5. สร้างตารางสินค้า (Items)
-CREATE TABLE public.items (
+CREATE TABLE IF NOT EXISTS public.items (
   id text PRIMARY KEY,
   name text NOT NULL,
   description text,
@@ -64,7 +67,7 @@ CREATE TABLE public.items (
 );
 
 -- 6. สร้างตารางคูปอง (Coupons)
-CREATE TABLE public.coupons (
+CREATE TABLE IF NOT EXISTS public.coupons (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   code text UNIQUE NOT NULL,
   amount numeric NOT NULL,
@@ -74,7 +77,7 @@ CREATE TABLE public.coupons (
 );
 
 -- 7. ระบบตั้งค่า (System Config)
-CREATE TABLE public.system_config (
+CREATE TABLE IF NOT EXISTS public.system_config (
   id text PRIMARY KEY, -- ค่าจะเป็น 'main'
   maintenance_mode boolean DEFAULT false,
   global_sales_astd numeric DEFAULT 0,
@@ -96,10 +99,27 @@ ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_config ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow all operations for profiles" ON public.profiles FOR ALL USING (true);
-CREATE POLICY "Allow all operations for activities" ON public.activities FOR ALL USING (true);
-CREATE POLICY "Allow all operations for purchases" ON public.purchases FOR ALL USING (true);
-CREATE POLICY "Allow all operations for topups" ON public.topups FOR ALL USING (true);
-CREATE POLICY "Allow all operations for items" ON public.items FOR ALL USING (true);
-CREATE POLICY "Allow all operations for coupons" ON public.coupons FOR ALL USING (true);
-CREATE POLICY "Allow all operations for system_config" ON public.system_config FOR ALL USING (true);
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for profiles') THEN
+    CREATE POLICY "Allow all operations for profiles" ON public.profiles FOR ALL USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for activities') THEN
+    CREATE POLICY "Allow all operations for activities" ON public.activities FOR ALL USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for purchases') THEN
+    CREATE POLICY "Allow all operations for purchases" ON public.purchases FOR ALL USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for topups') THEN
+    CREATE POLICY "Allow all operations for topups" ON public.topups FOR ALL USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for items') THEN
+    CREATE POLICY "Allow all operations for items" ON public.items FOR ALL USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for coupons') THEN
+    CREATE POLICY "Allow all operations for coupons" ON public.coupons FOR ALL USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for system_config') THEN
+    CREATE POLICY "Allow all operations for system_config" ON public.system_config FOR ALL USING (true);
+  END IF;
+END $$;
