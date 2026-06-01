@@ -102,6 +102,24 @@ const readQRFromImage = (file: File): Promise<string | null> => {
    });
 };
 
+import { LiveActivities, LiveActivity } from './components/LiveActivities';
+
+export const addLiveActivity = (activity: Omit<LiveActivity, 'id' | 'timestamp'>) => {
+  try {
+    const raw = localStorage.getItem('KUWASHII_LIVE_ACTIVITY') || '[]';
+    let activities: LiveActivity[] = JSON.parse(raw);
+    const newActivity: LiveActivity = {
+      ...activity,
+      id: Math.random().toString(36).substring(2, 9),
+      timestamp: new Date().toISOString()
+    };
+    activities.unshift(newActivity);
+    activities = activities.slice(0, 50); // Keep last 50
+    localStorage.setItem('KUWASHII_LIVE_ACTIVITY', JSON.stringify(activities));
+    window.dispatchEvent(new Event('sync-update'));
+  } catch(e){}
+};
+
 export default function App() {
   // --- Global Hub State ---
   const [appScreen, setAppScreen] = useState<'LOADING' | 'SELECT' | 'TRANSITION' | 'AOTR' | 'ASTD'>('LOADING');
@@ -996,6 +1014,9 @@ export default function App() {
       setAuthPassword('');
       setAuthConfirmPassword('');
       setAuthError('');
+      
+      addLiveActivity({ type: 'signup', username: authUsername.trim(), game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR' });
+      
       showToast('สมัครสมาชิกและเข้าสู่ระบบสำเร็จ!', 'success');
     }
   };
@@ -1121,6 +1142,17 @@ export default function App() {
     if (confirm(`คุณมั่นใจหรือไม่ที่จะลบ "${itemToDelete.name}" ออกจากคลังสต๊อกสินค้า?`)) {
       const remainingItems = currentItems.filter((it) => it.id !== id);
       saveItemsToStorage(remainingItems);
+      
+      // Cleanup Claimed Jackpots
+      try {
+        const stored = localStorage.getItem('KUWASHII_CLAIMED_JACKPOTS');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const filtered = parsed.filter((c: any) => c.itemId !== id);
+          localStorage.setItem('KUWASHII_CLAIMED_JACKPOTS', JSON.stringify(filtered));
+        }
+      } catch(e) {}
+      
       showToast('ลบสินค้าออกจากระบบและฐานข้อมูลเรียบร้อย', 'info');
     }
   };
@@ -1197,6 +1229,17 @@ export default function App() {
          setIsProcessingPurchase(false);
          return;
       }
+      
+      // Load claimed jackpots to prevent duplicate giving of the exact same stock trigger
+      let claimedJackpots: any[] = [];
+      try {
+        const storedClaims = localStorage.getItem('KUWASHII_CLAIMED_JACKPOTS');
+        if (storedClaims) {
+          const parsed = JSON.parse(storedClaims);
+          const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
+          claimedJackpots = parsed.filter((c: any) => new Date(c.timestamp).getTime() > threeDaysAgo);
+        }
+      } catch(e) {}
 
       // Perform Gacha Roll based on CURRENT LIVE stock
       let drops: { name: string; color?: string; isSalt?: boolean }[] = [];
@@ -1212,7 +1255,18 @@ export default function App() {
           );
           
           if (guaranteedReward) {
-            dropped = guaranteedReward;
+            // Check if ANYONE already claimed this specific stock trigger for this item
+            const isClaimed = claimedJackpots.some(c => c.itemId === item.id && c.stockTrigger === currentOpenStock);
+            if (!isClaimed) {
+              dropped = guaranteedReward;
+              claimedJackpots.push({
+                itemId: item.id,
+                rewardName: dropped.name,
+                stockTrigger: currentOpenStock,
+                username: currentUser.username,
+                timestamp: new Date().toISOString()
+              });
+            }
           }
           
           if (dropped) {
@@ -1222,6 +1276,9 @@ export default function App() {
           }
         }
       }
+      
+      // Update Claimed Jackpots
+      localStorage.setItem('KUWASHII_CLAIMED_JACKPOTS', JSON.stringify(claimedJackpots));
 
       // Process Purchase
       liveUser.balance -= totalPrice;
@@ -1245,15 +1302,27 @@ export default function App() {
       
       // Reduce Stock (pass true to skip the toast inside the helper if we had one)
       handleQuickQuantityChange(item.id, -purchaseQty, true);
+      addLiveActivity({
+        type: 'purchase',
+        username: currentUser.username,
+        itemName: item.name,
+        quantity: purchaseQty,
+        price: totalPrice,
+        remainingStock: liveItemQty - purchaseQty,
+        game: item.game || 'ASTD',
+        gachaDrops: drops.length > 0 ? drops : undefined
+      });
       
       setInquiringItem(null);
       setIsProcessingPurchase(false);
       
       if (drops.length > 0) {
-        setGachaResult({ item, drops });
+        setGachaResult({ item, drops, purchaseQty: purchaseQty, remainingStock: liveItemQty - purchaseQty });
       } else {
         setGachaResult({ 
           item, 
+          purchaseQty: purchaseQty,
+          remainingStock: liveItemQty - purchaseQty,
           drops: [{ 
             name: `${item.name} x${purchaseQty}`, 
             color: '#10B981', 
@@ -1265,47 +1334,43 @@ export default function App() {
   };
 
   const handleQuickQuantityChange = async (id: string, delta: number, silent: boolean = false) => {
-    setItems((prevItems) => {
-      // Fetch latest from localStorage to prevent race conditions or stale state
-      let currentItems = prevItems;
-      const liveData = localStorage.getItem('AOTR_STOCK_ITEMS');
-      if (liveData) {
-        try {
-          currentItems = JSON.parse(liveData);
-        } catch(e) {}
+    let currentItems = items;
+    const liveData = localStorage.getItem('AOTR_STOCK_ITEMS');
+    if (liveData) {
+      try {
+        currentItems = JSON.parse(liveData);
+      } catch(e) {}
+    }
+
+    const target = currentItems.find((it) => it.id === id);
+    if (!target) return;
+
+    const nextQty = Math.max(0, target.quantity + delta);
+    const updated: StockItem = {
+      ...target,
+      quantity: nextQty,
+      initialQuantity: target.initialQuantity !== undefined 
+        ? Math.max(target.initialQuantity, nextQty)
+        : nextQty,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const newItems = currentItems.map((it) => (it.id === id ? updated : it));
+    
+    setItems(newItems);
+    localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(newItems));
+    window.dispatchEvent(new Event('sync-update'));
+    
+    if (!silent) {
+      showToast('อัปเดตจำนวนสต็อกเรียบร้อย!', 'success');
+      if (nextQty <= 5 && nextQty < target.quantity) {
+        playChime('warning');
+      } else if (nextQty > target.quantity) {
+        playChime('success');
+      } else {
+        playChime('info');
       }
-
-      const target = currentItems.find((it) => it.id === id);
-      if (!target) return prevItems; // fallback if not found
-
-      const nextQty = Math.max(0, target.quantity + delta);
-      const updated: StockItem = {
-        ...target,
-        quantity: nextQty,
-        initialQuantity: target.initialQuantity !== undefined 
-          ? Math.max(target.initialQuantity, nextQty)
-          : nextQty,
-        updatedAt: new Date().toISOString(),
-      };
-
-      const newItems = currentItems.map((it) => (it.id === id ? updated : it));
-      localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(newItems));
-      window.dispatchEvent(new Event('sync-update'));
-      
-      if (!silent) {
-        setTimeout(() => {
-          showToast('อัปเดตจำนวนสต็อกเรียบร้อย!', 'success');
-          if (nextQty <= 5 && nextQty < target.quantity) {
-            playChime('warning');
-          } else if (nextQty > target.quantity) {
-            playChime('success');
-          } else {
-            playChime('info');
-          }
-        }, 0);
-      }
-      return newItems;
-    });
+    }
   };
 
   const handleTogglePin = async (id: string) => {
@@ -1454,7 +1519,39 @@ export default function App() {
     return matchesSearch && matchesCategory && matchesRarity && matchesStatus && matchesPopular;
   });
 
-  const sortedItems = [...filteredItems].sort((a, b) => {
+  // Overload latest stock from LiveActivities (Plan 2) to prevent out-of-sync UI
+  const getPatchedStockItems = () => {
+    const liveActivitiesStr = localStorage.getItem('KUWASHII_LIVE_ACTIVITY') || '[]';
+    const latestStockMap: Record<string, { qty: number, ts: number }> = {};
+    try {
+      const liveActivities = JSON.parse(liveActivitiesStr);
+      liveActivities.forEach((a: any) => {
+        if (a.type === 'purchase' && a.itemName && a.remainingStock !== undefined) {
+          const aTime = new Date(a.timestamp).getTime();
+          // Keep the absolutely most recent purchase activity for this item
+          if (latestStockMap[a.itemName] === undefined || aTime > latestStockMap[a.itemName].ts) {
+            latestStockMap[a.itemName] = { qty: a.remainingStock, ts: aTime };
+          }
+        }
+      });
+    } catch(e) {}
+
+    return filteredItems.map(item => {
+      const patch = latestStockMap[item.name];
+      if (patch) {
+        const itemUpdateTs = item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
+        // If the purchase happened AFTER the last time the admin edited the item, use the patched stock
+        if (patch.ts > itemUpdateTs && patch.qty < item.quantity) {
+          return { ...item, quantity: patch.qty };
+        }
+      }
+      return item;
+    });
+  };
+
+  const patchedItems = getPatchedStockItems();
+
+  const sortedItems = [...patchedItems].sort((a, b) => {
     // 1. Stock Status Prioritization: In-stock items (quantity > 0) go up, Out-of-stock items (quantity === 0) go down
     const aHasStock = a.quantity > 0 ? 1 : 0;
     const bHasStock = b.quantity > 0 ? 1 : 0;
@@ -2819,6 +2916,8 @@ export default function App() {
                 </div>
               </div>
             </div>
+            
+            <LiveActivities appScreen={appScreen} syncCounter={syncCounter} isAdmin={isAdmin} />
           </div>
         </header>
 
@@ -3167,7 +3266,24 @@ export default function App() {
                     {isAdmin ? <ShieldCheck className="w-3.5 h-3.5 animate-pulse" /> : <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />}
                     <span>{currentUser.username} {isAdmin && '(Admin)'}</span>
                   </span>
-                  {/* In AOTR, no credits/topup/history should be shown */}
+                  
+                  {/* Top Up Button for EVERYONE */}
+                  <button
+                    type="button"
+                    onClick={() => setShowTopupModal(true)}
+                    className="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span>เติมเงิน</span>
+                  </button>
+
+                  {!isAdmin && (
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hidden sm:flex">
+                      <Coins className="w-3.5 h-3.5" />
+                      <span>เครดิต: ฿{Number(JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</span>
+                    </span>
+                  )}
+
                   {/* Add Product Shortcut (Only Admins) */}
                   {isAdmin && (
                     <button
@@ -3276,6 +3392,7 @@ export default function App() {
             </div>
           </div>
 
+          <LiveActivities appScreen={appScreen} syncCounter={syncCounter} isAdmin={isAdmin} />
         </div>
       </header>
 

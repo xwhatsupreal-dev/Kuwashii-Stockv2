@@ -8,6 +8,8 @@ interface GachaResultModalProps {
   result: {
     item: any;
     drops: { name: string; color?: string; isSalt?: boolean }[];
+    purchaseQty?: number;
+    remainingStock?: number;
   } | null;
 }
 
@@ -66,9 +68,16 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
           <h2 className={`text-2xl font-black mb-2 font-display uppercase tracking-wider ${allSalt ? 'text-zinc-300' : 'text-white'}`}>
             {allSalt ? 'น่าเสียดาย! คุณเกลือ' : 'ยินดีด้วย! คุณได้รับ'}
           </h2>
-          <p className="text-zinc-400 text-sm mb-6 max-w-sm mx-auto">
-            จากการเปิด {result.item.name} จำนวน {result.drops.length} ครั้ง
+          <p className="text-zinc-400 text-sm mb-1 max-w-sm mx-auto">
+            จากการเปิด {result.item.name} จำนวน {result.purchaseQty || result.drops.length} ครั้ง
           </p>
+          {result.remainingStock !== undefined ? (
+            <p className="text-emerald-400 font-mono text-xs font-bold mb-6 max-w-sm mx-auto bg-emerald-500/10 py-1.5 px-4 rounded-full inline-block border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
+              กล่องสุ่มเหลือ {result.remainingStock} ชิ้น
+            </p>
+          ) : (
+            <div className="mb-6" />
+          )}
 
           <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800">
             <AnimatePresence>
