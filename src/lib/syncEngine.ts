@@ -28,6 +28,9 @@ const SYNC_KEYS = [
 
 let isInitialized = false;
 
+// Track pending saves to prevent real-time "echo" jumps
+const pendingSaves = new Map<string, number>();
+
 // Store exact reference to the original methods
 const originalSetItem = window.localStorage.setItem;
 
@@ -68,6 +71,9 @@ export async function initSyncEngine() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'kv_store' }, payload => {
          const { key, value } = payload.new as any || {};
          if (key && SYNC_KEYS.includes(key)) {
+            // Skip echoes if we have pending local writes for this key
+            if ((pendingSaves.get(key) || 0) > 0) return;
+            
             const strValue = typeof value === 'object' ? JSON.stringify(value) : value;
             originalSetItem.call(window.localStorage, key, strValue);
             window.dispatchEvent(new Event('sync-update'));
@@ -94,7 +100,10 @@ window.localStorage.setItem = function(key: string, value: string) {
       // Keep as string
     }
     
+    pendingSaves.set(key, (pendingSaves.get(key) || 0) + 1);
+    
     supabase.from('kv_store').upsert({ key, value: parsedValue }).then(({error}) => {
+       pendingSaves.set(key, Math.max(0, (pendingSaves.get(key) || 0) - 1));
        if (error) {
           console.error(`Failed to sync ${key} to Supabase:`, error.message);
        }

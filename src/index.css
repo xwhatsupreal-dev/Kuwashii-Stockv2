@@ -31,7 +31,15 @@ html, body, #root {
   box-shadow: 0 0 8px -1px rgba(107, 114, 128, 0.15);
 }
 
-/* Custom scrollbar to match sleek theme */
+@keyframes marquee {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee linear infinite;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

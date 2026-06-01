@@ -71,6 +71,7 @@ import { UserSettingsModal } from './components/UserSettingsModal';
 import { CouponManagerModal } from './components/CouponManagerModal';
 import { AnnouncementManagerModal } from './components/AnnouncementManagerModal';
 import { AnnouncementPopup } from './components/AnnouncementPopup';
+import { MarqueeAnnouncement } from './components/MarqueeAnnouncement';
 import Snowfall from './components/Snowfall';
 import jsQR from 'jsqr';
 
@@ -213,6 +214,8 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [authConfirmPassword, setAuthConfirmPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [showAuthConfirmPassword, setShowAuthConfirmPassword] = useState(false);
   
   const [showMockEmailModal, setShowMockEmailModal] = useState(false);
   const [mockEmailModalData, setMockEmailModalData] = useState<{email: string; username: string; password: string} | null>(null);
@@ -1685,18 +1688,27 @@ export default function App() {
                       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
                         รหัสผ่าน (Password)
                       </label>
-                      <input
-                        type="password"
-                        value={authPassword}
-                        onChange={(e) => {
-                          setAuthPassword(e.target.value);
-                          setAuthError('');
-                        }}
-                        placeholder="ป้อนรหัสผ่าน..."
-                        required={authMode !== 'forgot'}
-                        autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                        className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showAuthPassword ? "text" : "password"}
+                          value={authPassword}
+                          onChange={(e) => {
+                            setAuthPassword(e.target.value);
+                            setAuthError('');
+                          }}
+                          placeholder="ป้อนรหัสผ่าน..."
+                          required={authMode !== 'forgot'}
+                          autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAuthPassword(!showAuthPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                        >
+                          {showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                       {authMode === 'login' && (
                         <label className="flex items-center gap-2 mt-3 cursor-pointer group w-fit text-[11px] text-zinc-400">
                           <div className="relative flex items-center justify-center">
@@ -1719,18 +1731,27 @@ export default function App() {
                       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1 mt-3">
                         ยืนยันรหัสผ่าน (Confirm Password) <span className="text-emerald-500">*จำเป็น</span>
                       </label>
-                      <input
-                        type="password"
-                        value={authConfirmPassword}
-                        onChange={(e) => {
-                          setAuthConfirmPassword(e.target.value);
-                          setAuthError('');
-                        }}
-                        placeholder="ยืนยันรหัสผ่านอีกครั้ง..."
-                        required={authMode === 'register'}
-                        autoComplete="new-password"
-                        className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showAuthConfirmPassword ? "text" : "password"}
+                          value={authConfirmPassword}
+                          onChange={(e) => {
+                            setAuthConfirmPassword(e.target.value);
+                            setAuthError('');
+                          }}
+                          placeholder="ยืนยันรหัสผ่านอีกครั้ง..."
+                          required={authMode === 'register'}
+                          autoComplete="new-password"
+                          className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                        >
+                          {showAuthConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </motion.div>
                   )}
 
@@ -2338,6 +2359,7 @@ export default function App() {
   if (appScreen === 'ASTD') {
     return (
       <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
+        <MarqueeAnnouncement appScreen={appScreen} />
         <AnnouncementPopup appScreen={appScreen} />
         <Snowfall />
 
@@ -2420,26 +2442,29 @@ export default function App() {
                 </a>
 
                 {currentUser ? (
-                  <div className="flex flex-wrap items-center gap-2 bg-zinc-900 border border-zinc-800 p-1 rounded-xl hidden sm:flex">
+                  <div className="flex flex-wrap items-center gap-2 bg-zinc-900 border border-zinc-800 p-1 rounded-xl">
                     {/* User Tag */}
                     <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-sans ${isAdmin ? 'text-amber-400 bg-amber-500/10' : 'text-indigo-400 bg-indigo-500/10'}`}>
                       {isAdmin ? <ShieldCheck className="w-3.5 h-3.5 animate-pulse" /> : <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />}
                       <span>{currentUser.username} {isAdmin && '(Admin)'}</span>
                     </span>
+                    
+                    {/* Top Up Button for EVERYONE */}
+                    <button
+                      type="button"
+                      onClick={() => setShowTopupModal(true)}
+                      className="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
+                    >
+                      <Wallet className="w-3.5 h-3.5" />
+                      <span>เติมเงิน</span>
+                    </button>
+
                     {!isAdmin && (
                       <>
-                        <span className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                        <span className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hidden sm:flex">
                           <Coins className="w-3.5 h-3.5" />
                           <span>เครดิต: ฿{Number(JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}')[currentUser.username]?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</span>
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => setShowTopupModal(true)}
-                          className="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
-                        >
-                          <Wallet className="w-3.5 h-3.5" />
-                          <span>เติมเงิน</span>
-                        </button>
                       </>
                     )}
 
@@ -2455,7 +2480,7 @@ export default function App() {
                         id="btn-nav-add-astd"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        <span>ลงขายสินค้า</span>
+                        <span className="hidden sm:inline">ลงขายสินค้า</span>
                       </button>
                     )}
 
@@ -2464,7 +2489,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setShowHistoryModal(true)}
-                        className="py-1.5 px-3 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border border-indigo-500/20"
+                        className="py-1.5 px-3 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border border-indigo-500/20 hidden sm:flex"
                       >
                         <History className="w-3.5 h-3.5" />
                         <span>ประวัติ</span>
@@ -2478,7 +2503,8 @@ export default function App() {
                       className="py-1.5 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
                       id="btn-nav-logout-astd"
                     >
-                      ออกจากระบบ
+                      <span className="hidden sm:inline">ออกจากระบบ</span>
+                      <span className="sm:hidden">ออก</span>
                     </button>
                   </div>
                 ) : (
@@ -3040,6 +3066,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
+      <MarqueeAnnouncement appScreen={appScreen} />
       <AnnouncementPopup appScreen={appScreen} />
       <Snowfall />
       {/* Return to Hub floating button */}

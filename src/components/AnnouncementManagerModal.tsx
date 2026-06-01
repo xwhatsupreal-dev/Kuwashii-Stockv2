@@ -15,6 +15,12 @@ export interface AnnouncementSettings {
   linkUrl2: string;
   showInATOR: boolean;
   showInASTD: boolean;
+  marqueeEnabled?: boolean;
+  marqueeText?: string; // Keep for backward compatibility
+  marqueeTexts?: string[];
+  marqueeSpeed?: number;
+  marqueeBgColor?: string;
+  marqueeTextColor?: string;
 }
 
 const DEFAULT_SETTINGS: AnnouncementSettings = {
@@ -25,6 +31,11 @@ const DEFAULT_SETTINGS: AnnouncementSettings = {
   linkUrl2: '',
   showInATOR: true,
   showInASTD: true,
+  marqueeEnabled: false,
+  marqueeTexts: ['ยินดีต้อนรับเข้าสู่เว็บไซต์!'],
+  marqueeSpeed: 15,
+  marqueeBgColor: '#f59e0b',
+  marqueeTextColor: '#000000',
 };
 
 export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> = ({ isOpen, onClose }) => {
@@ -47,6 +58,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
     localStorage.setItem('KUWASHII_ANNOUNCEMENT_SETTINGS', JSON.stringify(settings));
     // Clear out user hide status when admin updates
     localStorage.setItem('KUWASHII_ANNOUNCEMENT_UPDATED_AT', Date.now().toString());
+    window.dispatchEvent(new Event('sync-announcement'));
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
   };
@@ -68,7 +80,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col font-sans overflow-hidden"
+          className="relative w-full max-w-md max-h-[85vh] bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col font-sans overflow-hidden"
         >
           <div className="p-6 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
             <button
@@ -88,7 +100,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
             </div>
           </div>
 
-          <div className="p-6 space-y-5">
+          <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
             <label className="flex items-center gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl cursor-pointer hover:bg-zinc-800 transition-colors">
               <input
                 type="checkbox"
@@ -165,6 +177,86 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                 />
                 <span className="text-zinc-300 font-bold text-xs flex-1">แสดงในหน้า ASTD</span>
               </label>
+            </div>
+
+            <div className="pt-4 border-t border-zinc-800/50">
+              <label className="flex items-center gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl cursor-pointer hover:bg-zinc-800 transition-colors mb-4">
+                <input
+                  type="checkbox"
+                  checked={settings.marqueeEnabled || false}
+                  onChange={(e) => setSettings({ ...settings, marqueeEnabled: e.target.checked })}
+                  className="w-5 h-5 rounded bg-zinc-800 border-zinc-700 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-white font-bold text-sm">เปิดใช้งานแถบประกาศเลื่อน (Marquee)</span>
+              </label>
+
+              {settings.marqueeEnabled && (
+                <>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
+                    <Type className="w-3 h-3" /> ข้อความประกาศ (ขึ้นบรรทัดใหม่เพื่อแยกข้อความ)
+                  </label>
+                  <textarea
+                    value={(settings.marqueeTexts || (settings.marqueeText ? [settings.marqueeText] : [])).join('\n')}
+                    onChange={(e) => setSettings({ ...settings, marqueeTexts: e.target.value.split('\n') })}
+                    placeholder="ข้อความที่ 1&#10;ข้อความที่ 2"
+                    className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans mb-3 min-h-[100px] resize-y"
+                  />
+                  
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
+                    ความเร็ว (วินาทีต่อ 1 รอบ)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={settings.marqueeSpeed || 15}
+                    onChange={(e) => setSettings({ ...settings, marqueeSpeed: parseInt(e.target.value) || 15 })}
+                    className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans"
+                  />
+                  <p className="text-[10px] text-zinc-500 mt-1 mb-3">ค่าน้อย = เร็ว / ค่ามาก = ช้า (แนะนำ: 10 - 20)</p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+                        สีพื้นหลัง (Background)
+                      </label>
+                      <div className="flex bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden focus-within:border-amber-500 transition-all">
+                        <input
+                          type="color"
+                          value={settings.marqueeBgColor || '#f59e0b'}
+                          onChange={(e) => setSettings({ ...settings, marqueeBgColor: e.target.value })}
+                          className="w-10 h-10 p-1 bg-transparent cursor-pointer border-none outline-none"
+                        />
+                        <input
+                          type="text"
+                          value={settings.marqueeBgColor || '#f59e0b'}
+                          onChange={(e) => setSettings({ ...settings, marqueeBgColor: e.target.value })}
+                          className="flex-1 bg-transparent border-none text-zinc-100 px-3 text-xs outline-none uppercase font-mono"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+                        สีข้อความ (Text)
+                      </label>
+                      <div className="flex bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden focus-within:border-amber-500 transition-all">
+                        <input
+                          type="color"
+                          value={settings.marqueeTextColor || '#000000'}
+                          onChange={(e) => setSettings({ ...settings, marqueeTextColor: e.target.value })}
+                          className="w-10 h-10 p-1 bg-transparent cursor-pointer border-none outline-none"
+                        />
+                        <input
+                          type="text"
+                          value={settings.marqueeTextColor || '#000000'}
+                          onChange={(e) => setSettings({ ...settings, marqueeTextColor: e.target.value })}
+                          className="flex-1 bg-transparent border-none text-zinc-100 px-3 text-xs outline-none uppercase font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <button
