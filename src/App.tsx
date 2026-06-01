@@ -559,6 +559,7 @@ export default function App() {
          };
          
          localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
+         window.dispatchEvent(new Event('sync-update'));
          
          showToast(`ใช้คูปองสำเร็จ! ได้รับ ${coupon.amount.toLocaleString()} เครดิต`, 'success');
          setTopupSuccessMessage(`ใช้คูปองสำเร็จ! ได้รับ ${coupon.amount.toLocaleString()} เครดิต`);
@@ -610,6 +611,7 @@ export default function App() {
             };
             
             localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
+            window.dispatchEvent(new Event('sync-update'));
 
             const msg = `เติมเงินสำเร็จ! จำนวน ${amount.toLocaleString()} บาท\n(หักค่าธรรมเนียม ${fee})\nจากซองของ: ${ownerName}`;
             showToast(`เติมเงินสำเร็จ ${amount} บาท`, 'success');
@@ -788,6 +790,7 @@ export default function App() {
                 ]
              };
              localStorage.setItem('KUWASHII_V2_USERS', JSON.stringify(users));
+             window.dispatchEvent(new Event('sync-update'));
 
              const bankMsg = `เติมเงินสำเร็จ! ได้รับ ${amount} เครดิต (อ้างอิง: ${transactionId})`;
              showToast(bankMsg, 'success');
@@ -2700,7 +2703,8 @@ export default function App() {
                           total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
                             return acc + (curr.purchases || []).reduce((sum: number, p: any) => {
                               const itDetails = items.find(it => it.id === p.itemId);
-                              return sum + ((itDetails && itDetails.game === 'ASTD') ? (p.quantity || 1) : 0);
+                              const isAstd = itDetails ? (!itDetails.game || itDetails.game === 'ASTD') : (!p.game || p.game === 'ASTD');
+                              return sum + (isAstd ? (p.quantity || 1) : 0);
                             }, 0);
                           }, 0);
                           localStorage.setItem('KUWASHII_GLOBAL_SALES_ASTD', (total || 0).toString());
@@ -2763,7 +2767,7 @@ export default function App() {
                         if ((total === null || total === 0) && localStorage.getItem('KUWASHII_V2_USERS')) {
                           const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
                           total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
-                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method !== 'Coupon' && tx.game === 'ASTD' ? (tx.amount || 0) : 0), 0);
+                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method !== 'Coupon' && (!tx.game || tx.game === 'ASTD') ? (tx.amount || 0) : 0), 0);
                           }, 0);
                           localStorage.setItem('KUWASHII_GLOBAL_REVENUE_ASTD', (total || 0).toString());
                         }
@@ -2804,7 +2808,7 @@ export default function App() {
                         if ((total === null || total === 0) && localStorage.getItem('KUWASHII_V2_USERS')) {
                           const users = JSON.parse(localStorage.getItem('KUWASHII_V2_USERS') || '{}');
                           total = (Object.values(users) as any[]).reduce((acc: number, curr: any) => {
-                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method === 'Coupon' && tx.game === 'ASTD' ? (tx.amount || 0) : 0), 0);
+                            return acc + (curr.topups || []).reduce((sum: number, tx: any) => sum + (tx.method === 'Coupon' && (!tx.game || tx.game === 'ASTD') ? (tx.amount || 0) : 0), 0);
                           }, 0);
                           localStorage.setItem('KUWASHII_GLOBAL_FREE_CREDITS_ASTD', (total || 0).toString());
                         }
