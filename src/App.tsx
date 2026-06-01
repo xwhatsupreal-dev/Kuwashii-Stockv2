@@ -241,7 +241,7 @@ export const addLiveActivity = async (activity: Omit<LiveActivity, 'id' | 'times
 };
 
 export default function App() {
-  const [globalStats, setGlobalStats] = useState<any>({ global_sales_astd: 0, global_revenue_astd: 0, global_free_credits_astd: 0, maintenance_mode: false });
+  const [globalStats, setGlobalStats] = useState<any>({ global_sales_astd: 0, global_rev_astd: 0, global_free_astd: 0, maintenance_mode: false });
   const [currentUserData, setCurrentUserData] = useState<any>(null);
 
   const isUnderMaintenance = globalStats?.maintenance_mode;
@@ -753,8 +753,8 @@ export default function App() {
          
          const configData = await getSystemConfig();
          if (appScreen === 'ASTD') {
-            const currentFree = configData ? Number(configData.global_free_credits_astd || 0) : 0;
-            await supabase.from('system_config').upsert({ id: 'main', global_free_credits_astd: currentFree + coupon.amount });
+            const currentFree = configData ? Number(configData.global_free_astd || 0) : 0;
+            await supabase.from('system_config').upsert({ id: 'main', global_free_astd: currentFree + coupon.amount });
          } else {
             const currentFree = configData ? Number(configData.global_free_credits_aotr || 0) : 0;
             await supabase.from('system_config').upsert({ id: 'main', global_free_credits_aotr: currentFree + coupon.amount });
@@ -803,8 +803,8 @@ export default function App() {
             
             const configData = await getSystemConfig();
             if (appScreen === 'ASTD') {
-              const currentRev = configData ? Number(configData.global_revenue_astd || 0) : 0;
-              await supabase.from('system_config').upsert({ id: 'main', global_revenue_astd: currentRev + amount });
+              const currentRev = configData ? Number(configData.global_rev_astd || 0) : 0;
+              await supabase.from('system_config').upsert({ id: 'main', global_rev_astd: currentRev + amount });
             } else {
               const currentRev = configData ? Number(configData.global_revenue_aotr || 0) : 0;
               await supabase.from('system_config').upsert({ id: 'main', global_revenue_aotr: currentRev + amount });
@@ -961,8 +961,8 @@ export default function App() {
 
              const configData = await getSystemConfig();
              if (appScreen === 'ASTD') {
-                const currentRev = configData ? Number(configData.global_revenue_astd || 0) : 0;
-                await supabase.from('system_config').upsert({ id: 'main', global_revenue_astd: currentRev + amount });
+                const currentRev = configData ? Number(configData.global_rev_astd || 0) : 0;
+                await supabase.from('system_config').upsert({ id: 'main', global_rev_astd: currentRev + amount });
              } else {
                 const currentRev = configData ? Number(configData.global_revenue_aotr || 0) : 0;
                 await supabase.from('system_config').upsert({ id: 'main', global_revenue_aotr: currentRev + amount });
@@ -2903,7 +2903,9 @@ export default function App() {
                        const currentVal = String(globalStats?.global_sales_astd || 0);
                        const newVal = window.prompt("แก้ไขยอดขายไปแล้วทั้งหมด (ASTD)", currentVal);
                        if (newVal !== null && !isNaN(parseInt(newVal))) {
-                          await supabase.from('system_config').upsert({ id: 'main', global_sales_astd: parseInt(newVal) });
+                          const val = parseInt(newVal);
+                          await supabase.from('system_config').update({ global_sales_astd: val }).eq('id', 'main');
+                          setGlobalStats({ ...globalStats, global_sales_astd: val });
                           window.dispatchEvent(new Event('sync-update'));
                           showToast('อัปเดตยอดขายแล้ว (ASTD)', 'success');
                        }
@@ -2943,10 +2945,12 @@ export default function App() {
                 {isAdmin && (
                   <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={async () => {
-                       const currentRev = String(globalStats?.global_revenue_astd || 0);
+                       const currentRev = String(globalStats?.global_rev_astd || 0);
                        const newVal = window.prompt("แก้ไขยอดการเติมเงินรวม ASTD", currentRev);
                        if (newVal !== null && !isNaN(parseFloat(newVal))) {
-                          await supabase.from('system_config').upsert({ id: 'main', global_revenue_astd: parseFloat(newVal) });
+                          const val = parseFloat(newVal);
+                          await supabase.from('system_config').update({ global_rev_astd: val }).eq('id', 'main');
+                          setGlobalStats({ ...globalStats, global_rev_astd: val });
                           window.dispatchEvent(new Event('sync-update'));
                           showToast('อัปเดตยอดเติมเงินรวม (ASTD) แล้ว', 'success');
                        }
@@ -2962,7 +2966,7 @@ export default function App() {
                 <div className="mt-1.5 flex items-baseline gap-1">
                   <span className="text-zinc-500 font-mono text-xs">฿</span>
                   <span className="font-mono text-2xl font-black text-white">
-                    {hideGlobalStats ? '***' : (Number(globalStats?.global_revenue_astd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
+                    {hideGlobalStats ? '***' : (Number(globalStats?.global_rev_astd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
                   </span>
                 </div>
               </div>
@@ -2971,10 +2975,12 @@ export default function App() {
                 {isAdmin && (
                   <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={async () => {
-                       const currentRev = String(globalStats?.global_free_credits_astd || 0);
+                       const currentRev = String(globalStats?.global_free_astd || 0);
                        const newVal = window.prompt("แก้ไขยอดเครดิตฟรีแจกแล้ว ASTD", currentRev);
                        if (newVal !== null && !isNaN(parseFloat(newVal))) {
-                          await supabase.from('system_config').upsert({ id: 'main', global_free_credits_astd: parseFloat(newVal) });
+                          const val = parseFloat(newVal);
+                          await supabase.from('system_config').update({ global_free_astd: val }).eq('id', 'main');
+                          setGlobalStats({ ...globalStats, global_free_astd: val });
                           window.dispatchEvent(new Event('sync-update'));
                           showToast('อัปเดตยอดเครดิตฟรี (ASTD) แล้ว', 'success');
                        }
@@ -2990,7 +2996,7 @@ export default function App() {
                 <div className="mt-1.5 flex items-baseline gap-1">
                   <span className="text-zinc-500 font-mono text-xs">C</span>
                   <span className="font-mono text-2xl font-black text-yellow-400">
-                    {hideGlobalStats ? '***' : (Number(globalStats?.global_free_credits_astd || 0).toLocaleString())}
+                    {hideGlobalStats ? '***' : (Number(globalStats?.global_free_astd || 0).toLocaleString())}
                   </span>
                 </div>
               </div>
