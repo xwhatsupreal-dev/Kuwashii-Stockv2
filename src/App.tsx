@@ -2078,6 +2078,16 @@ export default function App() {
                          สร้างซองของขวัญจากแอป <strong className="text-red-400">TrueMoney Wallet</strong> แบ่งจำนวนเงินเท่ากัน และระบุจำนวนคนที่รับซองเป็น 1 คน
                        </p>
                        <p className="text-[10px] text-red-400/70">ยอดเงินจะถูกแปลงเป็นเครดิตตามมูลค่าในซอง (ขั้นต่ำ 10 บาท, ค่าธรรมเนียม 2.9%)</p>
+                       
+                       <div className="mt-4 bg-zinc-900/50 p-3 rounded-lg border border-red-500/10 flex flex-col gap-2">
+                          <p className="text-[10px] text-zinc-300 leading-relaxed text-left">
+                            หากลูกค้าเติมเงินไปแล้วไม่เข้าให้ทัก <strong className="text-white">Dazz Kar</strong> ได้เลย พร้อมแนบลิงค์ซองอั่งเปาที่เติมไปด้วยในเเชท
+                          </p>
+                          <a href="https://m.me/DazzRFkaz" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-500 transition-colors py-2 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-2 mt-1">
+                             <MessageCircle className="w-3.5 h-3.5" />
+                             ทักแชททันที
+                          </a>
+                       </div>
                      </div>
                    )}
 
@@ -2105,6 +2115,16 @@ export default function App() {
                           <div className="bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2 text-xs md:text-sm text-red-500 font-bold leading-tight inline-block shadow-sm">
                              ⚠️ โปรดอัปโหลดสลิปภายใน 10 นาที หลังจากโอนเสร็จสิ้น
                           </div>
+                       </div>
+                       
+                       <div className="w-full mt-3 bg-zinc-900/50 p-3 rounded-lg border border-blue-500/10 flex flex-col gap-2">
+                          <p className="text-[10px] text-zinc-300 leading-relaxed text-left">
+                            หากลูกค้าโอนเงินไปแล้วนำรูปมาอัพโหลดไม่ได้หรือเกินเวลาอัพโหลดสลิปเเล้ว ให้ทัก <strong className="text-white">Dazz Kar</strong> ได้เลย พร้อมแนบสลิปที่โอนไปในไว้แชท
+                          </p>
+                          <a href="https://m.me/DazzRFkaz" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-500 transition-colors py-2 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-2 mt-1">
+                             <MessageCircle className="w-3.5 h-3.5" />
+                             ทักแชททันที
+                          </a>
                        </div>
                      </div>
                    )}
