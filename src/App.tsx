@@ -212,6 +212,7 @@ export const sendDiscordPurchaseEmbed = async (username: string, itemName: strin
 
 import { LiveActivities, LiveActivity } from './components/LiveActivities';
 import { supabase } from './supabase';
+import { fetchItems, fetchUser, getSystemConfig } from './queries';
 
 export const addLiveActivity = async (activity: Omit<LiveActivity, 'id' | 'timestamp'>) => {
   try {
@@ -595,60 +596,63 @@ export default function App() {
       };
 
       try {
-        const saved = localStorage.getItem('AOTR_STOCK_ITEMS');
-        if (saved) {
-          try {
-            const localItems = migrateItems(JSON.parse(saved));
-            setItems(localItems);
-          } catch (err) {
-            setItems(migrateItems(DEFAULT_PRESETS));
-            localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(migrateItems(DEFAULT_PRESETS)));
-          }
+        const dbItems = await fetchItems();
+        if (dbItems && dbItems.length > 0) {
+          setItems(migrateItems(dbItems));
         } else {
           setItems(migrateItems(DEFAULT_PRESETS));
-          localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(migrateItems(DEFAULT_PRESETS)));
+          
+          try {
+            const inserts = DEFAULT_PRESETS.map(item => ({
+              id: item.id,
+              name: item.name,
+              description: item.description,
+              price: item.price,
+              quantity: item.quantity,
+              image: item.image,
+              game: item.game,
+              category: item.category,
+              rarity: item.rarity,
+              popular: item.popular,
+              gacha_pool: item.gachaPool
+            }));
+            await supabase.from('items').insert(inserts);
+          } catch(e) {}
         }
-
         setIsServerQuotaExceeded(false);
       } catch (e: any) {
-        console.warn("Error loading items from local cache", e);
-        let quotaExceeded = false;
-        
-        // Parse custom JSON string error info or standard error message
-        if (e && e.message) {
-          const errMsgLower = String(e.message).toLowerCase();
-          if (
-            errMsgLower.includes("quota limit exceeded") ||
-            errMsgLower.includes("quota exceeded") ||
-            errMsgLower.includes("quota") ||
-            errMsgLower.includes("free daily read units per project")
-          ) {
-            quotaExceeded = true;
-          }
-        }
-        setIsServerQuotaExceeded(quotaExceeded);
-
-        const saved = localStorage.getItem('AOTR_STOCK_ITEMS');
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            setItems(migrateItems(Array.isArray(parsed) ? parsed : []));
-          } catch (err) {
-            setItems(DEFAULT_PRESETS);
-          }
-        } else {
-          setItems(DEFAULT_PRESETS);
-        }
+        console.warn("Error loading items from Supabase", e);
+        setItems(migrateItems(DEFAULT_PRESETS));
       } finally {
         setIsLoadingStock(false);
       }
     }
     initStock();
-  }, []);
+  }, [syncCounter]);
 
-  const saveItemsToStorage = (newItems: StockItem[]) => {
+  const saveItemsToStorage = async (newItems: StockItem[]) => {
     setItems(newItems);
-    localStorage.setItem('AOTR_STOCK_ITEMS', JSON.stringify(newItems));
+    
+    // Save to Supabase
+    try {
+      const updates = newItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+        game: item.game,
+        category: item.category,
+        rarity: item.rarity,
+        popular: item.popular,
+        gacha_pool: item.gachaPool
+      }));
+      await supabase.from('items').upsert(updates);
+    } catch(e) {
+      console.error("Error saving items", e);
+    }
+    
     window.dispatchEvent(new Event('sync-update'));
   };
 
