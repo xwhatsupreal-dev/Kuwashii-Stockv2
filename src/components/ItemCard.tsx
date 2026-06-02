@@ -99,9 +99,11 @@ export const ItemCard: React.FC<ItemCardProps> = ({
 
   const status = getStockStatus(item.quantity);
 
-  const getRelativeTimeString = (dateString: string): string => {
+  const getRelativeTimeString = (dateString?: string): string => {
+    if (!dateString) return 'ไม่มีการบันทึกข้อมูล';
     try {
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'ไม่มีการบันทึกข้อมูล';
       const now = new Date();
       const diffMs = now.getTime() - date.getTime();
       const diffSec = Math.floor(diffMs / 1000);
@@ -122,17 +124,23 @@ export const ItemCard: React.FC<ItemCardProps> = ({
         year: '2-digit'
       });
     } catch (e) {
-      return 'ไม่ระบุเวลา';
+      return 'ไม่มีการบันทึกข้อมูล';
     }
   };
 
-  const formattedDate = new Date(item.updatedAt).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  let formattedDate = 'ไม่มีการบันทึกข้อมูล';
+  if (item.updatedAt) {
+    const rawDate = new Date(item.updatedAt);
+    if (!isNaN(rawDate.getTime())) {
+      formattedDate = rawDate.toLocaleDateString('th-TH', {
+        day: 'numeric',
+        month: 'short',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  }
 
   const relativeTime = getRelativeTimeString(item.updatedAt);
 

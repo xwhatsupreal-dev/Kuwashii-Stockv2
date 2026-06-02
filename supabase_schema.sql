@@ -5,14 +5,16 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   username text UNIQUE NOT NULL,
   password text NOT NULL,
+  email text,
   balance numeric DEFAULT 0,
   is_admin boolean DEFAULT false,
   banned boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
--- เพิ่มคอลัมน์ banned เผื่อว่ามีตาราง profiles อยู่แล้วแต่ยังไม่มีคอลัมน์นี้
+-- เพิ่มคอลัมน์เผื่อว่ามีตาราง profiles อยู่แล้วแต่ยังไม่มีคอลัมน์นี้
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banned boolean DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email text;
 
 -- 2. สร้างตารางกิจกรรมล่าสุด (Live Activities)
 CREATE TABLE IF NOT EXISTS public.activities (
@@ -76,7 +78,18 @@ CREATE TABLE IF NOT EXISTS public.coupons (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
--- 7. ระบบตั้งค่า (System Config)
+-- 7. สร้างตารางการันตีแจ็คพอต (Claimed Jackpots ทั่วโลก)
+CREATE TABLE IF NOT EXISTS public.claimed_jackpots (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  item_id text NOT NULL,
+  stock_trigger integer NOT NULL,
+  reward_name text,
+  username text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  UNIQUE(item_id, stock_trigger)
+);
+
+-- 8. ระบบตั้งค่า (System Config)
 CREATE TABLE IF NOT EXISTS public.system_config (
   id text PRIMARY KEY, -- ค่าจะเป็น 'main'
   maintenance_mode boolean DEFAULT false,
@@ -97,6 +110,7 @@ ALTER TABLE public.purchases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.topups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.claimed_jackpots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_config ENABLE ROW LEVEL SECURITY;
 
 DO $$ 
@@ -118,6 +132,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for coupons') THEN
     CREATE POLICY "Allow all operations for coupons" ON public.coupons FOR ALL USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for claimed_jackpots') THEN
+    CREATE POLICY "Allow all operations for claimed_jackpots" ON public.claimed_jackpots FOR ALL USING (true);
   END IF;
   IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for system_config') THEN
     CREATE POLICY "Allow all operations for system_config" ON public.system_config FOR ALL USING (true);

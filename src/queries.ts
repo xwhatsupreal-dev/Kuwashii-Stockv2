@@ -9,7 +9,8 @@ export async function fetchItems() {
   }
   return data.map((d: any) => ({
     ...d,
-    gachaPool: d.gacha_pool
+    gachaPool: d.gacha_pool,
+    updatedAt: d.created_at
   })) as StockItem[];
 }
 

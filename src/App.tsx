@@ -684,7 +684,8 @@ export default function App() {
         category: item.category,
         rarity: item.rarity,
         popular: item.isPopular,
-        gacha_pool: item.gachaPool
+        gacha_pool: item.gachaPool,
+        created_at: item.updatedAt || new Date().toISOString()
       }));
       await supabase.from('items').upsert(updates);
     } catch(e) {
@@ -1113,14 +1114,23 @@ export default function App() {
         return;
       }
       
-      const { error } = await supabase.from('profiles').insert([{
+      let insertRes = await supabase.from('profiles').insert([{
         username: targetUsername,
         email: authEmail.trim(),
         password: authPassword,
         balance: 0
       }]);
       
-      if (error) {
+      if (insertRes.error && insertRes.error.message.includes('email')) {
+        // Fallback for older schema without email column
+        insertRes = await supabase.from('profiles').insert([{
+          username: targetUsername,
+          password: authPassword,
+          balance: 0
+        }]);
+      }
+      
+      if (insertRes.error) {
         setAuthError('เกิดข้อผิดพลาดในการสมัครสมาชิก โปรดลองอีกครั้ง');
         return;
       }
@@ -1301,14 +1311,28 @@ export default function App() {
       
       // Load claimed jackpots to prevent duplicate giving of the exact same stock trigger
       let claimedJackpots: any[] = [];
+      let usingSupabaseClaims = false;
       try {
-        const storedClaims = localStorage.getItem('KUWASHII_CLAIMED_JACKPOTS');
-        if (storedClaims) {
-          const parsed = JSON.parse(storedClaims);
-          const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
-          claimedJackpots = parsed.filter((c: any) => new Date(c.timestamp).getTime() > threeDaysAgo);
+        const { data: dbClaims, error: claimsErr } = await supabase.from('claimed_jackpots').select('*').eq('item_id', item.id);
+        if (!claimsErr && dbClaims) {
+          claimedJackpots = dbClaims.map((c: any) => ({
+             itemId: c.item_id,
+             stockTrigger: c.stock_trigger
+          }));
+          usingSupabaseClaims = true;
+        } else {
+          throw new Error('Fallback to local');
         }
-      } catch(e) {}
+      } catch (e) {
+        try {
+          const storedClaims = localStorage.getItem('KUWASHII_CLAIMED_JACKPOTS');
+          if (storedClaims) {
+            const parsed = JSON.parse(storedClaims);
+            const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
+            claimedJackpots = parsed.filter((c: any) => new Date(c.timestamp).getTime() > threeDaysAgo);
+          }
+        } catch(e) {}
+      }
 
       // Perform Gacha Roll based on CURRENT LIVE stock
       let drops: { name: string; color?: string; isSalt?: boolean }[] = [];
@@ -1328,13 +1352,38 @@ export default function App() {
             const isClaimed = claimedJackpots.some(c => c.itemId === item.id && c.stockTrigger === currentOpenStock);
             if (!isClaimed) {
               dropped = guaranteedReward;
-              claimedJackpots.push({
-                itemId: item.id,
-                rewardName: dropped.name,
-                stockTrigger: currentOpenStock,
-                username: currentUser.username,
-                timestamp: new Date().toISOString()
-              });
+              if (usingSupabaseClaims) {
+                // Perform atomic insert FIRST
+                const { error: claimErr } = await supabase.from('claimed_jackpots').insert([{
+                   item_id: item.id,
+                   stock_trigger: currentOpenStock,
+                   reward_name: dropped.name,
+                   username: currentUser.username
+                }]);
+                
+                if (claimErr && claimErr.code === '23505') { // UNIQUE constraint violation
+                   // Someone else beat us to this jackpot!
+                   dropped = null; // Turn to salt
+                } else {
+                   const newClaim = {
+                     itemId: item.id,
+                     rewardName: dropped.name,
+                     stockTrigger: currentOpenStock,
+                     username: currentUser.username,
+                     timestamp: new Date().toISOString()
+                   };
+                   claimedJackpots.push(newClaim);
+                }
+              } else {
+                 const newClaim = {
+                   itemId: item.id,
+                   rewardName: dropped.name,
+                   stockTrigger: currentOpenStock,
+                   username: currentUser.username,
+                   timestamp: new Date().toISOString()
+                 };
+                 claimedJackpots.push(newClaim);
+              }
             }
           }
           
@@ -1346,8 +1395,10 @@ export default function App() {
         }
       }
       
-      // Update Claimed Jackpots Local Cache
-      localStorage.setItem('KUWASHII_CLAIMED_JACKPOTS', JSON.stringify(claimedJackpots));
+      if (!usingSupabaseClaims) {
+        // Update Claimed Jackpots Local Cache
+        localStorage.setItem('KUWASHII_CLAIMED_JACKPOTS', JSON.stringify(claimedJackpots));
+      }
 
       // Process Purchase
       const newBalance = Number(liveUser.balance) - totalPrice;
@@ -1414,10 +1465,11 @@ export default function App() {
     if (!dbItem) return;
 
     const nextQty = Math.max(0, dbItem.quantity + delta);
+    const nowIso = new Date().toISOString();
 
-    const { error } = await supabase.from('items').update({ quantity: nextQty }).eq('id', id);
+    const { error } = await supabase.from('items').update({ quantity: nextQty, created_at: nowIso }).eq('id', id);
     if (!error) {
-      setItems(items.map((it) => (it.id === id ? { ...it, quantity: nextQty } : it)));
+      setItems(items.map((it) => (it.id === id ? { ...it, quantity: nextQty, updatedAt: nowIso } : it)));
       window.dispatchEvent(new Event('sync-update'));
       
       if (!silent) {
@@ -1658,8 +1710,13 @@ export default function App() {
         const rarityWeights = { Mythic: 5, Legendary: 4, Epic: 3, Rare: 2, Common: 1 };
         return rarityWeights[b.rarity] - rarityWeights[a.rarity];
       }
-      default:
-        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      default: {
+        const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const fallbackB = isNaN(timeB) ? 0 : timeB;
+        const fallbackA = isNaN(timeA) ? 0 : timeA;
+        return fallbackB - fallbackA;
+      }
     }
   });
 
