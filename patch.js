@@ -1,34 +1,50 @@
 const fs = require('fs');
 
-let content = fs.readFileSync('src/App.tsx', 'utf8');
+let src = fs.readFileSync('src/App.tsx', 'utf-8');
 
-content = content.replace(/\{hideGlobalStats \? '\*\*\*' : \(\(\) => \{\n\s*try \{\n\s*let savedTotal = localStorage\.getItem\('KUWASHII_GLOBAL_SALES_ASTD'\)[\s\S]*?\}\)\(\)\}/, '{hideGlobalStats ? \'***\' : (Number(globalStats?.global_sales_astd || 0).toLocaleString())}');
+// Find all return blocks
+// We will replace `if (appScreen === 'ASTD') {\n    return (` with `if (appScreen === 'ASTD') {\n    return (\n      <motion.div key="astd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.3 }} className="min-h-screen">`
+// Wait, they all have a top-level div with "min-h-screen". Let's inject motion.div there.
 
-content = content.replace(/\{hideGlobalStats \? '\*\*\*' : \(\(\) => \{\n\s*try \{\n\s*const usersStr = localStorage\.getItem\('KUWASHII_V2_USERS'\)[\s\S]*?\}\)\(\)\}/, '{hideGlobalStats ? \'***\' : (globalStats?.user_count || 0)}');
+// We need to change the function layout so we return the AnimatePresence outer.
+// Doing it via RegExp is risky. Let's do string replacement manually.
 
-content = content.replace(/\{hideGlobalStats \? '\*\*\*' : \(\(\) => \{\n\s*try \{\n\s*let savedTotal = localStorage\.getItem\('KUWASHII_GLOBAL_REVENUE_ASTD'\)[\s\S]*?\}\)\(\)\}/, '{hideGlobalStats ? \'***\' : (Number(globalStats?.global_revenue_astd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}');
+// 1. replace `if (appScreen === 'LOADING' || appScreen === 'TRANSITION') {\n    return (`
+src = src.replace(/if \(appScreen === 'LOADING' \|\| appScreen === 'TRANSITION'\) \{\n    return \(\n      <div/g, 
+  `if (appScreen === 'LOADING' || appScreen === 'TRANSITION') {\n    return (\n      <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}`);
 
-content = content.replace(/\{hideGlobalStats \? '\*\*\*' : \(\(\) => \{\n\s*try \{\n\s*let savedTotal = localStorage\.getItem\('KUWASHII_GLOBAL_FREE_CREDITS_ASTD'\)[\s\S]*?\}\)\(\)\}/, '{hideGlobalStats ? \'***\' : (Number(globalStats?.global_free_credits_astd || 0).toLocaleString())}');
+// 2. SELECT
+src = src.replace(/if \(appScreen === 'SELECT'\) \{\n    return \(\n      <div/g, 
+  `if (appScreen === 'SELECT') {\n    return (\n      <motion.div key="select" initial={{ opacity: 0, filter: 'blur(10px)' }} animate={{ opacity: 1, filter: 'blur(0px)' }} exit={{ opacity: 0, filter: 'blur(10px)' }} transition={{ duration: 0.5 }}`);
 
-content = content.replace(/const currentVal = localStorage\.getItem\('KUWASHII_GLOBAL_SALES_ASTD'\) \|\| '0';\n\s*const newVal = window\.prompt\("แก้ไขยอดขายไปแล้วทั้งหมด \(ASTD\)", currentVal\);\n\s*if \(newVal !== null && !isNaN\(parseInt\(newVal\)\)\) \{\n\s*localStorage\.setItem\('KUWASHII_GLOBAL_SALES_ASTD', parseInt\(newVal\)\.toString\(\)\);/g, `const currentVal = String(globalStats?.global_sales_astd || 0);
-                       const newVal = window.prompt("แก้ไขยอดขายไปแล้วทั้งหมด (ASTD)", currentVal);
-                       if (newVal !== null && !isNaN(parseInt(newVal))) {
-                          await supabase.from('system_config').upsert({ id: 'main', global_sales_astd: parseInt(newVal) });`);
+// 3. ASTD
+src = src.replace(/if \(appScreen === 'ASTD'\) \{\n    return \(\n      <div/g, 
+  `if (appScreen === 'ASTD') {\n    return (\n      <motion.div key="astd" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.4 }}`);
 
-content = content.replace(/const currentRev = localStorage\.getItem\('KUWASHII_GLOBAL_REVENUE_ASTD'\) \|\| '0';\n\s*const newVal = window\.prompt\("แก้ไขยอดการเติมเงินรวม ASTD", currentRev\);\n\s*if \(newVal !== null && !isNaN\(parseFloat\(newVal\)\)\) \{\n\s*localStorage\.setItem\('KUWASHII_GLOBAL_REVENUE_ASTD', parseFloat\(newVal\)\.toString\(\)\);/g, `const currentRev = String(globalStats?.global_revenue_astd || 0);
-                       const newVal = window.prompt("แก้ไขยอดการเติมเงินรวม ASTD", currentRev);
-                       if (newVal !== null && !isNaN(parseFloat(newVal))) {
-                          await supabase.from('system_config').upsert({ id: 'main', global_revenue_astd: parseFloat(newVal) });`);
+// 4. AOTR (The final return)
+src = src.replace(/\n  return \(\n    <div className="min-h-screen flex flex-col bg-zinc-950/g, 
+  `\n  return (\n    <motion.div key="aotr" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.4 }} className="min-h-screen flex flex-col bg-zinc-950`);
 
-content = content.replace(/const currentFree = localStorage\.getItem\('KUWASHII_GLOBAL_FREE_CREDITS_ASTD'\) \|\| '0';\n\s*const newVal = window\.prompt\("แก้ไขยอดการแจกซองรวม ASTD", currentFree\);\n\s*if \(newVal !== null && !isNaN\(parseFloat\(newVal\)\)\) \{\n\s*localStorage\.setItem\('KUWASHII_GLOBAL_FREE_CREDITS_ASTD', parseFloat\(newVal\)\.toString\(\)\);/g, `const currentFree = String(globalStats?.global_free_credits_astd || 0);
-                       const newVal = window.prompt("แก้ไขยอดการแจกซองรวม ASTD", currentFree);
-                       if (newVal !== null && !isNaN(parseFloat(newVal))) {
-                          await supabase.from('system_config').upsert({ id: 'main', global_free_credits_astd: parseFloat(newVal) });`);
+// And we must replace the closing `</div>\n    );\n  }` with `</motion.div>\n    );\n  }` where appropriate.
+// Wait, actually earlier returns end with `</div>\n    );\n  }`
+// To make `AnimatePresence` work for the ROOT, they have to be rendered WITHIN one tree, we cannot early return from the App component and expect AnimatePresence to animate the removed component! AnimatePresence only works when standard React rendering switches children within it.
 
-content = content.replace(/<button onClick=\{\(\) => \{/g, '<button onClick={async () => {');
+// Ah... `early returns` completely unmount the AnimatePresence (or skip it entirely meaning no exit animations).
+// We must wrap the whole thing! Do something like:
 
-// Remove remaining JSON.parse
-content = content.replace(/JSON\.parse\(localStorage\.getItem\('KUWASHII_V2_USERS'\) \|\| '\{\}'\)\[currentUser\.username\]\?\.balance/g, 'currentUserData?.balance');
+/*
+  const renderAppContent = () => {
+     if (isUnderMaintenance...) return <Maintenance />;
+     if (appScreen === 'LOADING' || appScreen === 'TRANSITION') return <Loading key="loading"/>;
+     if (appScreen === 'SELECT') return <Select key="select"/>;
+     if (appScreen === 'ASTD') return <ASTD key="astd"/>;
+     return <AOTR key="aotr"/>;
+  };
 
-
-fs.writeFileSync('src/App.tsx', content);
+  return (
+    <AnimatePresence mode="wait">
+      {renderAppContent()}
+    </AnimatePresence>
+  )
+*/
+fs.writeFileSync('patch.js', src);

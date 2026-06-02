@@ -6,6 +6,7 @@ export interface StockItem {
   rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythic';
   quantity: number;
   initialQuantity?: number;
+  piecesPerUnit?: number;
   price: number; // in Thai Baht
   description: string;
   imageUrl?: string;

@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Users, Search, DollarSign, Clock, Package, Edit2, History, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../supabase';
 import { UserData } from '../types';
+import { sendDiscordTopupEmbed } from '../discord';
+import { getSystemConfig } from '../queries';
 
 interface CustomerModalProps {
   isOpen: boolean;
@@ -78,6 +80,20 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
             ref_code: 'manual',
             game: targetGame
           }]);
+          
+          if (difference > 0) {
+            sendDiscordTopupEmbed(username, difference, 'Admin (ระบบ)', amount, true);
+            
+            const configData = await getSystemConfig();
+            if (targetGame === 'ASTD') {
+              const currentRev = configData ? Number(configData.global_rev_astd || 0) : 0;
+              await supabase.from('system_config').upsert({ id: 'main', global_rev_astd: currentRev + difference });
+            } else {
+              const currentRev = configData ? Number(configData.global_revenue_aotr || 0) : 0;
+              await supabase.from('system_config').upsert({ id: 'main', global_revenue_aotr: currentRev + difference });
+            }
+          }
+
           window.dispatchEvent(new Event('sync-update'));
         }
       }

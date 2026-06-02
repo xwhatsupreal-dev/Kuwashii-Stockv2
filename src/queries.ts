@@ -7,12 +7,26 @@ export async function fetchItems() {
     console.error('Error fetching items:', error);
     return [];
   }
-  return data.map((d: any) => ({
-    ...d,
-    imageUrl: d.image,
-    gachaPool: d.gacha_pool,
-    updatedAt: d.created_at
-  })) as StockItem[];
+  return data.map((d: any) => {
+    let pool = d.gacha_pool;
+    let initialQty = d.initial_quantity;
+    let pieces = d.pieces_per_unit;
+
+    if (d.gacha_pool && !Array.isArray(d.gacha_pool) && typeof d.gacha_pool === 'object') {
+      pool = d.gacha_pool.pool || undefined;
+      if (initialQty === undefined) initialQty = d.gacha_pool.initialQuantity;
+      if (pieces === undefined) pieces = d.gacha_pool.piecesPerUnit;
+    }
+
+    return {
+      ...d,
+      imageUrl: d.image,
+      gachaPool: pool,
+      initialQuantity: initialQty,
+      piecesPerUnit: pieces,
+      updatedAt: d.created_at
+    };
+  }) as StockItem[];
 }
 
 export async function fetchUser(username: string) {

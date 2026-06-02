@@ -102,122 +102,7 @@ const readQRFromImage = (file: File): Promise<string | null> => {
    });
 };
 
-const DISCORD_WEBHOOK_URL_TOPUP = 'https://discord.com/api/webhooks/1510998209936228493/r0qW4fwsKMJoTq4mWlwqY_6yNMKHVOcnG-gtrkURlCA6s2dZFr2it-Vx3I-b_IjeWY92';
-const DISCORD_WEBHOOK_URL_PURCHASE = 'https://discord.com/api/webhooks/1511063935888134284/LoW99CKLEDuscJWdSCTpIOvP30EIdwYo1j8JUdp1RvWORA9392tHhygHwnBP-UC3VsHj';
-
-export const sendDiscordTopupEmbed = async (username: string, amount: number, channel: string, totalBalance: number, isSuccess: boolean = true) => {
-  try {
-    const embed = {
-      title: isSuccess ? "💰 เติมเงินสำเร็จ!" : "❌ เติมเงินล้มเหลว",
-      color: isSuccess ? 0x10B981 : 0xEF4444, // Green or Red
-      fields: [
-        {
-          name: "👤 บัญชีผู้ใช้",
-          value: `\`${username}\``,
-          inline: true
-        },
-        {
-          name: "💵 จำนวนเงิน",
-          value: `\`${amount.toLocaleString()} ฿\``,
-          inline: true
-        },
-        {
-          name: "🏦 ช่องทาง",
-          value: channel === 'angpao' ? "ซองอั่งเปา (TrueMoney)" : "โอนเงิน (Bank)",
-          inline: true
-        },
-        {
-          name: "💰 ยอดรวมปัจจุบัน",
-          value: `\`${totalBalance.toLocaleString()} ฿\``,
-          inline: true
-        },
-        {
-          name: "⏰ เวลา",
-          value: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
-          inline: true
-        }
-      ],
-      footer: {
-        text: "Kuwashii El Web App"
-      },
-      timestamp: new Date().toISOString()
-    };
-
-    fetch(DISCORD_WEBHOOK_URL_TOPUP, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ embeds: [embed] })
-    });
-  } catch(e) {}
-};
-
-export const sendDiscordPurchaseEmbed = async (username: string, itemName: string, quantity: number, remainingStock: number, drops: {name: string, isSalt?: boolean}[]) => {
-  try {
-    const dropCounts: Record<string, { count: number, isSalt?: boolean }> = {};
-    drops.forEach(d => {
-      if (!dropCounts[d.name]) {
-        dropCounts[d.name] = { count: 1, isSalt: d.isSalt };
-      } else {
-        dropCounts[d.name].count++;
-      }
-    });
-
-    let dropTexts = Object.entries(dropCounts).map(([name, data]) => {
-      const prefix = data.isSalt ? `🧂 \`${name}\`` : `🎉 **${name}**`;
-      return `${prefix} x${data.count}`;
-    });
-    
-    if (dropTexts.length > 5) {
-      const remainingCount = dropTexts.length - 5;
-      dropTexts = [...dropTexts.slice(0, 5), `... และอื่นๆ อีก ${remainingCount} รายการ`];
-    }
-    
-    const finalDropText = dropTexts.join(', ');
-    
-    const embed = {
-      title: "🛒 การสั่งซื้อสินค้า / สต๊อกลดลง",
-      color: 0x3B82F6, // Blue
-      fields: [
-        {
-          name: "👤 ผู้ซื้อ",
-          value: `\`${username}\``,
-          inline: true
-        },
-        {
-          name: "📦 สินค้า",
-          value: `**${itemName}**`,
-          inline: true
-        },
-        {
-          name: "🔢 จำนวน",
-          value: `\`${quantity} ชิ้น\``,
-          inline: true
-        },
-        {
-          name: "📉 สต๊อกคงเหลือ",
-          value: `\`${remainingStock} ชิ้น\``,
-          inline: true
-        },
-        {
-          name: "🎁 สิ่งที่ได้รับ",
-          value: finalDropText || "-",
-          inline: false
-        }
-      ],
-      footer: {
-        text: "Kuwashii Web App"
-      },
-      timestamp: new Date().toISOString()
-    };
-
-    fetch(DISCORD_WEBHOOK_URL_PURCHASE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ embeds: [embed] })
-    });
-  } catch(e) {}
-};
-
+import { sendDiscordTopupEmbed, sendDiscordPurchaseEmbed } from './discord';
 import { LiveActivities, LiveActivity } from './components/LiveActivities';
 import { supabase } from './supabase';
 import { fetchItems, fetchUser, getSystemConfig } from './queries';
@@ -693,7 +578,7 @@ export default function App() {
         category: item.category,
         rarity: item.rarity,
         popular: item.isPopular,
-        gacha_pool: item.gachaPool,
+        gacha_pool: { pool: item.gachaPool || null, initialQuantity: item.initialQuantity, piecesPerUnit: item.piecesPerUnit },
         created_at: item.updatedAt || new Date().toISOString()
       }));
       await supabase.from('items').upsert(updates);
@@ -2484,9 +2369,10 @@ export default function App() {
     );
   };
 
-  if (isUnderMaintenance && !isAdmin && appScreen !== 'LOADING' && appScreen !== 'TRANSITION') {
-    return (
-      <div className="fixed inset-0 z-[99999] bg-black/95 flex flex-col items-center justify-center p-6 text-center select-none text-white font-sans">
+  const renderAppScreen = () => {
+    if (isUnderMaintenance && !isAdmin && appScreen !== 'LOADING' && appScreen !== 'TRANSITION') {
+      return (
+        <motion.div key="maintenance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="fixed inset-0 z-[99999] bg-black/95 flex flex-col items-center justify-center p-6 text-center select-none text-white font-sans">
         <div className="max-w-md w-full bg-zinc-900/50 p-8 rounded-3xl border border-amber-500/30 shadow-2xl backdrop-blur-md relative">
           <div className="w-20 h-20 mx-auto bg-amber-500/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
             <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
@@ -2503,13 +2389,13 @@ export default function App() {
           <button onClick={() => { setShowAuthModal(true); setAuthMode('login'); }} className="absolute bottom-4 right-4 text-[10px] text-zinc-700 hover:text-zinc-500 transition-colors">Admin Login</button>
         </div>
         {renderModals()}
-      </div>
+      </motion.div>
     );
   }
 
   if (appScreen === 'LOADING' || appScreen === 'TRANSITION') {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-mono">
+      <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-mono">
         {/* Abstract CRT Scanline Effect */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:100%_4px] z-50 pointer-events-none opacity-50" />
         
@@ -2564,13 +2450,13 @@ export default function App() {
         <div className="absolute bottom-8 right-8 text-[9px] text-zinc-800 font-mono hidden md:block">
           {`MEM::[0x${Math.floor(Math.random() * 1000000).toString(16).toUpperCase()}]`}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   if (appScreen === 'SELECT') {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 relative overflow-hidden text-white">
+      <motion.div key="select" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 relative overflow-hidden text-white">
         <div 
           className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat opacity-50 z-0"
           style={{ backgroundImage: "url('https://s.imgz.io/2026/05/31/1000098494b68242f76bd7e2f7.gif')" }}
@@ -2645,13 +2531,13 @@ export default function App() {
           </div>
         </div>
       {renderModals()}
-      </div>
+      </motion.div>
     );
   }
 
   if (appScreen === 'ASTD') {
     return (
-      <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
+      <motion.div key="astd" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
         <MarqueeAnnouncement appScreen={appScreen} />
         <AnnouncementPopup appScreen={appScreen} />
         <Snowfall />
@@ -3266,21 +3152,23 @@ export default function App() {
               <h2 className="text-lg font-black text-white mb-2 uppercase tracking-wide">ไม่พบสินค้าในสต๊อก ASTD</h2>
             </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-              {sortedItems.map((item) => (
-                <ItemCard
-                  key={item.id}
-                  item={item}
-                  isAdmin={isAdmin}
-                  onEdit={(it) => { setEditingItem(it); setIsFormOpen(true); }}
-                  onDelete={handleDeleteItem}
-                  onQuickQuantityChange={handleQuickQuantityChange}
-                  onInquire={() => setInquiringItem(item)}
-                  onBuy={handleBuyItem}
-                  onTogglePin={handleTogglePin}
-                />
-              ))}
-            </div>
+            <motion.div layout className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+              <AnimatePresence mode="popLayout">
+                {sortedItems.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    isAdmin={isAdmin}
+                    onEdit={(it) => { setEditingItem(it); setIsFormOpen(true); }}
+                    onDelete={handleDeleteItem}
+                    onQuickQuantityChange={handleQuickQuantityChange}
+                    onInquire={() => setInquiringItem(item)}
+                    onBuy={handleBuyItem}
+                    onTogglePin={handleTogglePin}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.div>
           )}
         </main>
         
@@ -3319,12 +3207,12 @@ export default function App() {
         </footer>
 
         {renderModals()}
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
+    <motion.div key="aotr" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
       <MarqueeAnnouncement appScreen={appScreen} />
       <AnnouncementPopup appScreen={appScreen} />
       <Snowfall />
@@ -4219,6 +4107,13 @@ export default function App() {
       </footer>
       
       {renderModals()}
-    </div>
+    </motion.div>
+  );
+  }; // end renderAppScreen
+
+  return (
+    <AnimatePresence mode="wait">
+      {renderAppScreen()}
+    </AnimatePresence>
   );
 }

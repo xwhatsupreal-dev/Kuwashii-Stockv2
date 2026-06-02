@@ -1,34 +1,51 @@
 const fs = require('fs');
+let code = fs.readFileSync('src/App.tsx', 'utf8');
 
-let content = fs.readFileSync('src/App.tsx', 'utf8');
+// We need to inject `const renderAppContent = () => {` before `if (isUnderMaintenance`
+code = code.replace("if (isUnderMaintenance && !isAdmin && appScreen !== 'LOADING' && appScreen !== 'TRANSITION') {",
+`const renderAppContent = () => {
+  if (isUnderMaintenance && !isAdmin && appScreen !== 'LOADING' && appScreen !== 'TRANSITION') {`);
 
-content = content.replace(/\{hideGlobalStats \? '\*\*\*' : \(\(\) => \{\n\s*try \{\n\s*let savedTotal = localStorage\.getItem\('KUWASHII_GLOBAL_SALES_ASTD'\)[\s\S]*?\}\)\(\)\}/, '{hideGlobalStats ? \'***\' : (Number(globalStats?.global_sales_astd || 0).toLocaleString())}');
+// Now replace all the top-level returns inside renderAppContent.
+// The end of `return (...)` usually is `  );\n}` for the main App. We must find the final one.
+// Let's replace `<div className=\"min-h-screen` with `<motion.div layout key=\"XXX\" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className=\"min-h-screen`
 
-content = content.replace(/\{hideGlobalStats \? '\*\*\*' : \(\(\) => \{\n\s*try \{\n\s*const usersStr = localStorage\.getItem\('KUWASHII_V2_USERS'\)[\s\S]*?\}\)\(\)\}/, '{hideGlobalStats ? \'***\' : (globalStats?.user_count || 0)}');
+code = code.replace(
+  /if \(isUnderMaintenance(.+?)return \(\n\s*<div/s,
+  `if (isUnderMaintenance$1return (\n      <motion.div key="maintenance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}`
+);
 
-content = content.replace(/\{hideGlobalStats \? '\*\*\*' : \(\(\) => \{\n\s*try \{\n\s*let savedTotal = localStorage\.getItem\('KUWASHII_GLOBAL_REVENUE_ASTD'\)[\s\S]*?\}\)\(\)\}/, '{hideGlobalStats ? \'***\' : (Number(globalStats?.global_revenue_astd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}');
+code = code.replace(
+  /if \(appScreen === 'LOADING' \|\| appScreen === 'TRANSITION'\) {\n\s*return \(\n\s*<div className="min-h-screen/s,
+  `if (appScreen === 'LOADING' || appScreen === 'TRANSITION') {\n    return (\n      <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="min-h-screen`
+);
 
-content = content.replace(/\{hideGlobalStats \? '\*\*\*' : \(\(\) => \{\n\s*try \{\n\s*let savedTotal = localStorage\.getItem\('KUWASHII_GLOBAL_FREE_CREDITS_ASTD'\)[\s\S]*?\}\)\(\)\}/, '{hideGlobalStats ? \'***\' : (Number(globalStats?.global_free_credits_astd || 0).toLocaleString())}');
+code = code.replace(
+  /if \(appScreen === 'SELECT'\) {\n\s*return \(\n\s*<div className="min-h-screen/s,
+  `if (appScreen === 'SELECT') {\n    return (\n      <motion.div key="select" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-screen`
+);
 
-content = content.replace(/const currentVal = localStorage\.getItem\('KUWASHII_GLOBAL_SALES_ASTD'\) \|\| '0';\n\s*const newVal = window\.prompt\("แก้ไขยอดขายไปแล้วทั้งหมด \(ASTD\)", currentVal\);\n\s*if \(newVal !== null && !isNaN\(parseInt\(newVal\)\)\) \{\n\s*localStorage\.setItem\('KUWASHII_GLOBAL_SALES_ASTD', parseInt\(newVal\)\.toString\(\)\);/g, `const currentVal = String(globalStats?.global_sales_astd || 0);
-                       const newVal = window.prompt("แก้ไขยอดขายไปแล้วทั้งหมด (ASTD)", currentVal);
-                       if (newVal !== null && !isNaN(parseInt(newVal))) {
-                          await supabase.from('system_config').upsert({ id: 'main', global_sales_astd: parseInt(newVal) });`);
+code = code.replace(
+  /if \(appScreen === 'ASTD'\) {\n\s*return \(\n\s*<div className="min-h-screen/s,
+  `if (appScreen === 'ASTD') {\n    return (\n      <motion.div key="astd" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="min-h-screen`
+);
 
-content = content.replace(/const currentRev = localStorage\.getItem\('KUWASHII_GLOBAL_REVENUE_ASTD'\) \|\| '0';\n\s*const newVal = window\.prompt\("แก้ไขยอดการเติมเงินรวม ASTD", currentRev\);\n\s*if \(newVal !== null && !isNaN\(parseFloat\(newVal\)\)\) \{\n\s*localStorage\.setItem\('KUWASHII_GLOBAL_REVENUE_ASTD', parseFloat\(newVal\)\.toString\(\)\);/g, `const currentRev = String(globalStats?.global_revenue_astd || 0);
-                       const newVal = window.prompt("แก้ไขยอดการเติมเงินรวม ASTD", currentRev);
-                       if (newVal !== null && !isNaN(parseFloat(newVal))) {
-                          await supabase.from('system_config').upsert({ id: 'main', global_revenue_astd: parseFloat(newVal) });`);
+code = code.replace(
+  /  return \(\n\s*<div className="min-h-screen flex flex-col bg-zinc-950/s,
+  `  return (\n    <motion.div key="aotr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="min-h-screen flex flex-col bg-zinc-950`
+);
 
-content = content.replace(/const currentFree = localStorage\.getItem\('KUWASHII_GLOBAL_FREE_CREDITS_ASTD'\) \|\| '0';\n\s*const newVal = window\.prompt\("แก้ไขยอดการแจกซองรวม ASTD", currentFree\);\n\s*if \(newVal !== null && !isNaN\(parseFloat\(newVal\)\)\) \{\n\s*localStorage\.setItem\('KUWASHII_GLOBAL_FREE_CREDITS_ASTD', parseFloat\(newVal\)\.toString\(\)\);/g, `const currentFree = String(globalStats?.global_free_credits_astd || 0);
-                       const newVal = window.prompt("แก้ไขยอดการแจกซองรวม ASTD", currentFree);
-                       if (newVal !== null && !isNaN(parseFloat(newVal))) {
-                          await supabase.from('system_config').upsert({ id: 'main', global_free_credits_astd: parseFloat(newVal) });`);
+// We need to replace the closing `</div>` of these blocks with `</motion.div>`.
+// Maintenance block ends with `</div>\n    );\n  }` wait, no it doesn't close App.
+code = code.replace(
+  /        {renderModals\(\)}\n      <\/div>\n    \);\n  }/g,
+  `        {renderModals()}\n      </motion.div>\n    );\n  }`
+);
+code = code.replace(
+  /        <\/div>\n      <\/div>\n    \);\n  }/g, // FOR LOADING
+  `        </div>\n      </motion.div>\n    );\n  }`
+);
+// Replace the others.. Actually it's safer to just replace `</div>` at that exact indentation!
+// Let's replace the last `  );\n}` to be `  );\n};\n\n  return (\n    <AnimatePresence mode="wait">\n      {renderAppContent()}\n    </AnimatePresence>\n  );\n}`
 
-content = content.replace(/<button onClick=\{\(\) => \{/g, '<button onClick={async () => {');
-
-// Remove remaining JSON.parse
-content = content.replace(/JSON\.parse\(localStorage\.getItem\('KUWASHII_V2_USERS'\) \|\| '\{\}'\)\[currentUser\.username\]\?\.balance/g, 'currentUserData?.balance');
-
-
-fs.writeFileSync('src/App.tsx', content);
+fs.writeFileSync('src/App.tsx', code);
