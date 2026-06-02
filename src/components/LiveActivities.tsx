@@ -5,7 +5,7 @@ import { supabase } from '../supabase';
 
 export interface LiveActivity {
   id: string;
-  type: 'signup' | 'purchase';
+  type: 'signup' | 'purchase' | 'topup';
   username: string;
   itemName?: string;
   quantity?: number;
@@ -28,7 +28,7 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { data: raw, error } = await supabase.from('activities').select('*').order('timestamp', { ascending: false }).limit(40);
+        const { data: raw, error } = await supabase.from('activities').select('*').order('timestamp', { ascending: false }).limit(150);
         if (raw && !error) {
           const parsed: LiveActivity[] = raw.map((d: any) => ({
             id: d.id,
@@ -130,6 +130,8 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
                 <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-md sm:rounded-xl shrink-0 flex items-center justify-center border border-zinc-800/80 bg-zinc-900/50 shadow-inner">
                   {a.type === 'signup' ? (
                     <User className="w-3 h-3 sm:w-4.5 sm:h-4.5 text-zinc-400" />
+                  ) : a.type === 'topup' ? (
+                    <span className="text-[12px] sm:text-[18px]">💰</span>
                   ) : (
                     <PackageOpen className="w-3 h-3 sm:w-4.5 sm:h-4.5 text-zinc-400" />
                   )}
@@ -139,6 +141,8 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
                   <p className="text-[9px] sm:text-sm font-medium text-zinc-300 font-sans leading-tight sm:leading-relaxed break-words line-clamp-2 sm:line-clamp-none">
                     {a.type === 'signup' ? (
                       <>ผู้ใช้ใหม่ <span className="text-white font-bold">{a.username}</span> เข้าร่วม</>
+                    ) : a.type === 'topup' ? (
+                      <><span className="font-bold text-white break-all">{a.username}</span> เติมเงินสำเร็จ <span className="text-amber-400 font-bold ml-1">+{a.price?.toLocaleString()} ฿</span></>
                     ) : (
                       <><span className="font-bold text-white break-all">{a.username}</span> ซื้อ <span className="text-indigo-300">[{a.itemName}]</span> <span className="text-yellow-400 font-bold font-mono ml-0.5 sm:ml-1">x{a.quantity}</span><span className="hidden sm:inline"> ชิ้น</span> {a.price && (<span className="text-emerald-400 font-bold ml-1">({a.price.toLocaleString()} ฿)</span>)}</>
                     )}

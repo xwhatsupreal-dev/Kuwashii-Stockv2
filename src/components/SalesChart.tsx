@@ -92,16 +92,20 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
           });
         }
       } else if (viewMode === 'topups') {
-        const { data: topups, error } = await supabase
+        let query = supabase
           .from('topups')
-          .select('created_at, amount')
+          .select('created_at, amount, game')
           .gte('created_at', sevenDaysAgo.toISOString());
+
+        const { data: topups, error } = await query;
           
         if (!error && topups) {
           topups.forEach((curr: any) => {
+            // Filter by game
+            if (appScreen === 'ASTD' && curr.game && curr.game !== 'ASTD') return;
+            if (appScreen === 'AOTR' && curr.game !== 'AOTR') return;
+
             const key = getNearestKey(curr.created_at);
-            // Include admin topups which could be negative for 'ลดเครดิต', but let's count only positive if the user means 'ยอดเติม' literally
-            // "อัพบอกด้วยทั้งของที่คนเติมมาและ admin ที่เพิ่มเครดิต" => Admin เพิ่มเครดิต (amount > 0)
             if (chartDataMap[key]) {
                chartDataMap[key].topups += Number(curr.amount) || 0;
             }

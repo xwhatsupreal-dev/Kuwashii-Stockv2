@@ -24,16 +24,26 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
       // Load from multiple sources optionally, but focus on KUWASHII_V2_USERS
   useEffect(() => {
     const loadData = async () => {
-      const { data, error } = await supabase.from('profiles').select('*').neq('username', 'Kuwashii_admin').order('created_at', { ascending: false });
-      if (data && !error) {
-        const arr = data.map((d: any) => ({
+      const [{ data: profiles, error }, { data: purchases }, { data: topups }] = await Promise.all([
+        supabase.from('profiles').select('*').neq('username', 'Kuwashii_admin').order('created_at', { ascending: false }),
+        supabase.from('purchases').select('username'),
+        supabase.from('topups').select('username')
+      ]);
+
+      if (profiles && !error) {
+        const pCounts: Record<string, number> = {};
+        const tCounts: Record<string, number> = {};
+        if (purchases) purchases.forEach((p: any) => pCounts[p.username] = (pCounts[p.username] || 0) + 1);
+        if (topups) topups.forEach((t: any) => tCounts[t.username] = (tCounts[t.username] || 0) + 1);
+
+        const arr = profiles.map((d: any) => ({
           username: d.username,
           email: d.email,
           balance: Number(d.balance),
           joinDate: d.created_at,
           password: d.password,
-          purchases: [],
-          topups: []
+          purchaseCount: pCounts[d.username] || 0,
+          topupCount: tCounts[d.username] || 0,
         }));
         setUsers(arr);
       }
@@ -189,9 +199,14 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                             {user.email && (
                               <div className="text-[10px] text-zinc-400 font-sans mt-0.5">{user.email}</div>
                             )}
-                            <div className="text-[10px] text-zinc-500 flex flex-wrap items-center gap-3 mt-1">
-                               <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> เข้าร่วม: {user.joinDate ? new Date(user.joinDate).toLocaleDateString('th-TH') : '-'}</span>
-                               <span className="flex items-center gap-1 text-emerald-400/70"><History className="w-3 h-3" /> ยอดซื้อ: {user.purchases?.length || 0} ครั้ง</span>
+                            <div className="flex flex-col gap-1 mt-1">
+                               <div className="text-[10px] text-zinc-500 flex flex-wrap items-center gap-3 mt-1">
+                                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> เข้าร่วม: {user.joinDate ? new Date(user.joinDate).toLocaleDateString('th-TH') : '-'}</span>
+                               </div>
+                               <div className="text-[10px] text-zinc-500 flex flex-wrap items-center gap-3">
+                                  <span className="flex items-center gap-1 text-emerald-400/70"><History className="w-3 h-3" /> ยอดซื้อ: {user.purchaseCount || 0} ครั้ง</span>
+                                  <span className="flex items-center gap-1 text-amber-400/70"><History className="w-3 h-3" /> ยอดเติม: {user.topupCount || 0} ครั้ง</span>
+                               </div>
                             </div>
                           </div>
                         </div>

@@ -43,6 +43,8 @@ export interface UserData {
   joinDate: string;
   purchases: PurchaseRecord[];
   topups?: TopupRecord[];
+  purchaseCount?: number;
+  topupCount?: number;
 }
 
 export type CategoryFilter = 'all' | StockItem['category'];

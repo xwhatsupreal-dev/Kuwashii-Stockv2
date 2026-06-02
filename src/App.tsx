@@ -687,6 +687,8 @@ export default function App() {
            game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
          }]);
          
+         addLiveActivity({ type: 'topup', username: activeUsername, price: coupon.amount, game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR' });
+
          window.dispatchEvent(new Event('sync-update'));
          
          showToast(`ใช้คูปองสำเร็จ! ได้รับ ${coupon.amount.toLocaleString()} เครดิต`, 'success');
@@ -737,6 +739,8 @@ export default function App() {
               game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
             }]);
             
+            addLiveActivity({ type: 'topup', username: activeUsername, price: amount, game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR' });
+
             window.dispatchEvent(new Event('sync-update'));
 
             const msg = `เติมเงินสำเร็จ! จำนวน ${amount.toLocaleString()} บาท\n(หักค่าธรรมเนียม ${fee})\nจากซองของ: ${ownerName}`;
@@ -894,6 +898,7 @@ export default function App() {
                ref_code: transactionId,
                game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
              }]);
+             addLiveActivity({ type: 'topup', username: activeUsername, price: amount, game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR' });
              window.dispatchEvent(new Event('sync-update'));
 
              const bankMsg = `เติมเงินสำเร็จ! ได้รับ ${amount} เครดิต (อ้างอิง: ${transactionId})`;
@@ -1011,6 +1016,17 @@ export default function App() {
       showToast('ส่งอีเมลรีเซ็ตรหัสผ่านสำเร็จ! กรุณาเช็คอีเมลของคุณ', 'success');
     } else {
       // Register Mode
+      try {
+        const lockRes = await fetch('/api/check-register-lock');
+        const lockData = await lockRes.json();
+        if (lockData.locked) {
+          setAuthError(`กรุณารอ ${lockData.remaining} นาที ก่อนสมัครสมาชิกใหม่เพื่อป้องกันสแปม (ล็อค IP)`);
+          return;
+        }
+      } catch (e) {
+        console.error("Lock check error", e);
+      }
+
       if (!authEmail.includes('@')) {
         setAuthError('รูปแบบอีเมลไม่ถูกต้อง');
         return;
@@ -1068,6 +1084,9 @@ export default function App() {
       
       addLiveActivity({ type: 'signup', username: authUsername.trim(), game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR' });
       
+      try {
+        await fetch('/api/set-register-lock', { method: 'POST' });
+      } catch (e) {}
       showToast('สมัครสมาชิกและเข้าสู่ระบบสำเร็จ!', 'success');
     }
   };
@@ -2976,7 +2995,7 @@ export default function App() {
               </div>
             </div>
             
-            <SalesChart appScreen={appScreen} />
+            <SalesChart appScreen={appScreen} updateTrigger={syncCounter} />
             
             <LiveActivities appScreen={appScreen} syncCounter={syncCounter} isAdmin={isAdmin} />
           </div>

@@ -99,6 +99,10 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
     };
 
     fetchData();
+    
+    const handleSync = () => fetchData();
+    window.addEventListener('sync-update', handleSync);
+    return () => window.removeEventListener('sync-update', handleSync);
   }, [viewMode, appScreen]);
 
   const getColor = () => {

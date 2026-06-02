@@ -19,14 +19,24 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
   const [topups, setTopups] = useState<TopupRecord[]>([]);
 
   useEffect(() => {
-    if (isOpen && username) {
-      fetchUserPurchases(username).then(data => {
-        if (data) setPurchases(data);
-      });
-      fetchUserTopups(username).then(data => {
-        if (data) setTopups(data);
-      });
-    }
+    const loadData = () => {
+      if (isOpen && username) {
+        fetchUserPurchases(username).then(data => {
+          if (data) setPurchases(data);
+        });
+        fetchUserTopups(username).then(data => {
+          if (data) setTopups(data);
+        });
+      }
+    };
+    
+    loadData();
+    
+    const handleSync = () => {
+       if (isOpen) loadData();
+    };
+    window.addEventListener('sync-update', handleSync);
+    return () => window.removeEventListener('sync-update', handleSync);
   }, [isOpen, username]);
 
   if (!isOpen) return null;

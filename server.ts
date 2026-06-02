@@ -653,6 +653,40 @@ app.post("/api/topup/bank", async (req: express.Request, res: express.Response) 
   }
 });
 
+// Simple in-memory IP lock for registration spam prevention
+const ipLocks = new Map<string, number>();
+
+app.get("/api/check-register-lock", (req, res) => {
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown') as string;
+  const clientIp = ip.split(',')[0].trim();
+  const lockTime = ipLocks.get(clientIp);
+  
+  if (lockTime && Date.now() < lockTime) {
+    const remainingMinutes = Math.ceil((lockTime - Date.now()) / 60000);
+    res.json({ locked: true, remaining: remainingMinutes });
+  } else {
+    res.json({ locked: false });
+  }
+});
+
+app.post("/api/set-register-lock", (req, res) => {
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown') as string;
+  const clientIp = ip.split(',')[0].trim();
+  
+  // Lock for 60 minutes
+  ipLocks.set(clientIp, Date.now() + 60 * 60 * 1000);
+  
+  // Cleanup old locks roughly
+  if (ipLocks.size > 1000) {
+    const now = Date.now();
+    for (const [key, time] of ipLocks.entries()) {
+      if (now > time) ipLocks.delete(key);
+    }
+  }
+  
+  res.json({ success: true });
+});
+
 // health endpoint
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });

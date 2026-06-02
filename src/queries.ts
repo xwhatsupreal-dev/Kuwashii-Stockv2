@@ -81,7 +81,8 @@ export async function fetchUserTopups(username: string) {
     amount: parseFloat(d.amount),
     method: d.method,
     date: d.created_at,
-    game: d.game
+    game: d.game,
+    refCode: d.ref_code
   }));
 }
 
