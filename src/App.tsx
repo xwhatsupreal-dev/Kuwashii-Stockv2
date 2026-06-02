@@ -2404,7 +2404,7 @@ export default function App() {
 
   if (appScreen === 'LOADING' || appScreen === 'TRANSITION') {
     return (
-      <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="min-h-[100dvh] bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-mono">
+      <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="min-h-[100dvh] bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-mono">
         {/* Abstract CRT Scanline Effect */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:100%_4px] z-50 pointer-events-none opacity-50" />
         
@@ -2465,7 +2465,7 @@ export default function App() {
 
   if (appScreen === 'SELECT') {
     return (
-      <motion.div key="select" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-[100dvh] bg-zinc-950 flex flex-col items-center p-6 sm:p-10 relative overflow-x-hidden overflow-y-auto text-white">
+      <motion.div key="select" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.99 }} transition={{ duration: 0.15, ease: "easeOut" }} className="min-h-[100dvh] bg-zinc-950 flex flex-col items-center p-6 sm:p-10 relative overflow-x-hidden overflow-y-auto text-white">
         <div 
           className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat opacity-50 z-0"
           style={{ backgroundImage: "url('https://s.imgz.io/2026/05/31/1000098494b68242f76bd7e2f7.gif')" }}
@@ -2546,7 +2546,7 @@ export default function App() {
 
   if (appScreen === 'ASTD') {
     return (
-      <motion.div key="astd" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-[100dvh] flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
+      <motion.div key="astd" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.99 }} transition={{ duration: 0.15, ease: "easeOut" }} className="min-h-[100dvh] flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
         <MarqueeAnnouncement appScreen={appScreen} />
         <AnnouncementPopup appScreen={appScreen} />
         <Snowfall />
@@ -3221,7 +3221,7 @@ export default function App() {
   }
 
   return (
-    <motion.div key="aotr" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-[100dvh] flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
+    <motion.div key="aotr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.99 }} transition={{ duration: 0.15, ease: "easeOut" }} className="min-h-[100dvh] flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
       <MarqueeAnnouncement appScreen={appScreen} />
       <AnnouncementPopup appScreen={appScreen} />
       <Snowfall />
