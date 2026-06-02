@@ -123,6 +123,11 @@ export const addLiveActivity = async (activity: Omit<LiveActivity, 'id' | 'times
       game: activity.game,
       gacha_drops: activity.gachaDrops
     }]);
+
+    // Clean up old activities (older than 7 hours)
+    const sevenHoursAgo = new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString();
+    await supabase.from('activities').delete().lt('timestamp', sevenHoursAgo);
+
     if (!error) {
       window.dispatchEvent(new Event('sync-update'));
     }

@@ -44,9 +44,9 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
           }));
           // filter by game (either undefined/legacy or matching game)
           const filtered = parsed.filter(a => {
-             // 3 hours expiry
-             const ageHours = (Date.now() - new Date(a.timestamp).getTime()) / (1000 * 60 * 60);
-             if (ageHours > 3) return false;
+             const timeStr = a.timestamp.endsWith('Z') || a.timestamp.includes('+') ? a.timestamp : `${a.timestamp}Z`;
+             const ageHours = (Date.now() - new Date(timeStr).getTime()) / (1000 * 60 * 60);
+             if (ageHours > 7) return false;
              
              // Signups go everywhere to show activity
              if (a.type === 'signup') return true;
@@ -86,7 +86,9 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
   }
 
   const getTimeAgo = (isoString: string) => {
-    const minDiff = Math.floor((Date.now() - new Date(isoString).getTime()) / 60000);
+    // Ensure the timestamp is treated as UTC if no timezone is specified
+    const timeStr = isoString.endsWith('Z') || isoString.includes('+') ? isoString : `${isoString}Z`;
+    const minDiff = Math.floor((Date.now() - new Date(timeStr).getTime()) / 60000);
     if (minDiff < 1) return 'เมื่อสักครู่';
     if (minDiff < 60) return `${minDiff} นาทีที่แล้ว`;
     return `${Math.floor(minDiff/60)} ชม. ที่แล้ว`;
@@ -162,7 +164,7 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
                 
                 <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
                   <span className="text-[8px] sm:text-[10px] font-medium text-zinc-500 whitespace-nowrap bg-zinc-900/50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">{getTimeAgo(a.timestamp)}</span>
-                  {(Date.now() - new Date(a.timestamp).getTime()) < 3600000 && (
+                  {(Date.now() - new Date(a.timestamp.endsWith('Z') || a.timestamp.includes('+') ? a.timestamp : `${a.timestamp}Z`).getTime()) < 3600000 && (
                     <span className="text-[7.5px] sm:text-[9px] font-bold text-white px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap bg-zinc-800 border border-zinc-700 uppercase tracking-widest shadow-sm">
                       ใหม่
                     </span>
