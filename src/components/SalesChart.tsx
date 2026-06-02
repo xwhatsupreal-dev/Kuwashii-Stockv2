@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { supabase } from '../supabase';
@@ -12,21 +12,43 @@ interface SalesChartProps {
 export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
   const [data, setData] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'sales' | 'signups' | 'topups'>('sales');
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+
+  useEffect(() => {
+    // Set up realtime subscriptions
+    const channel = supabase.channel('chart-updates')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'purchases' }, () => {
+        setUpdateTrigger(prev => prev + 1);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
+        setUpdateTrigger(prev => prev + 1);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'topups' }, () => {
+        setUpdateTrigger(prev => prev + 1);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
-      const sevenDaysAgo = subDays(new Date(), 7);
+      const now = new Date();
+      // Round down to the current exact hour to make ticks predictable
+      const currentHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      const sevenDaysAgo = subDays(currentHour, 7);
       const chartDataMap: Record<string, any> = {};
       
-      // Create points every 3 hours for smoother sliding
-      for (let i = 7 * 24; i >= 0; i -= 3) {
-        const d = new Date(sevenDaysAgo.getTime() + i * 60 * 60 * 1000);
-        const keyStr = format(d, 'yyyy-MM-dd HH:mm');
-        const displayStr = format(d, 'dd MMM', { locale: th });
+      // Create points every 1 day
+      for (let i = 0; i <= 7; i++) {
+        const d = new Date(sevenDaysAgo.getTime() + i * 24 * 60 * 60 * 1000);
+        const keyStr = format(d, 'yyyy-MM-dd');
+        const displayStr = format(d, 'd MMM', { locale: th });
         chartDataMap[keyStr] = { 
           fullKey: keyStr, 
           date: displayStr, 
-          hour: d.getHours(),
           sales: 0, 
           signups: 0, 
           topups: 0 
@@ -34,17 +56,11 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
       }
 
       const getNearestKey = (timestampStr: string) => {
-         const t = new Date(timestampStr).getTime();
-         let closestKey = '';
-         let minDiff = Infinity;
-         for (const key of Object.keys(chartDataMap)) {
-            const diff = Math.abs(new Date(key).getTime() - t);
-            if (diff < minDiff) {
-               minDiff = diff;
-               closestKey = key;
-            }
+         try {
+           return format(new Date(timestampStr), 'yyyy-MM-dd');
+         } catch {
+           return '';
          }
-         return closestKey;
       };
 
       if (viewMode === 'sales') {
@@ -98,7 +114,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
     };
 
     fetchData();
-  }, [viewMode, appScreen]);
+  }, [viewMode, appScreen, updateTrigger]);
 
   const getColor = () => {
     if (viewMode === 'sales') return '#818cf8';
@@ -143,47 +159,41 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
       
       <div className="w-full h-56">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart key={viewMode} data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <BarChart key={viewMode} data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={getColor()} stopOpacity={0.3}/>
-                <stop offset="95%" stopColor={getColor()} stopOpacity={0}/>
+                <stop offset="5%" stopColor={getColor()} stopOpacity={0.8}/>
+                <stop offset="95%" stopColor={getColor()} stopOpacity={0.2}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
             <XAxis 
-               dataKey="fullKey" 
+               dataKey="date" 
                stroke="#52525b" 
                fontSize={10} 
                tickLine={false} 
                axisLine={false} 
-               interval={7}
-               tickFormatter={(value) => {
-                 try {
-                   return format(new Date(value), 'd MMM', { locale: th });
-                 } catch (e) {
-                   return '';
-                 }
-               }}
+               interval={0}
             />
             <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
             <Tooltip 
                contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '0.5rem', fontSize: '12px' }}
                itemStyle={{ color: getColor() }}
-               cursor={{ stroke: '#52525b', strokeWidth: 1, strokeDasharray: '4 4' }}
+               cursor={{ fill: '#27272a', opacity: 0.4 }}
                isAnimationActive={true}
                animationDuration={300}
                animationEasing="ease-out"
-               labelFormatter={(label) => {
+               labelFormatter={(labelLabel) => {
                  try {
-                   return format(new Date(label), "วันที่ d MMMM yyyy", { locale: th });
+                   // `date` doesn't contain a real parsable date easily in `labelLabel` which is like "2 มิ.ย."
+                   return `วันที่ ${labelLabel}`;
                  } catch (e) {
-                   return label;
+                   return labelLabel;
                  }
                }}
             />
-            <Area type="monotone" dataKey={viewMode} name={getLabel()} stroke={getColor()} strokeWidth={2} fillOpacity={1} fill="url(#colorMetric)" />
-          </AreaChart>
+            <Bar dataKey={viewMode} name={getLabel()} fill="url(#colorMetric)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </div>
