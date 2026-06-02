@@ -1,7 +1,9 @@
+import { motion } from 'motion/react';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Save, Upload, Link, AlertCircle, Sparkles, Image as ImageIcon, Package, Coins, Clock, Plus, Trash2 } from 'lucide-react';
 import { StockItem } from '../types';
+import { supabase } from '../supabase';
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -268,12 +270,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 กรอกรายละเอียดไอเทมในเกม Attack on Titan Revolution ของคลังสต๊อกคุณ
               </p>
             </div>
-            <button
+            <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
               className="p-1.5 text-zinc-500 hover:text-white rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
-            </button>
+            </motion.button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -311,7 +313,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   ).map((cat) => {
                   const isActive = category === cat;
                   return (
-                    <button
+                    <motion.button whileTap={{ scale: 0.95 }}
                       key={cat}
                       type="button"
                       onClick={() => setCategory(cat as any)}
@@ -340,7 +342,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         {cat === 'สุ่มตัวละคร - ออสตา' && '🎲'}
                       </span>
                       <span className="truncate">{cat}</span>
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -494,13 +496,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-sans">
                     ตั้งค่าของรางวัลในกล่องสุ่ม (Gacha Pool)
                   </span>
-                  <button
+                  <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
                     onClick={() => setGachaPool([...gachaPool, { id: Date.now().toString(), name: '' }])}
                     className="flex items-center gap-1 text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" /> เพิ่ม
-                  </button>
+                  </motion.button>
                 </div>
                 
                 {gachaPool.length > 0 ? (
@@ -529,13 +531,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             }}
                             className="w-8 h-8 rounded shrink-0 cursor-pointer bg-zinc-950 border border-zinc-800 p-0.5"
                           />
-                          <button
+                          <motion.button whileTap={{ scale: 0.95 }}
                             type="button"
                             onClick={() => setGachaPool(gachaPool.filter((_, i) => i !== index))}
                             className="p-2 bg-red-950/30 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          </motion.button>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-zinc-500 font-sans whitespace-nowrap">สต๊อกที่การันตีออก (คั่นด้วยลูกน้ำ, ปล่อยว่างถ้าไม่มี):</span>
@@ -614,7 +616,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
               {/* Source tabs selector */}
               <div className="grid grid-cols-3 gap-2 p-1 rounded-lg bg-zinc-950 border border-zinc-850 text-xs">
-                <button
+                <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => setImageType('url')}
                   className={`py-1.5 rounded-md font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
@@ -623,8 +625,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 >
                   <Link className="w-3 h-3" />
                   <span>ใส่ลิงก์รูปภาพ</span>
-                </button>
-                <button
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => setImageType('upload')}
                   className={`py-1.5 rounded-md font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
@@ -633,8 +635,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 >
                   <Upload className="w-3 h-3" />
                   <span>อัปโหลดรูปภาพ</span>
-                </button>
-                <button
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => setImageType('presets')}
                   className={`py-1.5 rounded-md font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
@@ -643,7 +645,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 >
                   <Sparkles className="w-3 h-3 text-amber-500" />
                   <span>รูปภาพตัวอย่าง</span>
-                </button>
+                </motion.button>
               </div>
 
               {/* Content of selected Tab */}
@@ -714,7 +716,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   <p className="text-[10px] text-zinc-400 font-sans">คลิกลือกภาพม็อคเพื่อเติมเต็มรายละเอียดความสวยงามได้รวดเร็ว:</p>
                   <div className="grid grid-cols-3 gap-2.5">
                     {PRESET_IMAGE_SUGGESTIONS.map((preset) => (
-                      <button
+                      <motion.button whileTap={{ scale: 0.95 }}
                         type="button"
                         key={preset.name}
                         onClick={() => handlePresetSelect(preset.url)}
@@ -724,7 +726,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <span className="relative text-[9px] text-white font-bold leading-none bg-black/80 p-0.5 rounded border border-zinc-900/30 w-full text-center truncate">
                           {preset.name}
                         </span>
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
@@ -733,22 +735,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
             {/* Submit and Cancel items */}
             <div className="flex gap-2.5 border-t border-zinc-900 pt-4 mt-5">
-              <button
+              <motion.button whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={onClose}
                 className="w-1/2 py-2.5 px-4 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 bg-transparent text-xs font-bold transition-all cursor-pointer"
               >
                 ยกเลิก
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileTap={{ scale: 0.95 }}
                 type="submit"
                 className="w-1/2 py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-100 text-black border-white text-xs font-bold shadow-lg flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all"
                 id="btn-submit-stock"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>บันทึกข้อมูลสต๊อก</span>
-              </button>
+              </motion.button>
             </div>
           </form>
         </motion.div>

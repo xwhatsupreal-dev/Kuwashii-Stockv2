@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Trophy, Sparkles } from 'lucide-react';
@@ -38,12 +39,12 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
           {/* Confetti / Lights effect background */}
           <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 ${allSalt ? 'bg-zinc-500/20' : 'bg-amber-500/20'} blur-[60px] rounded-full pointer-events-none`} />
 
-          <button
+          <motion.button whileTap={{ scale: 0.95 }}
             onClick={onClose}
             className="absolute top-4 right-4 p-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-colors z-20 cursor-pointer"
           >
             <X className="w-5 h-5" />
-          </button>
+          </motion.button>
 
           <div className="mb-6 relative">
             <motion.div

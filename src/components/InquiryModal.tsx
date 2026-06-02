@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Copy, Check, ShoppingCart, ExternalLink, Send, Coins, Users } from 'lucide-react';
@@ -80,13 +81,13 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
               <ShoppingCart className="w-4.5 h-4.5 text-amber-500 animate-pulse" />
               <span>สรุปรายการสั่งซื้อ</span>
             </h3>
-            <button
+            <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
               className="p-1 text-zinc-500 hover:text-white rounded-lg hover:bg-zinc-900 transition-colors"
               id="btn-close-inquiry"
             >
               <X className="w-4.5 h-4.5" />
-            </button>
+            </motion.button>
           </div>
 
           {/* Scrollable Content wrapper to prevent full-screen takeover on small viewports */}
@@ -131,7 +132,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                   {hasPieces ? 'จำนวนชุดที่ต้องการ:' : 'จำนวนชิ้นที่ต้องการ:'}
                 </span>
                 <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-900 rounded-lg p-0.5">
-                  <button
+                  <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
                     disabled={quantity <= 1}
                     onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
@@ -139,11 +140,11 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                     id="btn-dec-inquiry-qty"
                   >
                     -
-                  </button>
+                  </motion.button>
                   <span className="w-12 text-center text-white font-mono font-bold text-xs">
                     {quantity} <span className="text-[9px] text-zinc-450 font-normal">{unitLabel}</span>
                   </span>
-                  <button
+                  <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
                     disabled={quantity >= item.quantity}
                     onClick={() => setQuantity((prev) => Math.min(item.quantity, prev + 1))}
@@ -151,15 +152,15 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                     id="btn-inc-inquiry-qty"
                   >
                     +
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
                     disabled={quantity >= item.quantity}
                     onClick={() => setQuantity(item.quantity)}
                     className="px-2 h-7 rounded-md bg-amber-500/20 text-amber-500 text-[10px] font-bold uppercase transition-colors hover:bg-amber-500/30 disabled:opacity-30 ml-1"
                   >
                     Max
-                  </button>
+                  </motion.button>
                 </div>
               </div>
 
@@ -205,7 +206,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
 
             {onBuy ? (
               <div className="border-t border-zinc-900 pt-3 mt-3">
-                <button
+                <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => {
                     onBuy(item, quantity);
@@ -215,7 +216,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                 >
                   <Coins className="w-4 h-4" />
                   <span>ยืนยันคำสั่งซื้อ: ฿{totalPrice.toLocaleString()}</span>
-                </button>
+                </motion.button>
               </div>
             ) : (
               <>
@@ -227,7 +228,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                       {purchaseMessage}
                     </pre>
                     <div className="absolute top-1.5 right-1.5">
-                      <button
+                      <motion.button whileTap={{ scale: 0.95 }}
                         onClick={handleCopy}
                         className={`p-1.5 rounded border transition-all duration-350 cursor-pointer ${
                           copied
@@ -238,7 +239,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                         title="คัดลอกข้อความ"
                       >
                         {copied ? <Check className="w-3 h-3 animate-bounce" /> : <Copy className="w-3 h-3" />}
-                      </button>
+                      </motion.button>
                     </div>
                   </div>
                 </div>
@@ -254,7 +255,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
-                    <button
+                    <motion.button whileTap={{ scale: 0.95 }}
                       onClick={handleCopy}
                       className={`py-1.5 px-3 rounded-lg font-bold text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         copied
@@ -265,9 +266,9 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                     >
                       {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                       <span>{copied ? 'คัดลอกแล้ว!' : 'คัดลอกคำสั่ง'}</span>
-                    </button>
+                    </motion.button>
 
-                    <button
+                    <motion.button whileTap={{ scale: 0.95 }}
                       type="button"
                       onClick={() => {
                         window.open("https://m.me/kuwashii", "_blank");
@@ -277,7 +278,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                     >
                       <span>แชท Facebook</span>
                       <ExternalLink className="w-3 h-3 text-zinc-500" />
-                    </button>
+                    </motion.button>
                   </div>
                   <p className="text-[9px] text-zinc-600 text-center font-sans">
                     *คัดลอกข้อความแชทแล้วทักไปแจ้งแอดมิน เพื่อส่งมอบและตัดสต๊อกของได้ทันที!

@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, History, ShoppingCart, PackageOpen, Calendar, Clock, Sparkles, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
@@ -72,27 +73,27 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                 </p>
               </div>
             </div>
-            <button
+            <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
               className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors border border-transparent hover:border-zinc-700"
             >
               <X className="w-6 h-6" />
-            </button>
+            </motion.button>
           </div>
 
           <div className="flex gap-2 mb-4 bg-zinc-900/50 p-1.5 rounded-xl shrink-0">
-            <button
+            <motion.button whileTap={{ scale: 0.95 }}
               onClick={() => setActiveTab('purchases')}
               className={`flex-1 flex justify-center items-center gap-2 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'purchases' ? 'bg-zinc-800 text-white shadow' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'}`}
             >
               <ShoppingCart className="w-4 h-4" /> ซื้อ & สุ่ม ({purchases.length})
-            </button>
-            <button
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.95 }}
               onClick={() => setActiveTab('topups')}
               className={`flex-1 flex justify-center items-center gap-2 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'topups' ? 'bg-zinc-800 text-white shadow' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'}`}
             >
               <DollarSign className="w-4 h-4" /> เติมเงิน ({topups.length})
-            </button>
+            </motion.button>
           </div>
 
           <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 space-y-4">
@@ -207,13 +208,13 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                           {/* Contact Button for winning drops */}
                           {purchase.gachaDrops!.some(drop => !(drop as any).isSalt) && (
                             <div className="mt-3">
-                              <button
+                              <motion.button whileTap={{ scale: 0.95 }}
                                 onClick={() => window.open("https://m.me/DazzRFkaz", "_blank")}
                                 className="w-full py-2 px-3 rounded-lg bg-[#0084FF]/10 hover:bg-[#0084FF]/20 text-[#0084FF] hover:text-white border border-[#0084FF]/30 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
                               >
                                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" fill="none"><path d="M12.0001 2.37891C6.47194 2.37891 1.98926 6.55169 1.98926 11.6974C1.98926 14.5971 3.53594 17.18 5.92211 18.8475V21.6212L8.91893 19.9725C9.89417 20.2526 10.9272 20.4079 12.0001 20.4079C17.5283 20.4079 22.011 16.2351 22.011 11.6974C22.011 6.55169 17.5283 2.37891 12.0001 2.37891ZM12.5701 14.5369L10.3752 12.1979L6.11545 14.5369L10.7938 9.56947L13.0119 11.9084L17.2483 9.56947L12.5701 14.5369Z"/></svg>
                                 <span>ติดต่อแอดมินเพื่อเคลมของรางวัล</span>
-                              </button>
+                              </motion.button>
                             </div>
                           )}
                         </div>

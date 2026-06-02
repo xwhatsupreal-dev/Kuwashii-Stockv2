@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Users, Search, DollarSign, Clock, Package, Edit2, History, ChevronDown, ChevronUp } from 'lucide-react';
@@ -127,12 +128,12 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
           >
             {/* Header */}
             <div className="p-6 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
-              <button
+              <motion.button whileTap={{ scale: 0.95 }}
                 onClick={onClose}
                 className="absolute top-6 right-6 p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </motion.button>
               
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
@@ -206,18 +207,18 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                                   placeholder="เครดิต"
                                   autoFocus
                                 />
-                                <button
+                                <motion.button whileTap={{ scale: 0.95 }}
                                   onClick={() => handleUpdateBalance(user.username)}
                                   className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
                                 >
                                   บันทึก
-                                </button>
-                                <button
+                                </motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }}
                                   onClick={() => setEditingBalanceUser(null)}
                                   className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg text-xs transition-colors"
                                 >
                                   ยกเลิก
-                                </button>
+                                </motion.button>
                              </div>
                            ) : (
                              <>
@@ -229,45 +230,45 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                                  confirmDeleteUser === user.username ? (
                                     <div className="flex items-center gap-2">
                                       <span className="text-[10px] text-red-400 font-bold hidden sm:inline">ยืนยันลบ?</span>
-                                      <button 
+                                      <motion.button whileTap={{ scale: 0.95 }} 
                                         onClick={() => handleDeleteUserByAdmin(user.username)}
                                         className="py-1 px-2.5 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold rounded-lg transition-colors shadow-lg shadow-red-500/20"
                                       >
                                         ลบ
-                                      </button>
-                                      <button 
+                                      </motion.button>
+                                      <motion.button whileTap={{ scale: 0.95 }} 
                                         onClick={() => setConfirmDeleteUser(null)}
                                         className="py-1 px-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] font-bold rounded-lg transition-colors border border-zinc-700"
                                       >
                                         ยกเลิก
-                                      </button>
+                                      </motion.button>
                                     </div>
                                  ) : (
                                    <>
-                                     <button 
+                                     <motion.button whileTap={{ scale: 0.95 }} 
                                        onClick={() => { setEditingBalanceUser(user.username); setNewBalance(String(user.balance || 0)); }}
                                        className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0"
                                        title="แก้ไขยอดเงิน (เติมเครดิต)"
                                      >
                                        <Edit2 className="w-4 h-4" />
-                                     </button>
-                                     <button
+                                     </motion.button>
+                                     <motion.button whileTap={{ scale: 0.95 }}
                                        onClick={() => setConfirmDeleteUser(user.username)}
                                        className="p-1.5 rounded-lg hover:bg-red-900/50 text-red-500/70 hover:text-red-400 transition-colors cursor-pointer shrink-0"
                                        title="ลบบัญชีผู้ใช้นี้ถาวร"
                                      >
                                        <X className="w-4 h-4" />
-                                     </button>
+                                     </motion.button>
                                    </>
                                  )
                                )}
-                               <button
+                               <motion.button whileTap={{ scale: 0.95 }}
                                  onClick={() => onViewUserHistory(user.username)}
                                  className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0"
                                  title="ประวัติการทำรายการ"
                                >
                                  <History className="w-4 h-4" />
-                               </button>
+                               </motion.button>
                              </>
                            )}
                         </div>

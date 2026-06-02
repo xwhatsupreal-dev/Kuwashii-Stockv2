@@ -1,6 +1,8 @@
+import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Bell, Image as ImageIcon, Save, Check, Type } from 'lucide-react';
+import { supabase } from '../supabase';
 
 interface AnnouncementManagerModalProps {
   isOpen: boolean;
@@ -59,7 +61,6 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
     localStorage.setItem('KUWASHII_ANNOUNCEMENT_UPDATED_AT', Date.now().toString());
     
     try {
-      const { supabase } = await import('../supabase');
       await supabase.from('system_config').upsert({ id: 'main', announcement_settings: settings });
     } catch(e) {}
     
@@ -88,12 +89,12 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
           className="relative w-full max-w-md max-h-[85dvh] bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col font-sans overflow-hidden"
         >
           <div className="p-6 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
-            <button
+            <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
               className="absolute top-6 right-6 p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
-            </button>
+            </motion.button>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
                 <Bell className="w-6 h-6" />
@@ -274,7 +275,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
               )}
             </div>
 
-            <button
+            <motion.button whileTap={{ scale: 0.95 }}
               onClick={handleSave}
               className="w-full py-3 px-4 rounded-xl font-bold bg-amber-500 hover:bg-amber-400 text-zinc-900 transition-all text-sm flex items-center justify-center gap-2"
             >
@@ -287,7 +288,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                   <Save className="w-5 h-5" /> บันทึกการตั้งค่า
                 </>
               )}
-            </button>
+            </motion.button>
           </div>
         </motion.div>
       </div>

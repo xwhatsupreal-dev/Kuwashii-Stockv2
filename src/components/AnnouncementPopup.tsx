@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Clock } from 'lucide-react';
@@ -140,7 +141,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
               {activeAnnouncements.length > 1 && (
                 <div className="flex justify-center gap-1.5 pt-3 pb-1 bg-zinc-950">
                   {activeAnnouncements.map((_, idx) => (
-                    <button
+                    <motion.button whileTap={{ scale: 0.95 }}
                       key={idx}
                       onClick={() => setCurrentActiveIndex(idx)}
                       className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
@@ -152,18 +153,18 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
               )}
               
               <div className="p-3 bg-zinc-950 flex flex-row items-center gap-2 justify-center">
-                <button
+                <motion.button whileTap={{ scale: 0.95 }}
                   onClick={handleClose}
                   className="flex-1 justify-center flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-zinc-300 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white font-medium text-[11px] transition-colors"
                 >
                   <X className="w-3 h-3" /> ปิดหน้าต่างนี้
-                </button>
-                <button
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.95 }}
                   onClick={handleMute}
                   className="flex-1 justify-center flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-zinc-400 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white font-medium text-[11px] transition-colors"
                 >
                   <Clock className="w-3 h-3" /> ไม่แสดง 1 ชม.
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           </AnimatePresence>

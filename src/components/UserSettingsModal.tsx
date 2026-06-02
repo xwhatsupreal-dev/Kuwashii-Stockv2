@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, User, Settings, KeySquare, Eye, EyeOff } from 'lucide-react';
@@ -76,13 +77,13 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           className="relative max-w-sm w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl z-10 font-sans"
         >
-          <button
+          <motion.button whileTap={{ scale: 0.95 }}
             type="button"
             className="absolute top-4 right-4 text-zinc-500 hover:text-white p-1 rounded-md hover:bg-zinc-900 transition-colors"
             onClick={onClose}
           >
             <X className="w-5 h-5" />
-          </button>
+          </motion.button>
 
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
@@ -109,13 +110,13 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                     placeholder="รหัสผ่านใหม่..."
                     className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono pr-10"
                   />
-                  <button
+                  <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
                   >
                     {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  </motion.button>
                 </div>
                 <div className="relative">
                   <input
@@ -125,23 +126,23 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                     placeholder="ยืนยันรหัสผ่านใหม่..."
                     className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono pr-10"
                   />
-                  <button
+                  <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </div>
 
-            <button
+            <motion.button whileTap={{ scale: 0.95 }}
               onClick={handleSave}
               className="w-full py-2.5 px-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all text-sm shadow-md"
             >
               บันทึกการตั้งค่า
-            </button>
+            </motion.button>
           </div>
         </motion.div>
       </div>

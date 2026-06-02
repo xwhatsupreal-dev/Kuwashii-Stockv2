@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Copy, Check, ShoppingCart, Minus, Plus, Box } from 'lucide-react';
@@ -70,12 +71,12 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
             )}
             
             {/* Close button top right */}
-            <button
+            <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
               className="absolute top-3 right-3 p-1.5 bg-black/50 backdrop-blur-md rounded-full text-zinc-400 hover:text-white hover:bg-black/70 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
-            </button>
+            </motion.button>
           </div>
 
           <div className="p-4 sm:p-5 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-800 bg-zinc-950">
@@ -121,14 +122,14 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
 
               {/* Quantity selector */}
               <div className="flex items-center gap-2 h-11 w-full">
-                <button
+                <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
                   disabled={quantity <= 1}
                   className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-zinc-900 text-zinc-400 rounded-xl font-black text-xl hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 transition-all border border-zinc-800 cursor-pointer"
                 >
                   <Minus className="w-5 h-5 stroke-[2]" />
-                </button>
+                </motion.button>
                 
                 <input 
                   type="number"
@@ -142,25 +143,25 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
                   className="flex-1 h-full text-center bg-zinc-950 border border-zinc-800 rounded-xl font-bold text-base text-white focus:outline-none focus:border-amber-500/50"
                 />
 
-                <button
+                <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => setQuantity((prev) => Math.min(item.quantity, prev + 1))}
                   disabled={quantity >= item.quantity}
                   className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-zinc-900 text-zinc-400 rounded-xl font-black text-xl hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 transition-all border border-zinc-800 cursor-pointer"
                 >
                   <Plus className="w-5 h-5 stroke-[2]" />
-                </button>
-                <button
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   disabled={quantity >= item.quantity}
                   onClick={() => setQuantity(item.quantity)}
                   className="px-3 h-11 rounded-xl bg-amber-500/20 text-amber-500 text-xs font-bold uppercase transition-colors hover:bg-amber-500/30 disabled:opacity-30 border border-amber-500/10 active:scale-95 cursor-pointer ml-1"
                 >
                   Max
-                </button>
+                </motion.button>
               </div>
 
-              <button
+              <motion.button whileTap={{ scale: 0.95 }}
                 onClick={handlePurchase}
                 disabled={item.quantity === 0}
                 className="w-full h-11 mt-1 relative flex items-center justify-center bg-amber-500 hover:bg-amber-400 text-amber-950 rounded-xl font-bold text-sm transition-all disabled:opacity-50 active:scale-[0.98] cursor-pointer"
@@ -170,7 +171,7 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
                 ) : (
                   <span className="flex items-center gap-2"><ShoppingCart className="w-4 h-4 stroke-[2]" /> สั่งซื้อกล่องสุ่มด้วยเครดิต</span>
                 )}
-              </button>
+              </motion.button>
             </div>
           </div>
         </motion.div>

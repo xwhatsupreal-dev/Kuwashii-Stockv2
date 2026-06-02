@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Search, Edit2, Trash2, Plus, Package } from 'lucide-react';
@@ -62,18 +63,18 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
             </div>
             
             <div className="flex items-center gap-3">
-              <button 
+              <motion.button whileTap={{ scale: 0.95 }} 
                 onClick={onAddNew}
                 className="bg-white text-black hover:bg-zinc-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" /> เพิ่มสินค้าใหม่
-              </button>
-              <button
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.95 }}
                 onClick={onClose}
                 className="p-2 text-zinc-500 hover:text-white rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer bg-zinc-900/50"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </motion.button>
             </div>
           </div>
 
@@ -135,14 +136,14 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
                             </td>
                             <td className="px-5 py-3 text-right">
                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button 
+                                    <motion.button whileTap={{ scale: 0.95 }} 
                                       onClick={() => onEdit(item)}
                                       className="p-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded-lg transition-colors cursor-pointer"
                                       title="แก้ไข"
                                     >
                                         <Edit2 className="w-4 h-4" />
-                                    </button>
-                                    <button 
+                                    </motion.button>
+                                    <motion.button whileTap={{ scale: 0.95 }} 
                                       onClick={() => {
                                         if(window.confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) onDelete(item.id);
                                       }}
@@ -150,7 +151,7 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
                                       title="ลบ"
                                     >
                                         <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    </motion.button>
                                 </div>
                             </td>
                         </tr>

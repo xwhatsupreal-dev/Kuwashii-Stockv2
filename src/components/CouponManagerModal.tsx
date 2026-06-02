@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Plus, Trash2, Gift, Save } from 'lucide-react';
@@ -86,12 +87,12 @@ export const CouponManagerModal: React.FC<CouponManagerModalProps> = ({ isOpen, 
               <Gift className="w-5 h-5 text-indigo-500" />
               จัดการโค้ดคูปอง (เครดิตฟรี)
             </h2>
-            <button
+            <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
               className="p-1.5 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
-            </button>
+            </motion.button>
           </div>
 
           <div className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-6">
@@ -127,13 +128,13 @@ export const CouponManagerModal: React.FC<CouponManagerModalProps> = ({ isOpen, 
                   title="เวลาหมดอายุ (Optional)"
                 />
               </div>
-              <button
+              <motion.button whileTap={{ scale: 0.95 }}
                 onClick={handleAddCoupon}
                 disabled={!newCode.trim() || !newAmount}
                 className="mt-3 w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" /> เพิ่มคูปอง
-              </button>
+              </motion.button>
             </div>
 
             <div>
@@ -157,12 +158,12 @@ export const CouponManagerModal: React.FC<CouponManagerModalProps> = ({ isOpen, 
                             )}
                           </div>
                         </div>
-                        <button
+                        <motion.button whileTap={{ scale: 0.95 }}
                           onClick={() => handleDelete(c.code)}
                           className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </button>
+                        </motion.button>
                       </div>
                     );
                   })

@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
@@ -14,26 +15,49 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
+      const sevenDaysAgo = subDays(new Date(), 7);
       const chartDataMap: Record<string, any> = {};
       
-      for (let i = 6; i >= 0; i--) {
-        const d = subDays(new Date(), i);
-        const dateStr = format(d, 'dd MMM', { locale: th });
-        chartDataMap[dateStr] = { date: dateStr, sales: 0, signups: 0, topups: 0 };
+      // Create points every 3 hours for smoother sliding
+      for (let i = 7 * 24; i >= 0; i -= 3) {
+        const d = new Date(sevenDaysAgo.getTime() + i * 60 * 60 * 1000);
+        const keyStr = format(d, 'yyyy-MM-dd HH:mm');
+        const displayStr = format(d, 'dd MMM', { locale: th });
+        chartDataMap[keyStr] = { 
+          fullKey: keyStr, 
+          date: displayStr, 
+          hour: d.getHours(),
+          sales: 0, 
+          signups: 0, 
+          topups: 0 
+        };
       }
+
+      const getNearestKey = (timestampStr: string) => {
+         const t = new Date(timestampStr).getTime();
+         let closestKey = '';
+         let minDiff = Infinity;
+         for (const key of Object.keys(chartDataMap)) {
+            const diff = Math.abs(new Date(key).getTime() - t);
+            if (diff < minDiff) {
+               minDiff = diff;
+               closestKey = key;
+            }
+         }
+         return closestKey;
+      };
 
       if (viewMode === 'sales') {
         const { data: purchases, error } = await supabase
           .from('purchases')
           .select('created_at, price, quantity')
-          .gte('created_at', sevenDaysAgo);
+          .gte('created_at', sevenDaysAgo.toISOString());
 
         if (!error && purchases) {
           purchases.forEach((curr: any) => {
-            const date = format(new Date(curr.created_at), 'dd MMM', { locale: th });
-            if (chartDataMap[date]) {
-              chartDataMap[date].sales += curr.quantity || 1;
+            const key = getNearestKey(curr.created_at);
+            if (chartDataMap[key]) {
+              chartDataMap[key].sales += curr.quantity || 1;
             }
           });
         }
@@ -41,13 +65,13 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
         const { data: profiles, error } = await supabase
           .from('profiles')
           .select('created_at')
-          .gte('created_at', sevenDaysAgo);
+          .gte('created_at', sevenDaysAgo.toISOString());
           
         if (!error && profiles) {
           profiles.forEach((curr: any) => {
-            const date = format(new Date(curr.created_at), 'dd MMM', { locale: th });
-            if (chartDataMap[date]) {
-              chartDataMap[date].signups += 1;
+            const key = getNearestKey(curr.created_at);
+            if (chartDataMap[key]) {
+              chartDataMap[key].signups += 1;
             }
           });
         }
@@ -55,19 +79,22 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
         const { data: topups, error } = await supabase
           .from('topups')
           .select('created_at, amount')
-          .gte('created_at', sevenDaysAgo);
+          .gte('created_at', sevenDaysAgo.toISOString());
           
         if (!error && topups) {
           topups.forEach((curr: any) => {
-            const date = format(new Date(curr.created_at), 'dd MMM', { locale: th });
-            if (chartDataMap[date]) {
-               chartDataMap[date].topups += Number(curr.amount) || 0;
+            const key = getNearestKey(curr.created_at);
+            // Include admin topups which could be negative for 'ลดเครดิต', but let's count only positive if the user means 'ยอดเติม' literally
+            // "อัพบอกด้วยทั้งของที่คนเติมมาและ admin ที่เพิ่มเครดิต" => Admin เพิ่มเครดิต (amount > 0)
+            if (chartDataMap[key]) {
+               chartDataMap[key].topups += Number(curr.amount) || 0;
             }
           });
         }
       }
 
-      setData(Object.values(chartDataMap));
+      const rawData = Object.values(chartDataMap).sort((a,b) => new Date(a.fullKey).getTime() - new Date(b.fullKey).getTime());
+      setData(rawData);
     };
 
     fetchData();
@@ -83,7 +110,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
   const getLabel = () => {
      if (viewMode === 'sales') return 'ยอดขาย (ชิ้น)';
      if (viewMode === 'signups') return 'สมัครใหม่ (คน)';
-     if (viewMode === 'topups') return 'รายได้ (บาท)';
+     if (viewMode === 'topups') return 'ยอดเติม (บาท)';
      return '';
   };
 
@@ -93,24 +120,24 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
         <h3 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">สถิติ 7 วันล่าสุด</h3>
         
         <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-900 self-start">
-          <button 
+          <motion.button whileTap={{ scale: 0.95 }} 
             onClick={() => setViewMode('sales')}
             className={`text-[10px] px-3 py-1.5 rounded-md transition-all ${viewMode === 'sales' ? 'bg-indigo-500/20 text-indigo-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
             ยอดขาย
-          </button>
-          <button 
+          </motion.button>
+          <motion.button whileTap={{ scale: 0.95 }} 
             onClick={() => setViewMode('signups')}
             className={`text-[10px] px-3 py-1.5 rounded-md transition-all ${viewMode === 'signups' ? 'bg-emerald-500/20 text-emerald-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
             สมัครสมาชิก
-          </button>
-          <button 
+          </motion.button>
+          <motion.button whileTap={{ scale: 0.95 }} 
             onClick={() => setViewMode('topups')}
             className={`text-[10px] px-3 py-1.5 rounded-md transition-all ${viewMode === 'topups' ? 'bg-amber-500/20 text-amber-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
              ยอดเติมเงิน
-          </button>
+          </motion.button>
         </div>
       </div>
       
@@ -124,12 +151,36 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-            <XAxis dataKey="date" stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} />
+            <XAxis 
+               dataKey="fullKey" 
+               stroke="#52525b" 
+               fontSize={10} 
+               tickLine={false} 
+               axisLine={false} 
+               interval={7}
+               tickFormatter={(value) => {
+                 try {
+                   return format(new Date(value), 'd MMM', { locale: th });
+                 } catch (e) {
+                   return '';
+                 }
+               }}
+            />
             <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
             <Tooltip 
                contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '0.5rem', fontSize: '12px' }}
                itemStyle={{ color: getColor() }}
                cursor={{ stroke: '#52525b', strokeWidth: 1, strokeDasharray: '4 4' }}
+               isAnimationActive={true}
+               animationDuration={300}
+               animationEasing="ease-out"
+               labelFormatter={(label) => {
+                 try {
+                   return format(new Date(label), "วันที่ d MMMM yyyy", { locale: th });
+                 } catch (e) {
+                   return label;
+                 }
+               }}
             />
             <Area type="monotone" dataKey={viewMode} name={getLabel()} stroke={getColor()} strokeWidth={2} fillOpacity={1} fill="url(#colorMetric)" />
           </AreaChart>

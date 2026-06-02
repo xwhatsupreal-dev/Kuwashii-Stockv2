@@ -163,7 +163,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
           {/* Category & Pin Badge Group */}
           <div className="flex items-center gap-1.5">
             {isAdmin ? (
-              <button
+              <motion.button whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => onTogglePin(item.id)}
                 className={`p-1.5 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${
@@ -174,7 +174,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                 title={item.isPinned ? 'เลิกปักหมุดสินค้านี้' : 'ปักหมุดสินค้านี้'}
               >
                 <Pin className={`w-3.5 h-3.5 transition-transform ${item.isPinned ? 'fill-current scale-110 text-amber-400' : 'text-zinc-500 rotate-45'}`} />
-              </button>
+              </motion.button>
             ) : item.isPinned ? (
               <div
                 className="p-1.5 rounded-lg border bg-amber-500/10 border-amber-500/30 text-amber-400 flex items-center justify-center cursor-default"
@@ -382,7 +382,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
             <div className="flex items-center justify-between gap-2">
               <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">สต๊อก:</span>
               <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-0.5">
-                <button
+                <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => onQuickQuantityChange(item.id, -1)}
                   disabled={item.quantity <= 0}
@@ -390,24 +390,24 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                   id={`btn-add-dec-${item.id}`}
                 >
                   -
-                </button>
+                </motion.button>
                 <span className="w-6 text-center font-mono font-bold text-xs text-white">
                   {item.quantity}
                 </span>
-                <button
+                <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => onQuickQuantityChange(item.id, 1)}
                   className="w-6 h-6 flex items-center justify-center rounded text-zinc-455 hover:text-white hover:bg-zinc-800 transition-colors text-xs font-bold font-mono cursor-pointer"
                   id={`btn-add-inc-${item.id}`}
                 >
                   +
-                </button>
+                </motion.button>
               </div>
             </div>
 
             {/* Core admin actions: Edit & Delete */}
             <div className="grid grid-cols-2 gap-2">
-              <button
+              <motion.button whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => onEdit(item)}
                 className="py-1 px-2 rounded-lg border border-zinc-700 hover:border-zinc-500 bg-zinc-800/40 text-zinc-300 hover:text-white hover:bg-zinc-805 text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
@@ -415,8 +415,8 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               >
                 <Edit2 className="w-3 h-3" />
                 <span>แก้ไข</span>
-              </button>
-              <button
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => onDelete(item.id)}
                 className="py-1 px-2 rounded-lg border border-red-950/40 hover:border-red-600/50 bg-red-950/20 hover:bg-red-950/40 text-red-400 hover:text-red-300 text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
@@ -424,12 +424,12 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               >
                 <Trash2 className="w-3 h-3" />
                 <span>ลบออก</span>
-              </button>
+              </motion.button>
             </div>
           </div>
         ) : (
           <div className="mt-2 space-y-1.5">
-            <button
+            <motion.button whileTap={{ scale: 0.95 }}
               type="button"
               onClick={() => {
                 onInquire(item);
@@ -446,9 +446,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({
             >
               <ShoppingBag className="w-3 h-3" />
               <span>{item.quantity === 0 ? 'สินค้าหมดคลัง' : (item.gachaPool && item.gachaPool.length > 0 && onBuy ? 'สั่งซื้อกล่องสุ่ม' : (onBuy ? 'ซื้อด้วยเครดิต / ระบุจำนวน' : 'สนใจซื้อ / สอบถามสต๊อก'))}</span>
-            </button>
+            </motion.button>
             {onShareToAI && (
-              <button
+              <motion.button whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => onShareToAI(item)}
                 className="w-full py-1.5 px-3 rounded-xl font-bold text-[10px] transition-all flex items-center justify-center gap-1.5 border border-purple-500/20 bg-purple-950/20 hover:bg-purple-900/30 text-purple-300 hover:text-purple-250 cursor-pointer active:scale-[0.98]"
@@ -456,7 +456,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               >
                 <Sparkles className="w-3 h-3 text-purple-400 fill-current animate-pulse" />
                 <span>คุยกับ AI เกี่ยวกับชิ้นนี้ 🔮</span>
-              </button>
+              </motion.button>
             )}
           </div>
         )}
