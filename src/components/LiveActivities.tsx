@@ -144,14 +144,6 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
                     )}
                   </p>
                   
-                  {a.type === 'purchase' && a.remainingStock !== undefined && (
-                    <div className="mt-1 sm:mt-1.5 flex flex-wrap items-center gap-2">
-                       <span className="bg-zinc-800/80 border border-zinc-700/50 px-1 sm:px-2 py-0.5 rounded text-[8px] sm:text-[10.5px] text-zinc-300 font-mono shadow-sm">
-                          สต๊อก: มี {(a.remainingStock || 0) + (a.quantity || 0)} - {a.quantity} = {a.remainingStock}
-                       </span>
-                    </div>
-                  )}
-                  
                   {/* Admin Only System: Notice if guaranteed/jackpot won */}
                   {isAdmin && a.type === 'purchase' && hasJackpot && (
                     <div className="mt-1 sm:mt-2 inline-flex items-start sm:items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[8px] sm:text-[10px] px-1.5 sm:px-2 py-1 sm:py-1.5 rounded shadow-sm w-full sm:w-auto">

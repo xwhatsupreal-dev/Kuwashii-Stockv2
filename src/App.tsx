@@ -228,11 +228,17 @@ export default function App() {
 
   // Sync Engine Listener
   useEffect(() => {
+    let activeSyncId = 0;
+
     const handleSync = async () => {
+      const syncId = ++activeSyncId;
+
       const dbItems = await fetchItems();
+      if (syncId !== activeSyncId) return;
       if (dbItems) setItems(dbItems);
       
       const config = await getSystemConfig();
+      if (syncId !== activeSyncId) return;
       if (config) {
         try {
           const { count, error } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
@@ -241,6 +247,7 @@ export default function App() {
           }
         } catch(e) {}
         
+        if (syncId !== activeSyncId) return;
         setGlobalStats(config);
         if (config.announcement_settings) {
           localStorage.setItem('KUWASHII_ANNOUNCEMENT_SETTINGS', JSON.stringify(config.announcement_settings));
@@ -250,6 +257,7 @@ export default function App() {
       
       if (currentUser?.username) {
         const u = await fetchUser(currentUser.username);
+        if (syncId !== activeSyncId) return;
         if (u) setCurrentUserData(u);
       }
       
