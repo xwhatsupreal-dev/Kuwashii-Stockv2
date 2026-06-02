@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS public.topups (
   username text NOT NULL,
   amount numeric NOT NULL,
   method text,
+  ref_code text,
   game text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
