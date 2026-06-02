@@ -334,6 +334,13 @@ export default function App() {
       
       const config = await getSystemConfig();
       if (config) {
+        try {
+          const { count, error } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+          if (!error && count !== null) {
+            config.user_count = count;
+          }
+        } catch(e) {}
+        
         setGlobalStats(config);
         if (config.announcement_settings) {
           localStorage.setItem('KUWASHII_ANNOUNCEMENT_SETTINGS', JSON.stringify(config.announcement_settings));

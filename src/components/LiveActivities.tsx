@@ -28,7 +28,7 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { data: raw, error } = await supabase.from('activities').select('*').order('timestamp', { ascending: false }).limit(20);
+        const { data: raw, error } = await supabase.from('activities').select('*').order('timestamp', { ascending: false }).limit(40);
         if (raw && !error) {
           const parsed: LiveActivity[] = raw.map((d: any) => ({
             id: d.id,
@@ -48,13 +48,16 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
              const ageHours = (Date.now() - new Date(a.timestamp).getTime()) / (1000 * 60 * 60);
              if (ageHours > 3) return false;
              
+             // Signups go everywhere to show activity
+             if (a.type === 'signup') return true;
+             
              if (appScreen === 'ASTD') {
                return !a.game || a.game === 'ASTD';
              } else {
                return a.game === 'AOTR';
              }
           });
-          setActivities(filtered);
+          setActivities(filtered.slice(0, 20));
         }
       } catch(e) {}
     };
