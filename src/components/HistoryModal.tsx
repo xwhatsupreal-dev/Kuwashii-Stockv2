@@ -79,7 +79,7 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                 <p className="text-sm text-zinc-400">รายการซื้อสุ่มและประวัติการเติมเงิน</p>
                 <p className="text-[10px] text-amber-500 mt-1 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                  ระบบ Auto Delete: จะถูกลบอัตโนมัติเมื่ออายุเกิน 3 วัน (ป้องกันข้อมูลเต็ม)
+                  ระบบ Auto Delete: จะถูกลบอัตโนมัติเมื่ออายุเกิน 7 วัน (ป้องกันข้อมูลเต็ม)
                 </p>
               </div>
             </div>

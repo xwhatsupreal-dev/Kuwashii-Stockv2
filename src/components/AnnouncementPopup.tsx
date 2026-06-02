@@ -60,10 +60,12 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
 
       if (visible.length === 0) return;
 
-      setSettings(parsed);
-      setActiveAnnouncements(visible);
-      setIsVisible(true);
-      setCurrentActiveIndex(0);
+      setTimeout(() => {
+        setSettings(parsed);
+        setActiveAnnouncements(visible);
+        setIsVisible(true);
+        setCurrentActiveIndex(0);
+      }, 500);
     } catch (e) {
       console.error(e);
     }
@@ -109,17 +111,17 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
         >
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
           <AnimatePresence mode="wait">
             <motion.div
               key={currentActiveIndex}
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              transition={{ type: "spring", bounce: 0.4, duration: 0.6 }}
               className="relative max-w-sm w-full bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col font-sans overflow-hidden"
             >
               {current.link ? (

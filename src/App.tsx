@@ -335,11 +335,12 @@ export default function App() {
 
   // Modals controller
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot' | 'forgot_verify_otp'>('login');
   const [authUsername, setAuthUsername] = useState('');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authConfirmPassword, setAuthConfirmPassword] = useState('');
+  const [authOtpCode, setAuthOtpCode] = useState('');
   const [authError, setAuthError] = useState('');
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [showAuthConfirmPassword, setShowAuthConfirmPassword] = useState(false);
@@ -527,13 +528,18 @@ export default function App() {
     }
   };
 
-  // Cleanup logic (Disabled auto-delete per user request)
+  // Cleanup logic (7 days retention)
   useEffect(() => {
-    try {
-      // Intentionally bypassed to preserve stats, revenue, and history!
-    } catch (e) {
-      console.warn("Error cleaning up old histories", e);
+    async function cleanupOldData() {
+      try {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        await supabase.from('topups').delete().lt('created_at', sevenDaysAgo);
+        await supabase.from('purchases').delete().lt('created_at', sevenDaysAgo);
+      } catch (e) {
+        console.warn("Error cleaning up old histories", e);
+      }
     }
+    cleanupOldData();
   }, []);
 
   // Load and save localStorage / Server
@@ -682,13 +688,10 @@ export default function App() {
          await supabase.from('topups').insert([{
            username: activeUsername,
            amount: coupon.amount,
-           method: 'Coupon',
-           ref_code: coupon.code,
+           method: `Coupon: ${coupon.code}`,
            game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
          }]);
          
-         addLiveActivity({ type: 'topup', username: activeUsername, price: coupon.amount, game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR' });
-
          window.dispatchEvent(new Event('sync-update'));
          
          showToast(`ใช้คูปองสำเร็จ! ได้รับ ${coupon.amount.toLocaleString()} เครดิต`, 'success');
@@ -734,13 +737,10 @@ export default function App() {
             await supabase.from('topups').insert([{
               username: activeUsername,
               amount: amount,
-              method: 'TrueMoney (Angpao)',
-              ref_code: topupCode.trim(),
+              method: `TrueMoney (Angpao) - ${topupCode.trim()}`,
               game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
             }]);
             
-            addLiveActivity({ type: 'topup', username: activeUsername, price: amount, game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR' });
-
             window.dispatchEvent(new Event('sync-update'));
 
             const msg = `เติมเงินสำเร็จ! จำนวน ${amount.toLocaleString()} บาท\n(หักค่าธรรมเนียม ${fee})\nจากซองของ: ${ownerName}`;
@@ -817,7 +817,7 @@ export default function App() {
              }
 
              // Check if used in Supabase
-             const { data: existingTopup } = await supabase.from('topups').select('id').eq('ref_code', transactionId).limit(1);
+             const { data: existingTopup } = await supabase.from('topups').select('id').ilike('method', `%${transactionId}%`).limit(1);
              if (existingTopup && existingTopup.length > 0) {
                 const usedErr = 'สลิปนี้ถูกใช้งานไปแล้วในระบบของเรา';
                 setTopupError(usedErr);
@@ -894,11 +894,9 @@ export default function App() {
              await supabase.from('topups').insert([{
                username: activeUsername,
                amount: amount,
-               method: 'Bank Transfer',
-               ref_code: transactionId,
+               method: `Bank Transfer - Ref: ${transactionId}`,
                game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR'
              }]);
-             addLiveActivity({ type: 'topup', username: activeUsername, price: amount, game: appScreen === 'ASTD' ? 'ASTD' : 'AOTR' });
              window.dispatchEvent(new Event('sync-update'));
 
              const bankMsg = `เติมเงินสำเร็จ! ได้รับ ${amount} เครดิต (อ้างอิง: ${transactionId})`;
@@ -935,6 +933,11 @@ export default function App() {
     if (authMode === 'forgot') {
       if (!authEmail.trim()) {
         setAuthError('กรุณากรอกอีเมลให้ครบถ้วน');
+        return;
+      }
+    } else if (authMode === 'forgot_verify_otp') {
+      if (!authEmail.trim() || !authOtpCode.trim() || !authPassword.trim()) {
+        setAuthError('กรุณากรอกอีเมล รหัส OTP และรหัสผ่านใหม่ ให้ครบถ้วน');
         return;
       }
     } else {
@@ -999,21 +1002,50 @@ export default function App() {
         return;
       }
       
-      const tempPassword = Math.random().toString(36).slice(-8);
-      await supabase.from('profiles').update({ password: tempPassword }).eq('username', data.username);
+      // Generate OTP and expire 15 mins
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expire = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      await supabase.from('profiles').update({ otp_code: otp, otp_expires_at: expire }).eq('username', data.username);
       
+      // We will show a modal to act as an email interceptor for preview purposes
+      // Wait, let's keep setShowMockEmailModal but change it to state: 'Your OTP is {otp}'
       setMockEmailModalData({
         email: authEmail.trim(),
         username: data.username,
-        password: tempPassword
+        password: `OTP: ${otp}` // Re-using password field to display OTP in the mockup email
       });
       setShowMockEmailModal(true);
       
+      setAuthMode('forgot_verify_otp');
+      setAuthError('');
+      showToast('รหัส OTP ถูกส่งไปยังอีเมลของคุณแล้ว (จำลอง)', 'success');
+    } else if (authMode === 'forgot_verify_otp') {
+      const { data } = await supabase.from('profiles').select('*').eq('email', authEmail.trim()).limit(1).single();
+      if (!data) {
+        setAuthError('ไม่พบบัญชีที่ผูกกับอีเมลนี้');
+        return;
+      }
+      if (data.otp_code !== authOtpCode.trim()) {
+        setAuthError('รหัส OTP ไม่ถูกต้อง');
+        return;
+      }
+      if (new Date(data.otp_expires_at) < new Date()) {
+        setAuthError('รหัส OTP หมดอายุแล้ว');
+        return;
+      }
+      
+      await supabase.from('profiles').update({ 
+        password: authPassword, 
+        otp_code: null, 
+        otp_expires_at: null 
+      }).eq('username', data.username);
+      
       setAuthMode('login');
       setAuthPassword('');
+      setAuthOtpCode('');
       setAuthEmail('');
       setAuthError('');
-      showToast('ส่งอีเมลรีเซ็ตรหัสผ่านสำเร็จ! กรุณาเช็คอีเมลของคุณ', 'success');
+      showToast('ตั้งรหัสผ่านใหม่สำเร็จแล้ว กรุณาเข้าสู่ระบบ', 'success');
     } else {
       // Register Mode
       try {
@@ -1109,6 +1141,72 @@ export default function App() {
     } else {
       showToast('เกิดข้อผิดพลาดเปลี่ยนรหัสผ่านไม่ได้', 'error');
     }
+  };
+
+  const handleChangeUsername = async (newUsername: string) => {
+    if (!currentUser) return false;
+    const trimmedNew = newUsername.trim();
+    if (trimmedNew.length < 3) {
+      showToast('ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร', 'error');
+      return false;
+    }
+    
+    const { data: existing } = await supabase.from('profiles').select('username').eq('username', trimmedNew).limit(1).maybeSingle();
+    if (existing) {
+      showToast('ชื่อผู้ใช้นี้ถูกใช้งานแล้ว', 'error');
+      return false;
+    }
+
+    const { data: profile } = await supabase.from('profiles').select('username_last_changed').eq('username', currentUser.username).single();
+    if (profile && profile.username_last_changed) {
+      const lastChanged = new Date(profile.username_last_changed);
+      const now = new Date();
+      const diffDays = (now.getTime() - lastChanged.getTime()) / (1000 * 3600 * 24);
+      if (diffDays < 7) {
+        showToast(`เปลี่ยนชื่อได้อีกครั้งในอีก ${Math.ceil(7 - diffDays)} วัน`, 'error');
+        return false;
+      }
+    }
+
+    const oldUsername = currentUser.username;
+    const { error } = await supabase.from('profiles').update({ 
+      username: trimmedNew, 
+      username_last_changed: new Date().toISOString() 
+    }).eq('username', oldUsername);
+    
+    if (error) {
+      showToast('เกิดข้อผิดพลาดในการเปลี่ยนชื่อ', 'error');
+      return false;
+    }
+
+    await Promise.all([
+      supabase.from('purchases').update({ username: trimmedNew }).eq('username', oldUsername),
+      supabase.from('topups').update({ username: trimmedNew }).eq('username', oldUsername),
+      supabase.from('activities').update({ username: trimmedNew }).eq('username', oldUsername),
+      supabase.from('claimed_jackpots').update({ username: trimmedNew }).eq('username', oldUsername)
+    ]);
+
+    const updatedUser = { ...currentUser, username: trimmedNew };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('KUWASHII_CURRENT_USER', JSON.stringify(updatedUser));
+    showToast('เปลี่ยนชื่อผู้ใช้สำเร็จ', 'success');
+    return true;
+  };
+
+  const handleChangeEmail = async (newEmail: string) => {
+    if (!currentUser) return false;
+    const trimmedEmail = newEmail.trim();
+    if (!trimmedEmail.includes('@')) {
+      showToast('รูปแบบอีเมลไม่ถูกต้อง', 'error');
+      return false;
+    }
+    const { error } = await supabase.from('profiles').update({ email: trimmedEmail }).eq('username', currentUser.username);
+    if (error) {
+      showToast('เกิดข้อผิดพลาดในการเปลี่ยนอีเมล', 'error');
+      return false;
+    }
+    showToast('เปลี่ยนอีเมลสำเร็จ', 'success');
+    return true;
   };
 
   const handleDeleteAccount = async () => {
@@ -1780,7 +1878,7 @@ export default function App() {
                 </div>
               </div>
 
-              {authMode !== 'forgot' && (
+              {authMode !== 'forgot' && authMode !== 'forgot_verify_otp' && (
                 <div className="flex gap-2 w-full p-1 bg-zinc-900/50 rounded-xl mb-5 border border-zinc-800">
                   <motion.button whileTap={{ scale: 0.95 }}
                      type="button"
@@ -1797,7 +1895,7 @@ export default function App() {
 
               <form onSubmit={handleAuthSubmit} className="space-y-4 font-sans">
                 <div className="space-y-3">
-                  {authMode !== 'forgot' && (
+                  {authMode !== 'forgot' && authMode !== 'forgot_verify_otp' && (
                     <div>
                       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
                         ชื่อผู้ใช้งาน (Username)
@@ -1810,15 +1908,15 @@ export default function App() {
                           setAuthError('');
                         }}
                         placeholder="เช่น Kuwashii_member"
-                        required={authMode !== 'forgot'}
-                        autoFocus={authMode !== 'forgot'}
+                        required={authMode === 'login' || authMode === 'register'}
+                        autoFocus={authMode === 'login' || authMode === 'register'}
                         autoComplete="username"
                         className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-medium"
                       />
                     </div>
                   )}
                   
-                  {(authMode === 'register' || authMode === 'forgot') && (
+                  {(authMode === 'register' || authMode === 'forgot' || authMode === 'forgot_verify_otp') && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
                       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1 mt-3">
                         อีเมล (Email) <span className="text-emerald-500">*จำเป็น</span>
@@ -1830,18 +1928,39 @@ export default function App() {
                           setAuthEmail(e.target.value);
                           setAuthError('');
                         }}
-                        placeholder={authMode === 'forgot' ? "อีเมลที่ใช้สมัครบัญชี" : "สำหรับใช้รีเซ็ตรหัสผ่านหากลืม"}
+                        placeholder={authMode === 'forgot' || authMode === 'forgot_verify_otp' ? "อีเมลที่ใช้สมัครบัญชี" : "สำหรับใช้รีเซ็ตรหัสผ่านหากลืม"}
                         required
                         autoComplete="email"
-                        className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-medium"
+                        readOnly={authMode === 'forgot_verify_otp'}
+                        className={`w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-medium ${authMode === 'forgot_verify_otp' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      />
+                    </motion.div>
+                  )}
+
+                  {authMode === 'forgot_verify_otp' && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                      <label className="text-[10px] font-bold text-amber-500 uppercase tracking-wider block mb-1 mt-3">
+                        ข้อความถูกส่งแล้ว ใส่รหัสตามข้อความนั้น 6 หลัก
+                      </label>
+                      <input
+                        type="text"
+                        value={authOtpCode}
+                        onChange={(e) => {
+                          setAuthOtpCode(e.target.value);
+                          setAuthError('');
+                        }}
+                        placeholder="123456"
+                        required
+                        className="w-full bg-zinc-900 border border-amber-500/50 text-amber-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm placeholder-zinc-600 font-mono tracking-widest font-bold text-center"
+                        maxLength={6}
                       />
                     </motion.div>
                   )}
 
                   {authMode !== 'forgot' && (
-                    <div>
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
-                        รหัสผ่าน (Password)
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1 mt-3">
+                        {authMode === 'forgot_verify_otp' ? 'รหัสผ่านใหม่ (New Password)' : 'รหัสผ่าน (Password)'}
                       </label>
                       <div className="relative">
                         <input
@@ -1851,7 +1970,7 @@ export default function App() {
                             setAuthPassword(e.target.value);
                             setAuthError('');
                           }}
-                          placeholder="ป้อนรหัสผ่าน..."
+                          placeholder={authMode === 'forgot_verify_otp' ? 'รหัสผ่านใหม่...' : 'ป้อนรหัสผ่าน...'}
                           required={authMode !== 'forgot'}
                           autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                           className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold pr-10"
@@ -1878,7 +1997,7 @@ export default function App() {
                           <span className="group-hover:text-zinc-300 transition-colors">จดจำการเข้าสู่ระบบไว้</span>
                         </label>
                       )}
-                    </div>
+                    </motion.div>
                   )}
 
                   {authMode === 'register' && (
@@ -1934,10 +2053,10 @@ export default function App() {
                 </div>
 
                 <div className="flex gap-2 pt-1">
-                  {authMode === 'forgot' ? (
+                  {authMode === 'forgot' || authMode === 'forgot_verify_otp' ? (
                     <motion.button whileTap={{ scale: 0.95 }}
                       type="button"
-                      onClick={() => { setAuthMode('login'); setAuthError(''); }}
+                      onClick={() => { setAuthMode('login'); setAuthError(''); setAuthOtpCode(''); }}
                       className="w-1/2 py-2 px-4 rounded-xl border border-zinc-800 text-zinc-500 hover:text-white bg-transparent text-xs font-semibold cursor-pointer transition-colors"
                     >
                       กลับไปหน้าเข้าสู่ระบบ
@@ -1951,12 +2070,21 @@ export default function App() {
                       ยกเลิก
                     </motion.button>
                   )}
-                  <motion.button whileTap={{ scale: 0.95 }}
-                    type="submit"
-                    className={`w-1/2 py-2 px-4 rounded-xl ${authMode === 'login' ? 'bg-indigo-600 hover:bg-indigo-500' : authMode === 'forgot' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500'} text-white border-none text-xs font-extrabold cursor-pointer transition-all active:scale-95`}
-                  >
-                    {authMode === 'login' ? 'เข้าสู่ระบบ' : authMode === 'forgot' ? 'รีเซ็ตรหัสผ่าน' : 'ลงทะเบียน'}
-                  </motion.button>
+                  {authMode === 'forgot_verify_otp' ? (
+                     <motion.button whileTap={{ scale: 0.95 }}
+                       type="submit"
+                       className="w-1/2 py-2 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white border-none text-[10px] font-extrabold cursor-pointer transition-all active:scale-95 leading-tight"
+                     >
+                       ยืนยัน OTP และเปลี่ยนรหัสผ่าน
+                     </motion.button>
+                  ) : (
+                    <motion.button whileTap={{ scale: 0.95 }}
+                      type="submit"
+                      className={`w-1/2 py-2 px-4 rounded-xl ${authMode === 'login' ? 'bg-indigo-600 hover:bg-indigo-500' : authMode === 'forgot' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500'} text-white border-none text-xs font-extrabold cursor-pointer transition-all active:scale-95`}
+                    >
+                      {authMode === 'login' ? 'เข้าสู่ระบบ' : authMode === 'forgot' ? 'ขอรับรหัส OTP' : 'ลงทะเบียน'}
+                    </motion.button>
+                  )}
                 </div>
               </form>
             </motion.div>
@@ -2365,6 +2493,8 @@ export default function App() {
         onClose={() => setIsAccountSettingsOpen(false)}
         currentUser={currentUser}
         onChangePassword={handleChangePassword}
+        onChangeUsername={handleChangeUsername}
+        onChangeEmail={handleChangeEmail}
       />
 
       {(currentUser || viewingUserHistory) && (
@@ -2731,7 +2861,7 @@ export default function App() {
                   <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
                     onClick={() => { setShowAuthModal(true); setAuthMode('login'); }}
-                    className="py-2.5 px-4 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-extrabold transition-all duration-300 hidden sm:flex items-center gap-2 cursor-pointer shadow-xl shadow-black/30"
+                    className="py-2.5 px-4 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-xl shadow-black/30"
                     id="btn-nav-auth-astd"
                   >
                     <Shield className="w-4 h-4 text-indigo-500" />

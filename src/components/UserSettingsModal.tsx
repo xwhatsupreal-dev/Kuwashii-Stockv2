@@ -1,13 +1,15 @@
-import { motion } from 'motion/react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Settings, KeySquare, Eye, EyeOff } from 'lucide-react';
+import { X, User, Settings, KeySquare, Eye, EyeOff, Save, CheckCircle } from 'lucide-react';
+import { supabase } from '../supabase';
 
 interface UserSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: { username: string } | null;
   onChangePassword: (newPass: string) => void;
+  onChangeUsername: (newUsername: string) => Promise<boolean>;
+  onChangeEmail: (newEmail: string) => Promise<boolean>;
 }
 
 export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
@@ -15,13 +17,37 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   onClose,
   currentUser,
   onChangePassword,
+  onChangeUsername,
+  onChangeEmail,
 }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSave = () => {
+  const [editUsername, setEditUsername] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [userEmail, setUserEmail] = useState('-');
+
+  useEffect(() => {
+    if (isOpen && currentUser) {
+      setEditUsername(currentUser.username);
+      supabase.from('profiles').select('email').eq('username', currentUser.username).single().then(({ data }) => {
+        if (data && data.email) {
+          setUserEmail(data.email);
+          setEditEmail(data.email);
+        } else {
+          setUserEmail('-');
+          setEditEmail('');
+        }
+      });
+    } else {
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+  }, [isOpen, currentUser]);
+
+  const handleSavePassword = () => {
     if (newPassword) {
       if (newPassword !== confirmPassword) {
         alert('รหัสผ่านไม่ตรงกัน');
@@ -30,35 +56,30 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
       onChangePassword(newPassword);
       setNewPassword('');
       setConfirmPassword('');
-      onClose();
+    }
+  };
+
+  const handleSaveUsername = async () => {
+    if (editUsername !== currentUser?.username) {
+      const success = await onChangeUsername(editUsername);
+      if (!success) {
+        setEditUsername(currentUser?.username || '');
+      }
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    if (editEmail !== userEmail) {
+      const success = await onChangeEmail(editEmail);
+      if (success) {
+        setUserEmail(editEmail);
+      } else {
+        setEditEmail(userEmail);
+      }
     }
   };
 
   if (!isOpen || !currentUser) return null;
-
-  // Retrieve user email
-  let userEmail = '-';
-  if (currentUser) {
-     const v2UsersStr = localStorage.getItem('KUWASHII_V2_USERS');
-     if (v2UsersStr) {
-       const v2Users = JSON.parse(v2UsersStr);
-       const userStr = v2Users[currentUser.username];
-       if (userStr && userStr.email) {
-          userEmail = userStr.email;
-       }
-     }
-     
-     if (userEmail === '-') {
-        const v1UsersStr = localStorage.getItem('KUWASHII_USERS');
-        if (v1UsersStr) {
-           const v1Users = JSON.parse(v1UsersStr);
-           const v1User = v1Users[currentUser.username];
-           if (v1User && typeof v1User !== 'string' && v1User.email) {
-              userEmail = v1User.email;
-           }
-        }
-     }
-  }
 
   return (
     <AnimatePresence>
@@ -75,7 +96,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative max-w-sm w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl z-10 font-sans"
+          className="relative max-w-sm sm:max-w-md w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl z-10 font-sans max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800"
         >
           <motion.button whileTap={{ scale: 0.95 }}
             type="button"
@@ -86,22 +107,69 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           </motion.button>
 
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+            <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 shrink-0">
               <Settings className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
               <h2 className="text-lg font-black text-white">ตั้งค่าบัญชี</h2>
-              <p className="text-xs text-zinc-400 mt-1">ผู้ใช้: <span className="font-mono text-zinc-200">{currentUser.username}</span></p>
-              <p className="text-xs text-zinc-500 mt-0.5">อีเมล: <span className="font-sans text-zinc-400">{userEmail}</span></p>
+              <p className="text-xs text-zinc-400 mt-1">จัดการข้อมูลส่วนตัว</p>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Username Section */}
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+                ชื่อผู้ใช้ (เปลี่ยนได้ทุก 7 วัน)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                  className="flex-1 bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs font-mono"
+                />
+                <motion.button whileTap={{ scale: 0.95 }}
+                  onClick={handleSaveUsername}
+                  disabled={editUsername === currentUser.username}
+                  className="py-2.5 px-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all text-xs shadow-md flex items-center gap-2"
+                >
+                  <Save className="w-3.5 h-3.5 max-sm:hidden" /> บันทึก
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Email Section */}
+            <div>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+                อีเมล
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder={userEmail !== '-' ? userEmail : 'ใส่อีเมลของคุณ...'}
+                  className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs font-sans"
+                />
+                <motion.button whileTap={{ scale: 0.95 }}
+                  onClick={handleSaveEmail}
+                  disabled={editEmail === userEmail || !editEmail.includes('@')}
+                  className="py-2.5 px-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all text-xs shadow-md flex items-center gap-2 shrink-0"
+                >
+                  <Save className="w-3.5 h-3.5 max-sm:hidden" /> บันทึก
+                </motion.button>
+              </div>
+            </div>
+
+            <div className="h-px w-full bg-zinc-800/50 my-2" />
+
+            {/* Password Section */}
+            <div>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                 เปลี่ยนรหัสผ่านใหม่
               </label>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="relative">
                   <input
                     type={showNewPassword ? "text" : "password"}
@@ -134,15 +202,15 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </motion.button>
                 </div>
+                <motion.button whileTap={{ scale: 0.95 }}
+                  onClick={handleSavePassword}
+                  disabled={!newPassword || !confirmPassword || newPassword !== confirmPassword}
+                  className="w-full py-2.5 px-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all text-sm shadow-md flex items-center justify-center gap-2"
+                >
+                  <KeySquare className="w-4 h-4" /> อัปเดตรหัสผ่าน
+                </motion.button>
               </div>
             </div>
-
-            <motion.button whileTap={{ scale: 0.95 }}
-              onClick={handleSave}
-              className="w-full py-2.5 px-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all text-sm shadow-md"
-            >
-              บันทึกการตั้งค่า
-            </motion.button>
           </div>
         </motion.div>
       </div>

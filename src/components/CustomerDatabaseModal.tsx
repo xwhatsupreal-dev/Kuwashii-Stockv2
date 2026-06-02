@@ -88,7 +88,6 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
             username: username,
             amount: difference,
             method: difference > 0 ? 'Admin เพิ่มเครดิต' : 'Admin ลดเครดิต',
-            ref_code: 'manual',
             game: targetGame
           }]);
           

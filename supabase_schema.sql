@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- เพิ่มคอลัมน์เผื่อว่ามีตาราง profiles อยู่แล้วแต่ยังไม่มีคอลัมน์นี้
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banned boolean DEFAULT false;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username_last_changed timestamp with time zone;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS otp_code text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS otp_expires_at timestamp with time zone;
 
 -- 2. สร้างตารางกิจกรรมล่าสุด (Live Activities)
 CREATE TABLE IF NOT EXISTS public.activities (
@@ -30,6 +33,9 @@ CREATE TABLE IF NOT EXISTS public.activities (
   timestamp timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS game text;
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS gacha_drops jsonb;
+
 -- 3. สร้างตารางประวัติการซื้อ (Purchases)
 CREATE TABLE IF NOT EXISTS public.purchases (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -39,8 +45,12 @@ CREATE TABLE IF NOT EXISTS public.purchases (
   price numeric,
   quantity integer,
   gacha_drops jsonb,
+  game text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS game text;
+ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS gacha_drops jsonb;
 
 -- 4. สร้างตารางประวัติการเติมเงิน (Topups)
 CREATE TABLE IF NOT EXISTS public.topups (
@@ -52,6 +62,9 @@ CREATE TABLE IF NOT EXISTS public.topups (
   game text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE public.topups ADD COLUMN IF NOT EXISTS game text;
+ALTER TABLE public.topups ADD COLUMN IF NOT EXISTS ref_code text;
 
 -- 5. สร้างตารางสินค้า (Items)
 CREATE TABLE IF NOT EXISTS public.items (
