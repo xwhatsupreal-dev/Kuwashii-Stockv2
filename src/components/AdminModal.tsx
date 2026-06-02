@@ -38,6 +38,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [isPinned, setIsPinned] = useState(false);
   const [isPopular, setIsPopular] = useState(false);
   const [gachaPool, setGachaPool] = useState<{ id: string; name: string; color?: string; guaranteedAtStock?: number; guaranteedAtStocks?: number[]; }[]>([]);
+  const [claimedJackpots, setClaimedJackpots] = useState<any[]>([]);
   
   const [imageType, setImageType] = useState<'url' | 'upload' | 'presets'>('url');
   const [imageUrl, setImageUrl] = useState('');
@@ -61,6 +62,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setIsPopular(!!editingItem.isPopular);
       setGachaPool(editingItem.gachaPool || []);
       
+      const fetchClaims = async () => {
+        if (editingItem.category === 'สุ่มตัวละคร - ออสตา' || (editingItem.gachaPool && editingItem.gachaPool.length > 0)) {
+          const { data } = await supabase.from('claimed_jackpots').select('*').eq('item_id', editingItem.id);
+          if (data) setClaimedJackpots(data);
+        }
+      };
+      fetchClaims();
+
       const isBase64 = editingItem.imageUrl?.startsWith('data:image/');
       if (isBase64) {
         setImageType('upload');
@@ -84,6 +93,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setIsPinned(false);
       setIsPopular(false);
       setGachaPool([]);
+      setClaimedJackpots([]);
       setImageType('url');
       setImageUrl('');
       setUploadBase64('');
@@ -242,7 +252,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative max-w-lg w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-6 overflow-hidden shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
+          className="relative max-w-lg w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-6 overflow-hidden shadow-2xl z-10 max-h-[90dvh] overflow-y-auto"
         >
           {/* Neon orange accent strip */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-amber-600 to-amber-400" />
@@ -567,11 +577,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                            else if (reward.guaranteedAtStock !== undefined) stocksToCheck = [reward.guaranteedAtStock];
                            
                            if (stocksToCheck.length > 0) {
-                              const droppedCount = stocksToCheck.filter(s => s > currentQty).length;
-                              const unDroppedCount = stocksToCheck.length - droppedCount;
+                              const claims = claimedJackpots.filter(c => c.reward_name === reward.name && stocksToCheck.includes(c.stock_trigger));
+                              const droppedCount = claims.length;
+                              const droppedUnknownCount = stocksToCheck.filter(s => s > currentQty).length - droppedCount;
+                              const totalDropped = droppedCount + (droppedUnknownCount > 0 ? droppedUnknownCount : 0);
+                              const unDroppedCount = stocksToCheck.length - totalDropped;
+                              
+                              const winnersMsg = claims.length > 0 ? ` (ผู้รับ: ${claims.map(c => c.username).join(', ')})` : '';
+
                               return (
                                 <div className="text-[10px] flex items-center justify-between px-1">
-                                  {droppedCount > 0 && <span className="text-red-400 font-bold">ออกไปแล้ว: {droppedCount} ชุด</span>}
+                                  {totalDropped > 0 && <span className="text-red-400 font-bold">ออกไปแล้ว: {totalDropped} ชุด{winnersMsg}</span>}
                                   {unDroppedCount > 0 && <span className="text-emerald-400 font-bold">รอออกกระดานหน้า: {unDroppedCount} ชุด</span>}
                                 </div>
                               );

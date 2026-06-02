@@ -79,7 +79,7 @@ export const CouponManagerModal: React.FC<CouponManagerModalProps> = ({ isOpen, 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative max-w-2xl w-full bg-zinc-900 rounded-2xl flex flex-col font-sans border border-zinc-700 h-[80vh] shadow-2xl"
+            className="relative max-w-2xl w-full bg-zinc-900 rounded-2xl flex flex-col font-sans border border-zinc-700 h-[80dvh] shadow-2xl"
           >
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-zinc-800 shrink-0">
             <h2 className="text-lg font-black text-white flex items-center gap-2">

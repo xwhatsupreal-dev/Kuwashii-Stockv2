@@ -56,7 +56,7 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl p-6 w-full max-w-2xl relative z-10 flex flex-col max-h-[85vh]"
+          className="bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl p-6 w-full max-w-2xl relative z-10 flex flex-col max-h-[85dvh]"
         >
           <div className="flex justify-between items-center mb-6 shrink-0">
             <div className="flex items-center gap-3">

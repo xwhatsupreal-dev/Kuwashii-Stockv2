@@ -56,7 +56,7 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative max-w-[340px] w-full bg-zinc-950 rounded-2xl overflow-hidden shadow-2xl z-10 max-h-[85vh] flex flex-col font-sans border border-zinc-800"
+          className="relative max-w-[340px] w-full bg-zinc-950 rounded-2xl overflow-hidden shadow-2xl z-10 max-h-[85dvh] flex flex-col font-sans border border-zinc-800"
         >
           {/* Top Banner Box */}
           <div className="relative w-full h-40 bg-zinc-900 flex-shrink-0">

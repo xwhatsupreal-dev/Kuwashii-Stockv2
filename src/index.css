@@ -8,7 +8,7 @@
 }
 
 html, body, #root {
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: #09090b; /* zinc-950 */
   margin: 0;
   padding: 0;

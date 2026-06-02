@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+const fs = require('fs');
+const content = `import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { th } from 'date-fns/locale';
@@ -95,19 +96,19 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
         <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-900 self-start">
           <button 
             onClick={() => setViewMode('sales')}
-            className={`text-[10px] px-3 py-1.5 rounded-md transition-all ${viewMode === 'sales' ? 'bg-indigo-500/20 text-indigo-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={\`text-[10px] px-3 py-1.5 rounded-md transition-all \${viewMode === 'sales' ? 'bg-indigo-500/20 text-indigo-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'}\`}
           >
             ยอดขาย
           </button>
           <button 
             onClick={() => setViewMode('signups')}
-            className={`text-[10px] px-3 py-1.5 rounded-md transition-all ${viewMode === 'signups' ? 'bg-emerald-500/20 text-emerald-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={\`text-[10px] px-3 py-1.5 rounded-md transition-all \${viewMode === 'signups' ? 'bg-emerald-500/20 text-emerald-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'}\`}
           >
             สมัครสมาชิก
           </button>
           <button 
             onClick={() => setViewMode('topups')}
-            className={`text-[10px] px-3 py-1.5 rounded-md transition-all ${viewMode === 'topups' ? 'bg-amber-500/20 text-amber-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={\`text-[10px] px-3 py-1.5 rounded-md transition-all \${viewMode === 'topups' ? 'bg-amber-500/20 text-amber-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'}\`}
           >
              ยอดเติมเงิน
           </button>
@@ -125,7 +126,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
             <XAxis dataKey="date" stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} />
-            <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
+            <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => \`\${value}\`} />
             <Tooltip 
                contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '0.5rem', fontSize: '12px' }}
                itemStyle={{ color: getColor() }}
@@ -138,3 +139,6 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
     </div>
   );
 };
+`;
+fs.writeFileSync('src/components/SalesChart.tsx', content);
+console.log("Updated SalesChart.tsx");

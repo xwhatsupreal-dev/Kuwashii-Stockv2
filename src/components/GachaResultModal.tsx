@@ -79,7 +79,7 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
             <div className="mb-6" />
           )}
 
-          <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800">
+          <div className="space-y-3 max-h-[40dvh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800">
             <AnimatePresence>
               {Object.values(
                 result.drops.reduce((acc: any, drop) => {

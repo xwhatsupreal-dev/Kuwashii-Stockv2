@@ -47,7 +47,7 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            className="relative w-full max-w-5xl h-[85vh] rounded-2xl border border-zinc-800 bg-zinc-950 flex flex-col overflow-hidden shadow-2xl z-10"
+            className="relative w-full max-w-5xl h-[85dvh] rounded-2xl border border-zinc-800 bg-zinc-950 flex flex-col overflow-hidden shadow-2xl z-10"
         >
           {/* Header */}
           <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-zinc-900">

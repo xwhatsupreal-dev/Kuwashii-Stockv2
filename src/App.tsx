@@ -134,7 +134,13 @@ export default function App() {
   const isUnderMaintenance = globalStats?.maintenance_mode;
 
   // --- Global Hub State ---
-  const [appScreen, setAppScreen] = useState<'LOADING' | 'SELECT' | 'TRANSITION' | 'AOTR' | 'ASTD'>('LOADING');
+  const [appScreen, setAppScreen] = useState<'LOADING' | 'SELECT' | 'TRANSITION' | 'AOTR' | 'ASTD'>(() => {
+    const saved = localStorage.getItem('KUWASHII_LAST_SCREEN');
+    if (saved === 'ASTD' || saved === 'AOTR') {
+      return saved;
+    }
+    return 'LOADING';
+  });
   const [targetScreen, setTargetScreen] = useState<'AOTR' | 'ASTD' | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   // User & Admin Authentications
@@ -277,6 +283,7 @@ export default function App() {
     if (appScreen === 'TRANSITION' && targetScreen) {
       const timer = setTimeout(() => {
         setAppScreen(targetScreen);
+        localStorage.setItem('KUWASHII_LAST_SCREEN', targetScreen);
         setTargetScreen(null);
       }, 3000);
       return () => clearTimeout(timer);
@@ -2395,7 +2402,7 @@ export default function App() {
 
   if (appScreen === 'LOADING' || appScreen === 'TRANSITION') {
     return (
-      <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-mono">
+      <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="min-h-[100dvh] bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-mono">
         {/* Abstract CRT Scanline Effect */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:100%_4px] z-50 pointer-events-none opacity-50" />
         
@@ -2456,7 +2463,7 @@ export default function App() {
 
   if (appScreen === 'SELECT') {
     return (
-      <motion.div key="select" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 relative overflow-hidden text-white">
+      <motion.div key="select" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-[100dvh] bg-zinc-950 flex flex-col items-center p-6 sm:p-10 relative overflow-x-hidden overflow-y-auto text-white">
         <div 
           className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat opacity-50 z-0"
           style={{ backgroundImage: "url('https://s.imgz.io/2026/05/31/1000098494b68242f76bd7e2f7.gif')" }}
@@ -2464,7 +2471,7 @@ export default function App() {
         <div className="absolute inset-0 bg-zinc-950/60 z-0 pointer-events-none" />
         <div className="absolute top-0 left-0 w-full h-[30rem] bg-gradient-to-b from-purple-900/20 to-transparent filter blur-[80px] pointer-events-none z-0" />
         
-        <div className="z-10 w-full max-w-5xl relative">
+        <div className="z-10 w-full max-w-5xl relative m-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2537,7 +2544,7 @@ export default function App() {
 
   if (appScreen === 'ASTD') {
     return (
-      <motion.div key="astd" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
+      <motion.div key="astd" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-[100dvh] flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative overflow-x-hidden">
         <MarqueeAnnouncement appScreen={appScreen} />
         <AnnouncementPopup appScreen={appScreen} />
         <Snowfall />
@@ -2700,7 +2707,7 @@ export default function App() {
                 <div className="h-6 w-px bg-zinc-800 hidden sm:block" />
                 <button
                   type="button"
-                  onClick={() => setAppScreen('SELECT')}
+                  onClick={() => { localStorage.removeItem('KUWASHII_LAST_SCREEN'); setAppScreen('SELECT'); }}
                   className="py-2.5 px-4 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-xl shadow-black/30"
                 >
                   <Layers className="w-4 h-4 text-indigo-500" />
@@ -3173,7 +3180,7 @@ export default function App() {
         </main>
         
         {/* ASTD Custom Footer */}
-        <footer className="border-t border-zinc-900 bg-zinc-950 text-xs py-10 mt-12 bg-gradient-to-b from-transparent to-black/90 relative z-10 w-full">
+        <footer className="mt-20 py-8 relative z-10 border-t border-zinc-900/50 bg-transparent backdrop-blur-sm text-xs w-full">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               
@@ -3212,14 +3219,14 @@ export default function App() {
   }
 
   return (
-    <motion.div key="aotr" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
+    <motion.div key="aotr" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.4 }} className="min-h-[100dvh] flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
       <MarqueeAnnouncement appScreen={appScreen} />
       <AnnouncementPopup appScreen={appScreen} />
       <Snowfall />
       {/* Return to Hub floating button */}
       <div className="fixed bottom-6 right-6 z-40 hidden md:block">
         <button 
-          onClick={() => setAppScreen('SELECT')}
+          onClick={() => { localStorage.removeItem('KUWASHII_LAST_SCREEN'); setAppScreen('SELECT'); }}
           className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-zinc-300 p-3 rounded-full shadow-2xl transition-all duration-300 group flex items-center justify-center"
           title="Return to Game Hub"
         >
@@ -3366,7 +3373,7 @@ export default function App() {
               <div className="h-6 w-px bg-zinc-800 hidden sm:block" />
               <button
                 type="button"
-                onClick={() => setAppScreen('SELECT')}
+                onClick={() => { localStorage.removeItem('KUWASHII_LAST_SCREEN'); setAppScreen('SELECT'); }}
                 className="py-2.5 px-4 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-xl shadow-black/30"
               >
                 <Layers className="w-4 h-4 text-indigo-500" />

@@ -85,7 +85,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md max-h-[85vh] bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col font-sans overflow-hidden"
+          className="relative w-full max-w-md max-h-[85dvh] bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col font-sans overflow-hidden"
         >
           <div className="p-6 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
             <button

@@ -69,7 +69,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative max-w-sm w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-4 sm:p-5 overflow-hidden shadow-2xl z-10 max-h-[90vh] flex flex-col"
+          className="relative max-w-sm w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-4 sm:p-5 overflow-hidden shadow-2xl z-10 max-h-[90dvh] flex flex-col"
         >
           {/* Accent decoration */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-amber-500 to-purple-600" />
