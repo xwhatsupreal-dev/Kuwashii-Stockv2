@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { supabase } from '../supabase';
@@ -17,21 +17,20 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
     const fetchData = async () => {
       const now = new Date();
       // Round down to the current exact hour to make ticks predictable
-      const currentHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0);
+      const currentHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
       const sevenDaysAgo = subDays(currentHour, 7);
       const chartDataMap: Record<string, any> = {};
       
-      // Create points every 3 hours for smoother sliding
-      for (let i = 7 * 24; i >= 0; i -= 3) {
-        const d = new Date(sevenDaysAgo.getTime() + i * 60 * 60 * 1000);
-        // Full key for unique points
-        const keyStr = format(d, "yyyy-MM-dd'T'HH:mm:ss");
-        // display date label (only we might show it if it's around noon to avoid clutter)
-        const displayStr = format(d, 'dd MMM', { locale: th });
+      // Create points every 1 day
+      for (let i = 0; i <= 7; i++) {
+        const d = new Date(sevenDaysAgo.getTime() + i * 24 * 60 * 60 * 1000);
+        // Full key for unique points (represents the day)
+        const keyStr = format(d, "yyyy-MM-dd");
+        // display date label
+        const displayStr = format(d, 'd MMM', { locale: th });
         chartDataMap[keyStr] = { 
           fullKey: keyStr, 
           date: displayStr, 
-          hour: d.getHours(),
           sales: 0, 
           signups: 0, 
           topups: 0 
@@ -39,18 +38,11 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
       }
 
       const getNearestKey = (timestampStr: string) => {
-         const t = new Date(timestampStr).getTime();
-         // find closest key
-         let closestKey = '';
-         let minDiff = Infinity;
-         for (const key of Object.keys(chartDataMap)) {
-            const diff = Math.abs(new Date(key).getTime() - t);
-            if (diff < minDiff) {
-               minDiff = diff;
-               closestKey = key;
-            }
+         try {
+           return format(new Date(timestampStr), 'yyyy-MM-dd');
+         } catch {
+           return '';
          }
-         return closestKey;
       };
 
       if (viewMode === 'sales') {
@@ -60,6 +52,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
           .gte('created_at', sevenDaysAgo.toISOString());
 
         if (!error && purchases) {
+           // Aggregate daily sales
           purchases.forEach((curr: any) => {
             const key = getNearestKey(curr.created_at);
             if (chartDataMap[key]) {
@@ -74,6 +67,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
           .gte('created_at', sevenDaysAgo.toISOString());
           
         if (!error && profiles) {
+           // Aggregate daily signups
           profiles.forEach((curr: any) => {
             const key = getNearestKey(curr.created_at);
             if (chartDataMap[key]) {
@@ -88,6 +82,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
           .gte('created_at', sevenDaysAgo.toISOString());
           
         if (!error && topups) {
+           // Aggregate daily topups
           topups.forEach((curr: any) => {
             const key = getNearestKey(curr.created_at);
             if (chartDataMap[key]) {
@@ -152,54 +147,33 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
       
       <div className="w-full h-56">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart key={viewMode} data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <BarChart key={viewMode} data={data} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
             <defs>
               <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={getColor()} stopOpacity={0.3}/>
-                <stop offset="95%" stopColor={getColor()} stopOpacity={0}/>
+                <stop offset="5%" stopColor={getColor()} stopOpacity={0.8}/>
+                <stop offset="95%" stopColor={getColor()} stopOpacity={0.2}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
             <XAxis 
-               dataKey="fullKey"
+               dataKey="date"
                stroke="#52525b" 
                fontSize={10} 
                tickLine={false} 
                axisLine={false} 
-               minTickGap={30}
-               tickFormatter={(value) => {
-                 try {
-                   const dateObj = new Date(value);
-                   const hours = dateObj.getHours();
-                   // Since data points are spaced 3 hours apart, 
-                   // we can catch exactly one point per day in the 12-14 hr range
-                   if (hours >= 12 && hours <= 14) {
-                     return format(dateObj, 'd MMM', { locale: th });
-                   }
-                   return '';
-                 } catch (e) {
-                   return '';
-                 }
-               }}
+               interval={0}
             />
             <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
             <Tooltip 
                contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '0.5rem', fontSize: '12px' }}
                itemStyle={{ color: getColor() }}
-               cursor={{ stroke: '#52525b', strokeWidth: 1, strokeDasharray: '4 4' }}
+               cursor={{ fill: '#27272a', opacity: 0.4 }}
                isAnimationActive={true}
                animationDuration={300}
                animationEasing="ease-out"
-               labelFormatter={(label) => {
-                 try {
-                   return format(new Date(label), "วันที่ d MMMM yyyy", { locale: th });
-                 } catch (e) {
-                   return label;
-                 }
-               }}
             />
-            <Area type="monotone" dataKey={viewMode} name={getLabel()} stroke={getColor()} strokeWidth={2} fillOpacity={1} fill="url(#colorMetric)" />
-          </AreaChart>
+            <Bar dataKey={viewMode} name={getLabel()} fill="url(#colorMetric)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </div>
