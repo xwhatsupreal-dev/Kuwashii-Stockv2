@@ -222,6 +222,8 @@ import { LiveActivities, LiveActivity } from './components/LiveActivities';
 import { supabase } from './supabase';
 import { fetchItems, fetchUser, getSystemConfig } from './queries';
 
+import { SalesChart } from './components/SalesChart';
+
 export const addLiveActivity = async (activity: Omit<LiveActivity, 'id' | 'timestamp'>) => {
   try {
     const { error } = await supabase.from('activities').insert([{
@@ -3065,6 +3067,8 @@ export default function App() {
                 </div>
               </div>
             </div>
+            
+            <SalesChart appScreen={appScreen} />
             
             <LiveActivities appScreen={appScreen} syncCounter={syncCounter} isAdmin={isAdmin} />
           </div>

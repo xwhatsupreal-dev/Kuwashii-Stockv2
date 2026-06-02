@@ -85,25 +85,26 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
 
             {/* Description matching screenshot format */}
             <div className="text-zinc-400 text-[13px] leading-relaxed whitespace-pre-wrap mb-5 mt-3 font-medium">
-              {item.description ? item.description : (
-                <>
-                  <p className="text-red-400">🚨 โปรดอ่านก่อนสั่งซื้อ! 🚨</p>
-                  <p className="mt-1.5">💰 เมื่อได้ตัวละคร ให้ทักแอดมินตามช่องทางที่กำหนดเพื่อรับของรางวัล</p>
-                  <ul className="mt-1.5 text-zinc-500 space-y-1">
-                    <li>- มีเกลือ (โอกาสไม่ได้ของแรร์)</li>
-                    <li>- ลุ้นรับของรางวัล (มีโอกาสได้รับของรางวัลสุดแรร์ ✨)</li>
-                  </ul>
-                  <p className="mt-3 text-amber-400 font-bold bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 text-xs">
-                    ⚠️ แค่กดสั่งซื้อ ระบบจะสุ่มรางวัลให้ทันที
-                  </p>
-                  <p className="mt-2 text-red-500 font-bold text-xs">
-                    ‼️ หากลูกค้าได้รับชื่อตัวละครที่ได้จากการสุ่ม ให้เเคปส่งให้เจ้าของสินค้าได้เลย
-                  </p>
-                  <p className="mt-2 text-emerald-400 font-bold text-[11px] flex items-start gap-1">
-                    <span className="text-sm">✅</span> เมื่อได้ข้อความ ทักแอดมินทางเพจเพื่อรับของรางวัล
-                  </p>
-                </>
-              )}
+              {item.description /* custom description here */}
+              {item.description && <div className="h-px bg-zinc-800/50 my-3" />}
+              
+              <>
+                <p className="text-red-400">🚨 โปรดอ่านก่อนสั่งซื้อ! 🚨</p>
+                <p className="mt-1.5">💰 เมื่อได้ตัวละคร ให้ทักแอดมินตามช่องทางที่กำหนดเพื่อรับของรางวัล</p>
+                <ul className="mt-1.5 text-zinc-500 space-y-1">
+                  <li>- มีเกลือ (โอกาสไม่ได้ของแรร์)</li>
+                  <li>- ลุ้นรับของรางวัล (มีโอกาสได้รับของรางวัลสุดแรร์ ✨)</li>
+                </ul>
+                <p className="mt-3 text-amber-400 font-bold bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 text-xs">
+                  ⚠️ แค่กดสั่งซื้อ ระบบจะสุ่มรางวัลให้ทันที
+                </p>
+                <p className="mt-2 text-red-500 font-bold text-xs">
+                  ‼️ หากลูกค้าได้รับชื่อตัวละครที่ได้จากการสุ่ม ให้เเคปส่งให้เจ้าของสินค้าได้เลย
+                </p>
+                <p className="mt-2 text-emerald-400 font-bold text-[11px] flex items-start gap-1">
+                  <span className="text-sm">✅</span> เมื่อได้ข้อความ ทักแอดมินทางเพจเพื่อรับของรางวัล
+                </p>
+              </>
             </div>
 
 
