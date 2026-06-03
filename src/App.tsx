@@ -1007,18 +1007,25 @@ export default function App() {
       const expire = new Date(Date.now() + 15 * 60 * 1000).toISOString();
       await supabase.from('profiles').update({ otp_code: otp, otp_expires_at: expire }).eq('username', data.username);
       
-      // We will show a modal to act as an email interceptor for preview purposes
-      // Wait, let's keep setShowMockEmailModal but change it to state: 'Your OTP is {otp}'
-      setMockEmailModalData({
-        email: authEmail.trim(),
-        username: data.username,
-        password: `OTP: ${otp}` // Re-using password field to display OTP in the mockup email
-      });
-      setShowMockEmailModal(true);
+      try {
+        const response = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toEmail: authEmail.trim(), otp })
+        });
+        const resData = await response.json();
+        if (resData.error) {
+          throw new Error(resData.error);
+        }
+      } catch (err: any) {
+        console.error("Failed to send OTP:", err);
+        setAuthError(err.message || 'เกิดข้อผิดพลาดในการส่งอีเมล กรุณาลองใหม่อีกครั้ง');
+        return;
+      }
       
       setAuthMode('forgot_verify_otp');
       setAuthError('');
-      showToast('รหัส OTP ถูกส่งไปยังอีเมลของคุณแล้ว (จำลอง)', 'success');
+      showToast('รหัส OTP ถูกส่งไปยังอีเมลของคุณแล้ว', 'success');
     } else if (authMode === 'forgot_verify_otp') {
       const { data } = await supabase.from('profiles').select('*').eq('email', authEmail.trim()).limit(1).single();
       if (!data) {
@@ -1783,60 +1790,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Mock Email Modal */}
-      <AnimatePresence>
-        {showMockEmailModal && mockEmailModalData && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              onClick={() => setShowMockEmailModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl p-6 sm:p-8 w-full max-w-sm relative z-10"
-            >
-              <div className="text-center mb-6">
-                <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto text-blue-400 mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="font-display text-lg font-bold text-white mb-2">จำลองการส่งอีเมล</h3>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  เนื่องจากระบบนี้เป็นแอปพลิเคชันเวอร์ชันทดสอบที่ไม่มีเซิร์ฟเวอร์ส่งอีเมลจริง ระบบจึงแสดงรหัสผ่านฉุกเฉินให้ท่านทราบบนหน้าจอดังนี้
-                </p>
-              </div>
-
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 text-xs font-mono text-zinc-300 space-y-3 mb-6">
-                <div>
-                   <span className="text-zinc-500">ผู้รับ:</span> {mockEmailModalData.email}
-                </div>
-                <div>
-                   <span className="text-zinc-500">หัวข้อ:</span> [Kuwashii] รีเซ็ตรหัสผ่านบัญชี {mockEmailModalData.username}
-                </div>
-                <div className="pt-3 border-t border-zinc-800/50">
-                  รหัสผ่านใหม่ของคุณคือ: 
-                  <div className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-2 rounded-lg mt-2 text-center text-sm font-bold tracking-widest">
-                    {mockEmailModalData.password}
-                  </div>
-                </div>
-              </div>
-
-              <motion.button whileTap={{ scale: 0.95 }}
-                onClick={() => setShowMockEmailModal(false)}
-                className="w-full py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-bold opacity-90 hover:opacity-100 flex justify-center items-center transition-all"
-              >
-                รับทราบและปิด
-              </motion.button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Mock Email Modal Removed */}
 
       {/* Authentication Modal */}
       <AnimatePresence>
