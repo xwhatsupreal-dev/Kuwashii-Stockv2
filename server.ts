@@ -5,8 +5,12 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import fs from "fs";
 import nodemailer from "nodemailer";
+import { startDiscordBot } from "./discordBot";
 
 dotenv.config();
+
+// Start the Discord Bot
+startDiscordBot();
 
 const app = express();
 const PORT = 3000;
