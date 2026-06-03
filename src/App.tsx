@@ -1084,6 +1084,16 @@ export default function App() {
         setAuthError('ชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว!');
         return;
       }
+
+      try {
+        const { data: existingEmail } = await supabase.from('profiles').select('username').eq('email', authEmail.trim()).limit(1).single();
+        if (existingEmail) {
+          setAuthError('อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น!');
+          return;
+        }
+      } catch (e) {
+        // Table might not have email column yet or other error, ignore and let insert fail if it's unique
+      }
       
       let insertRes = await supabase.from('profiles').insert([{
         username: targetUsername,
