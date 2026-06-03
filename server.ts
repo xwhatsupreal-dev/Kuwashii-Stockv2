@@ -719,8 +719,10 @@ app.post("/api/send-otp", async (req: express.Request, res: express.Response) =>
       },
     });
 
+    const fromName = process.env.SMTP_FROM_NAME || "Kuwashii Shop";
+    
     const mailOptions = {
-      from: process.env.SMTP_FROM || `"Kuwashii Shop" <${process.env.SMTP_USER}>`,
+      from: `"${fromName}" <${process.env.SMTP_USER}>`,
       to: toEmail,
       subject: "รหัส OTP สำหรับรีเซ็ตรหัสผ่าน Kuwashii Shop",
       text: `รหัส OTP สำหรับรีเซ็ตรหัสผ่านของคุณคือ: ${otp}\nรหัสนี้จะหมดอายุใน 15 นาที`,
