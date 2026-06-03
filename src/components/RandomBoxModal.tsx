@@ -11,8 +11,9 @@ interface RandomBoxModalProps {
 }
 
 export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, onBuy }) => {
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | string>(1);
   const [copied, setCopied] = useState(false);
+  const pressTimeout = React.useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (item) {
@@ -21,18 +22,78 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
     }
   }, [item]);
 
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (pressTimeout.current) clearTimeout(pressTimeout.current);
+    };
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchend', handleMouseUp);
+    return () => {
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchend', handleMouseUp);
+    };
+  }, []);
+
   if (!item) return null;
 
-  const totalPrice = item.price * quantity;
+  const validQuantity = typeof quantity === 'string' ? parseInt(quantity) || 1 : quantity;
+  const totalPrice = item.price * validQuantity;
+
+  const handleStep = (type: 'inc' | 'dec') => {
+    setQuantity(prev => {
+      let current = typeof prev === 'string' ? parseInt(prev) : prev;
+      if (isNaN(current)) current = 1;
+      if (type === 'inc') return Math.min(item.quantity, current + 1);
+      if (type === 'dec') return Math.max(1, current - 1);
+      return current;
+    });
+  };
+
+  const startAutoStep = (type: 'inc' | 'dec') => {
+    handleStep(type);
+    let speed = 250;
+    const nextTick = () => {
+      pressTimeout.current = setTimeout(() => {
+        setQuantity(prev => {
+          let current = typeof prev === 'string' ? parseInt(prev) : prev;
+          if (isNaN(current)) current = 1;
+          if (type === 'inc' && current >= item.quantity) {
+             if (pressTimeout.current) clearTimeout(pressTimeout.current);
+             return current;
+          }
+          if (type === 'dec' && current <= 1) {
+             if (pressTimeout.current) clearTimeout(pressTimeout.current);
+             return current;
+          }
+          
+          const nextVal = type === 'inc' ? Math.min(item.quantity, current + 1) : Math.max(1, current - 1);
+          return nextVal;
+        });
+        speed = Math.max(30, speed * 0.85); // Accelerate
+        nextTick();
+      }, speed);
+    };
+    
+    pressTimeout.current = setTimeout(() => {
+        nextTick();
+    }, 400); // initial delay before repeat
+  };
+
+  const stopAutoStep = () => {
+    if (pressTimeout.current) clearTimeout(pressTimeout.current);
+  };
 
   const handlePurchase = () => {
+    const finalQuantity = Math.max(1, typeof quantity === 'string' ? parseInt(quantity) || 1 : quantity);
+    setQuantity(finalQuantity); // Auto lock-in
+    
     if (onBuy) {
-      onBuy(item, quantity);
+      onBuy(item, finalQuantity);
     } else {
       const purchaseMessage = `🛒 [กล่องสุ่ม] ${item.game || 'ASTD'}
    • สินค้า: ${item.name}
-   • จำนวน: ${quantity} กล่อง
-   • ราคารวม: ฿${totalPrice.toLocaleString()} บาท
+   • จำนวน: ${finalQuantity} กล่อง
+   • ราคารวม: ฿${(item.price * finalQuantity).toLocaleString()} บาท
    💬 โปรดสุ่มและแจ้งมอบรางวัล (ติดต่อแอดมิน)`;
       navigator.clipboard.writeText(purchaseMessage);
       setCopied(true);
@@ -124,9 +185,13 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
               <div className="flex items-center gap-2 h-11 w-full">
                 <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
-                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                  disabled={quantity <= 1}
-                  className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-zinc-900 text-zinc-400 rounded-xl font-black text-xl hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 transition-all border border-zinc-800 cursor-pointer"
+                  onMouseDown={() => startAutoStep('dec')}
+                  onMouseUp={stopAutoStep}
+                  onMouseLeave={stopAutoStep}
+                  onTouchStart={() => startAutoStep('dec')}
+                  onTouchEnd={stopAutoStep}
+                  disabled={validQuantity <= 1}
+                  className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-zinc-900 text-zinc-400 rounded-xl font-black text-xl hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 transition-all border border-zinc-800 cursor-pointer select-none"
                 >
                   <Minus className="w-5 h-5 stroke-[2]" />
                 </motion.button>
@@ -136,26 +201,43 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
                   min={1}
                   max={item.quantity}
                   value={quantity}
+                  onBlur={() => {
+                    let current = typeof quantity === 'string' ? parseInt(quantity) : quantity;
+                    if (isNaN(current) || current < 1) current = 1;
+                    if (current > item.quantity) current = item.quantity;
+                    setQuantity(current);
+                  }}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value);
-                    if (!isNaN(val)) setQuantity(Math.min(item.quantity, Math.max(1, val)));
+                    const valStr = e.target.value;
+                    if (valStr === '') {
+                        setQuantity('');
+                    } else {
+                        const val = parseInt(valStr);
+                        if (!isNaN(val)) {
+                            setQuantity(Math.min(item.quantity, val));
+                        }
+                    }
                   }}
                   className="flex-1 h-full text-center bg-zinc-950 border border-zinc-800 rounded-xl font-bold text-base text-white focus:outline-none focus:border-amber-500/50"
                 />
 
                 <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
-                  onClick={() => setQuantity((prev) => Math.min(item.quantity, prev + 1))}
-                  disabled={quantity >= item.quantity}
-                  className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-zinc-900 text-zinc-400 rounded-xl font-black text-xl hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 transition-all border border-zinc-800 cursor-pointer"
+                  onMouseDown={() => startAutoStep('inc')}
+                  onMouseUp={stopAutoStep}
+                  onMouseLeave={stopAutoStep}
+                  onTouchStart={() => startAutoStep('inc')}
+                  onTouchEnd={stopAutoStep}
+                  disabled={validQuantity >= item.quantity}
+                  className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-zinc-900 text-zinc-400 rounded-xl font-black text-xl hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 transition-all border border-zinc-800 cursor-pointer select-none"
                 >
                   <Plus className="w-5 h-5 stroke-[2]" />
                 </motion.button>
                 <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
-                  disabled={quantity >= item.quantity}
+                  disabled={validQuantity >= item.quantity}
                   onClick={() => setQuantity(item.quantity)}
-                  className="px-3 h-11 rounded-xl bg-amber-500/20 text-amber-500 text-xs font-bold uppercase transition-colors hover:bg-amber-500/30 disabled:opacity-30 border border-amber-500/10 active:scale-95 cursor-pointer ml-1"
+                  className="px-3 h-11 rounded-xl bg-amber-500/20 text-amber-500 text-xs font-bold uppercase transition-colors hover:bg-amber-500/30 disabled:opacity-30 border border-amber-500/10 active:scale-95 cursor-pointer ml-1 select-none"
                 >
                   Max
                 </motion.button>

@@ -11,8 +11,9 @@ interface InquiryModalProps {
 }
 
 export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy }) => {
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | string>(1);
   const [copied, setCopied] = useState(false);
+  const pressTimeout = React.useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (item) {
@@ -21,19 +22,77 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
     }
   }, [item]);
 
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (pressTimeout.current) clearTimeout(pressTimeout.current);
+    };
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchend', handleMouseUp);
+    return () => {
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchend', handleMouseUp);
+    };
+  }, []);
+
   if (!item) return null;
+
+  const validQuantity = typeof quantity === 'string' ? parseInt(quantity) || 1 : quantity;
+
+  const handleStep = (type: 'inc' | 'dec') => {
+    setQuantity(prev => {
+      let current = typeof prev === 'string' ? parseInt(prev) : prev;
+      if (isNaN(current)) current = 1;
+      if (type === 'inc') return Math.min(item.quantity, current + 1);
+      if (type === 'dec') return Math.max(1, current - 1);
+      return current;
+    });
+  };
+
+  const startAutoStep = (type: 'inc' | 'dec') => {
+    handleStep(type);
+    let speed = 250;
+    const nextTick = () => {
+      pressTimeout.current = setTimeout(() => {
+        setQuantity(prev => {
+          let current = typeof prev === 'string' ? parseInt(prev) : prev;
+          if (isNaN(current)) current = 1;
+          if (type === 'inc' && current >= item.quantity) {
+             if (pressTimeout.current) clearTimeout(pressTimeout.current);
+             return current;
+          }
+          if (type === 'dec' && current <= 1) {
+             if (pressTimeout.current) clearTimeout(pressTimeout.current);
+             return current;
+          }
+          
+          const nextVal = type === 'inc' ? Math.min(item.quantity, current + 1) : Math.max(1, current - 1);
+          return nextVal;
+        });
+        speed = Math.max(30, speed * 0.85); // Accelerate
+        nextTick();
+      }, speed);
+    };
+    
+    pressTimeout.current = setTimeout(() => {
+        nextTick();
+    }, 400); // initial delay before repeat
+  };
+
+  const stopAutoStep = () => {
+    if (pressTimeout.current) clearTimeout(pressTimeout.current);
+  };
 
   const hasPieces = item.piecesPerUnit && item.piecesPerUnit > 1;
   const unitLabel = hasPieces ? 'ชุด' : 'ชิ้น';
-  const totalPiecesCount = quantity * (item.piecesPerUnit || 1);
+  const totalPiecesCount = validQuantity * (item.piecesPerUnit || 1);
   const totalItemPiecesDetail = hasPieces ? `\n• ได้รับของจริงทั้งหมด: ${totalPiecesCount} ชิ้น (${item.piecesPerUnit} ชิ้นต่อชุด)` : '';
 
-  const totalPrice = item.price * quantity;
+  const totalPrice = item.price * validQuantity;
 
   // Generate localized order templates
   const purchaseMessage = `🛒 [สั่งซื้อ] AOT Revolution Stock
    • สินค้า: ${item.name} (${item.category} | ${item.rarity})
-   • จำนวน: ${quantity} ${unitLabel}${hasPieces ? ` (รวม ${totalPiecesCount} ชิ้น)` : ''}
+   • จำนวน: ${validQuantity} ${unitLabel}${hasPieces ? ` (รวม ${totalPiecesCount} ชิ้น)` : ''}
    • ราคารวม: ฿${totalPrice.toLocaleString()} บาท (${hasPieces ? 'ชุด' : 'ชิ้น'}ละ ฿${item.price.toLocaleString()} บาท)
    💬 ติดต่อแอดมิน: Kuwashii El (m.me/kuwashii)`;
 
@@ -41,6 +100,16 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
     navigator.clipboard.writeText(purchaseMessage);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePurchaseButton = () => {
+    const finalQuantity = Math.max(1, typeof quantity === 'string' ? parseInt(quantity) || 1 : quantity);
+    setQuantity(finalQuantity);
+    if (onBuy) {
+        onBuy(item, finalQuantity);
+    } else {
+        handleCopy();
+    }
   };
 
   const getRarityBadgeStyle = (rarity: StockItem['rarity']) => {
@@ -134,30 +203,61 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                 <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-900 rounded-lg p-0.5">
                   <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
-                    disabled={quantity <= 1}
-                    onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                    className="w-7 h-7 rounded-md flex items-center justify-center font-bold font-mono text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all disabled:opacity-30 disabled:hover:bg-transparent"
+                    onMouseDown={() => startAutoStep('dec')}
+                    onMouseUp={stopAutoStep}
+                    onMouseLeave={stopAutoStep}
+                    onTouchStart={() => startAutoStep('dec')}
+                    onTouchEnd={stopAutoStep}
+                    disabled={validQuantity <= 1}
+                    className="w-7 h-7 rounded-md flex items-center justify-center font-bold font-mono text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer select-none"
                     id="btn-dec-inquiry-qty"
                   >
                     -
                   </motion.button>
-                  <span className="w-12 text-center text-white font-mono font-bold text-xs">
-                    {quantity} <span className="text-[9px] text-zinc-450 font-normal">{unitLabel}</span>
-                  </span>
+
+                  <input 
+                    type="number"
+                    min={1}
+                    max={item.quantity}
+                    value={quantity}
+                    onBlur={() => {
+                      let current = typeof quantity === 'string' ? parseInt(quantity) : quantity;
+                      if (isNaN(current) || current < 1) current = 1;
+                      if (current > item.quantity) current = item.quantity;
+                      setQuantity(current);
+                    }}
+                    onChange={(e) => {
+                      const valStr = e.target.value;
+                      if (valStr === '') {
+                          setQuantity('');
+                      } else {
+                          const val = parseInt(valStr);
+                          if (!isNaN(val)) {
+                              setQuantity(Math.min(item.quantity, val));
+                          }
+                      }
+                    }}
+                    className="w-12 text-center text-white bg-transparent font-mono font-bold text-xs focus:outline-none focus:bg-zinc-800 rounded"
+                  />
+
                   <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
-                    disabled={quantity >= item.quantity}
-                    onClick={() => setQuantity((prev) => Math.min(item.quantity, prev + 1))}
-                    className="w-7 h-7 rounded-md flex items-center justify-center font-bold font-mono text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all disabled:opacity-30 disabled:hover:bg-transparent"
+                    onMouseDown={() => startAutoStep('inc')}
+                    onMouseUp={stopAutoStep}
+                    onMouseLeave={stopAutoStep}
+                    onTouchStart={() => startAutoStep('inc')}
+                    onTouchEnd={stopAutoStep}
+                    disabled={validQuantity >= item.quantity}
+                    className="w-7 h-7 rounded-md flex items-center justify-center font-bold font-mono text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer select-none"
                     id="btn-inc-inquiry-qty"
                   >
                     +
                   </motion.button>
                   <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
-                    disabled={quantity >= item.quantity}
+                    disabled={validQuantity >= item.quantity}
                     onClick={() => setQuantity(item.quantity)}
-                    className="px-2 h-7 rounded-md bg-amber-500/20 text-amber-500 text-[10px] font-bold uppercase transition-colors hover:bg-amber-500/30 disabled:opacity-30 ml-1"
+                    className="px-2 h-7 rounded-md bg-amber-500/20 text-amber-500 text-[10px] font-bold uppercase transition-colors hover:bg-amber-500/30 disabled:opacity-30 ml-1 select-none"
                   >
                     Max
                   </motion.button>
@@ -209,7 +309,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                 <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => {
-                    onBuy(item, quantity);
+                    handlePurchaseButton();
                     onClose();
                   }}
                   className="w-full py-2.5 px-3 rounded-[0.85rem] font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
@@ -229,7 +329,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                     </pre>
                     <div className="absolute top-1.5 right-1.5">
                       <motion.button whileTap={{ scale: 0.95 }}
-                        onClick={handleCopy}
+                        onClick={handlePurchaseButton}
                         className={`p-1.5 rounded border transition-all duration-350 cursor-pointer ${
                           copied
                             ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
