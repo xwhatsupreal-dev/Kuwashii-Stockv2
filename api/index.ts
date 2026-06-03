@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -473,6 +474,68 @@ app.post("/api/set-register-lock", (req, res) => {
   }
   
   res.json({ success: true });
+});
+
+app.post("/api/send-otp", async (req: express.Request, res: express.Response) => {
+  try {
+    const { toEmail, otp } = req.body;
+    
+    if (!toEmail || !otp) {
+       res.status(400).json({ error: "Email and OTP are required" });
+       return;
+    }
+    
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      // If environment variables are missing, simulate success for development, but ideally the user should set them.
+      console.warn("SMTP credentials not set. Simulating OTP email send to " + toEmail);
+      res.json({ success: true, simulated: true });
+      return;
+    }
+
+    if (process.env.SMTP_USER === 'your_email@gmail.com' || process.env.SMTP_PASS === 'your_app_password') {
+       res.status(500).json({ error: "โปรดตั้งค่า SMTP_USER และ SMTP_PASS ด้วยอีเมลและ 'App Password' ของจริง (ไม่ใช่รหัสของคุณ) ในเมนูตั้งค่า" });
+       return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.SMTP_PORT || "465", 10),
+      secure: parseInt(process.env.SMTP_PORT || "465", 10) === 465,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    const fromName = process.env.SMTP_FROM_NAME || "Kuwashii Shop";
+    
+    const mailOptions = {
+      from: `"${fromName}" <${process.env.SMTP_USER}>`,
+      to: toEmail,
+      subject: "รหัส OTP สำหรับรีเซ็ตรหัสผ่าน Kuwashii Shop",
+      text: `รหัส OTP สำหรับรีเซ็ตรหัสผ่านของคุณคือ: ${otp}\nรหัสนี้จะหมดอายุใน 15 นาที`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
+          <h2 style="color: #333;">Kuwashii Shop</h2>
+          <p>คุณได้ทำการขอรีเซ็ตรหัสผ่าน</p>
+          <p>รหัส OTP ของคุณคือ: <strong style="font-size: 24px; color: #d97706;">${otp}</strong></p>
+          <p style="color: #666; font-size: 14px;">รหัสนี้จะหมดอายุใน 15 นาที</p>
+          <br>
+          <p style="color: #999; font-size: 12px;">หากคุณไม่ได้ทำรายการนี้ กรุณาเพิกเฉยต่ออีเมลฉบับนี้</p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("Error sending OTP email:", err);
+    if (err.message && err.message.includes('535') && err.message.includes('Username and Password not accepted')) {
+       res.status(500).json({ error: "เข้าสู่ระบบอีเมลไม่สำเร็จ คุณต้องใช้ Gmail 'App Password' (รหัสผ่านแอป 16 หลัก) ไม่ใช่รหัสผ่านอีเมลปกติ" });
+    } else {
+       res.status(500).json({ error: "เกิดข้อผิดพลาดในการส่งอีเมล: " + err.message });
+    }
+  }
 });
 
 // health endpoint
