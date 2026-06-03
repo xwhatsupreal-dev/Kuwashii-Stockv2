@@ -117,7 +117,7 @@ INSERT INTO public.system_config (id, maintenance_mode, global_sales_astd, globa
 VALUES ('main', true, 0, 0, 0)
 ON CONFLICT (id) DO NOTHING;
 
--- 8. อนุญาตให้อ่านเขียนได้ (สำหรับเทส)
+-- เปิดการใช้งานระบบ Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.purchases ENABLE ROW LEVEL SECURITY;
@@ -127,6 +127,7 @@ ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.claimed_jackpots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_config ENABLE ROW LEVEL SECURITY;
 
+-- เพิ่มเงื่อนไข Policy ให้อ่านและเขียนข้อมูลได้
 DO $$ 
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_policies WHERE policyname = 'Allow all operations for profiles') THEN
