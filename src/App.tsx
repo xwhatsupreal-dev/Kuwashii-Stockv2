@@ -134,6 +134,20 @@ export const addLiveActivity = async (activity: Omit<LiveActivity, 'id' | 'times
   } catch(e){}
 };
 
+const DiscordBanner = () => (
+  <section className="mt-16 sm:mt-24 max-w-sm mx-auto mb-10">
+    <iframe 
+      src="https://discord.com/widget?id=1510845435751829565&theme=dark" 
+      width="100%" 
+      height="500" 
+      allowtransparency="true" 
+      frameBorder="0" 
+      sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
+      className="rounded-2xl shadow-xl w-full"
+    />
+  </section>
+);
+
 export default function App() {
   const [globalStats, setGlobalStats] = useState<any>({ global_sales_astd: 0, global_rev_astd: 0, global_free_astd: 0, maintenance_mode: false });
   const [currentUserData, setCurrentUserData] = useState<any>(null);
@@ -2226,13 +2240,15 @@ export default function App() {
                        </p>
                        <p className="text-[10px] text-red-400/70">ยอดเงินจะถูกแปลงเป็นเครดิตตามมูลค่าในซอง (ขั้นต่ำ 10 บาท, ค่าธรรมเนียม 2.9%)</p>
                        
-                       <div className="mt-4 bg-zinc-900/50 p-3 rounded-lg border border-red-500/10 flex flex-col gap-2">
+                       <div className="mt-4 bg-zinc-900/50 p-3 rounded-lg border border-[#5865F2]/20 flex flex-col gap-2">
                           <p className="text-[10px] text-zinc-300 leading-relaxed text-left">
-                            หากลูกค้าเติมเงินไปแล้วไม่เข้าให้ทัก <strong className="text-white">Dazz Kar</strong> ได้เลย พร้อมแนบลิงค์ซองอั่งเปาที่เติมไปด้วยในเเชท
+                            หากลูกค้าเติมเงินไปแล้วไม่เข้า ให้เปิดทิกเก็ตใน <strong className="text-[#5865F2]">Discord</strong> ได้เลย พร้อมแนบลิงค์ซองอั่งเปาที่เติมไปด้วย
                           </p>
-                          <a href="https://m.me/DazzRFkaz" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-500 transition-colors py-2 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-2 mt-1">
-                             <MessageCircle className="w-3.5 h-3.5" />
-                             ทักแชททันที
+                          <a href="https://discord.gg/57u7DNXJhG" target="_blank" rel="noreferrer" className="w-full bg-[#5865F2] hover:bg-[#4752C4] shadow-md shadow-[#5865F2]/20 transition-colors py-2 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-2 mt-1">
+                             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 127.14 96.36">
+                               <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a67.58,67.58,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.31,60,73.31,53s5-12.74,11.43-12.74S96.2,46,96.09,53,91,65.69,84.69,65.69Z"/>
+                             </svg>
+                             เข้าดิสคอร์ด
                           </a>
                        </div>
                      </div>
@@ -2264,13 +2280,15 @@ export default function App() {
                           </div>
                        </div>
                        
-                       <div className="w-full mt-3 bg-zinc-900/50 p-3 rounded-lg border border-blue-500/10 flex flex-col gap-2">
+                       <div className="w-full mt-3 bg-zinc-900/50 p-3 rounded-lg border border-[#5865F2]/20 flex flex-col gap-2">
                           <p className="text-[10px] text-zinc-300 leading-relaxed text-left">
-                            หากลูกค้าโอนเงินไปแล้วนำรูปมาอัพโหลดไม่ได้หรือเกินเวลาอัพโหลดสลิปเเล้ว ให้ทัก <strong className="text-white">Dazz Kar</strong> ได้เลย พร้อมแนบสลิปที่โอนไปไว้ในแชท
+                            หากลูกค้าโอนเงินไปแล้วนำรูปมาอัพโหลดไม่ได้หรือเกินเวลา ให้เปิดทิกเก็ตใน <strong className="text-[#5865F2]">Discord</strong> ได้เลย พร้อมแนบสลิปที่โอนไป
                           </p>
-                          <a href="https://m.me/DazzRFkaz" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-500 transition-colors py-2 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-2 mt-1">
-                             <MessageCircle className="w-3.5 h-3.5" />
-                             ทักแชททันที
+                          <a href="https://discord.gg/57u7DNXJhG" target="_blank" rel="noreferrer" className="w-full bg-[#5865F2] hover:bg-[#4752C4] shadow-md shadow-[#5865F2]/20 transition-colors py-2 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-2 mt-1">
+                             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 127.14 96.36">
+                               <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a67.58,67.58,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.31,60,73.31,53s5-12.74,11.43-12.74S96.2,46,96.09,53,91,65.69,84.69,65.69Z"/>
+                             </svg>
+                             เข้าดิสคอร์ด
                           </a>
                        </div>
                      </div>
@@ -3305,6 +3323,8 @@ export default function App() {
               </AnimatePresence>
             </motion.div>
           )}
+
+          <DiscordBanner />
         </main>
         
         {/* ASTD Custom Footer */}
@@ -4205,6 +4225,7 @@ export default function App() {
           </motion.div>
         )}
 
+        <DiscordBanner />
       </main>
 
       {/* Modern, Highly styled Custom Footer */}
