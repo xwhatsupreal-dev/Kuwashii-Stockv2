@@ -884,7 +884,7 @@ export default function App() {
                 const now = Date.now();
                 const diffMinutes = Math.floor((now - slipTime) / (1000 * 60));
                 
-                if (diffMinutes > 10) {
+                if (diffMinutes > 5) {
                    const timeErr = `สลิปนี้หมดอายุแล้ว (โอนผ่านไปแล้ว ${diffMinutes} นาที) กรุณาติดต่อแอดมินเพื่อตรวจสอบ`;
                    setTopupError(timeErr);
                    showToast(timeErr, 'error');
@@ -2124,7 +2124,7 @@ export default function App() {
                       <Gift className="w-8 h-8 text-white/90 drop-shadow-md" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-white text-base">ซองอั่งเปา</h4>
+                      <h4 className="font-bold text-white text-base">เติมผ่านซองอั่งเปา</h4>
                       <p className="text-[10px] text-zinc-500 mt-0.5">เติมเงินผ่านระบบซองอั่งเปา<br/>ของทรูมันนี่วอลเลท</p>
                     </div>
                   </motion.button>
@@ -2141,7 +2141,7 @@ export default function App() {
                       <Landmark className="w-8 h-8 text-white/90 drop-shadow-md" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-white text-base">สแกนสลิปธนาคาร (ทุกธนาคาร)</h4>
+                      <h4 className="font-bold text-white text-base">เติมผ่านธนาคาร (รองรับทุกธนาคาร)</h4>
                       <p className="text-[10px] text-zinc-500 mt-0.5">โอนเงินมาที่บัญชีธนาคารกสิกรไทย<br/>รองรับสลิปจากทุกธนาคารชั้นนำ</p>
                     </div>
                   </motion.button>
@@ -2284,7 +2284,7 @@ export default function App() {
                             คลิกที่รูปเพื่อดูรูปใหญ่ หรือดาวน์โหลดเก็บไว้<br/>เมื่อโอนเสร็จสิ้น ให้อัปโหลด "ภาพสลิปโอนเงิน" ด้านล่าง
                           </p>
                           <div className="bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2 text-xs md:text-sm text-red-500 font-bold leading-tight inline-block shadow-sm">
-                             ⚠️ โปรดอัปโหลดสลิปภายใน 10 นาที หลังจากโอนเสร็จสิ้น
+                             ⚠️ โปรดอัปโหลดสลิปภายใน 5 นาที หลังจากโอนเสร็จสิ้น
                           </div>
                        </div>
                        
