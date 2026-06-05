@@ -2639,7 +2639,7 @@ export default function App() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* AOT Revolution */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -2687,6 +2687,26 @@ export default function App() {
               <div className="px-3 pb-3 relative z-10 text-left">
                 <h3 className="text-xl font-black text-white group-hover:text-emerald-400 transition-colors uppercase tracking-tight">สินค้า ASTD โดย Dazz kar</h3>
                 <p className="text-sm text-zinc-500 mt-1 font-mono">Connect to the Multiverse defense grid.</p>
+              </div>
+            </motion.div>
+
+            {/* ROV */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="group relative rounded-3xl border border-zinc-800 bg-zinc-900/50 p-3 cursor-not-allowed transition-all duration-500 overflow-hidden shadow-xl shadow-black/40 grayscale"
+            >
+              <div className="aspect-video w-full rounded-2xl overflow-hidden relative mb-4">
+                 <img src="https://img2.pic.in.th/1000099558.jpg" alt="ROV" className="w-full h-full object-cover opacity-60" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent opacity-80" />
+                 <div className="absolute bottom-4 left-4 z-20">
+                   <span className="px-2.5 py-1 rounded-md bg-zinc-500/20 text-zinc-400 text-[10px] font-black uppercase tracking-widest backdrop-blur border border-zinc-500/30">ROV</span>
+                 </div>
+              </div>
+              <div className="px-3 pb-3 relative z-10 text-left">
+                <h3 className="text-xl font-black text-white uppercase tracking-tight">สินค้า ROV โดย ??? (เร็วๆ นี้)</h3>
+                <p className="text-sm text-zinc-500 mt-1 font-mono">Coming soon.</p>
               </div>
             </motion.div>
           </div>
