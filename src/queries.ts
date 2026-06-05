@@ -31,7 +31,10 @@ export async function fetchItems() {
 
 export async function fetchUser(username: string) {
   const { data, error } = await supabase.from('profiles').select('*').eq('username', username).single();
-  if (error) return null;
+  if (error) {
+    console.error('Error fetching user:', username, error);
+    return null;
+  }
   return data;
 }
 

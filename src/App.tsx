@@ -155,13 +155,7 @@ export default function App() {
   const isUnderMaintenance = globalStats?.maintenance_mode;
 
   // --- Global Hub State ---
-  const [appScreen, setAppScreen] = useState<'LOADING' | 'SELECT' | 'TRANSITION' | 'AOTR' | 'ASTD'>(() => {
-    const saved = localStorage.getItem('KUWASHII_LAST_SCREEN');
-    if (saved === 'ASTD' || saved === 'AOTR') {
-      return saved;
-    }
-    return 'LOADING';
-  });
+  const [appScreen, setAppScreen] = useState<'LOADING' | 'SELECT' | 'TRANSITION' | 'AOTR' | 'ASTD'>('LOADING');
   const [targetScreen, setTargetScreen] = useState<'AOTR' | 'ASTD' | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   // User & Admin Authentications
@@ -312,7 +306,6 @@ export default function App() {
     if (appScreen === 'TRANSITION' && targetScreen) {
       const timer = setTimeout(() => {
         setAppScreen(targetScreen);
-        localStorage.setItem('KUWASHII_LAST_SCREEN', targetScreen);
         setTargetScreen(null);
       }, 3000);
       return () => clearTimeout(timer);
@@ -658,7 +651,7 @@ export default function App() {
       return;
     }
     
-    const activeUsername = currentUser.username;
+    const activeUsername = currentUser.username.trim();
     const liveUser = await fetchUser(activeUsername);
     if (!liveUser) {
       showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลลูกค้า โปรดลองอีกครั้ง', 'error');
