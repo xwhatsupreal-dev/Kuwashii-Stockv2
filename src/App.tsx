@@ -815,7 +815,11 @@ export default function App() {
              const isNameMatch = stringifiedData.includes('นาย ธีรเทพ ท') || 
                                  stringifiedData.includes('นาย ธีรเทพ ทองเกตุ') || 
                                  stringifiedData.includes('ธีรเทพ ท') || 
-                                 stringifiedData.includes('ธีรเทพ ทองเกตุ');
+                                 stringifiedData.includes('ธีรเทพ ทองเกตุ') ||
+                                 stringifiedData.includes('ธีรเทพ') ||
+                                 stringifiedData.includes('ทองเกตุ') ||
+                                 stringifiedData.toLowerCase().includes('teerathep') ||
+                                 stringifiedData.toLowerCase().includes('theerathep');
 
              if (!isNameMatch) {
                 let displayFoundName = data.receiver_name || data.receiverName || data.data?.receiver?.name || data.data?.receiver?.displayName || data.data?.receiver?.accountName;
@@ -2133,8 +2137,8 @@ export default function App() {
                       <Landmark className="w-8 h-8 text-white/90 drop-shadow-md" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-white text-base">ธนาคาร (K BANK)</h4>
-                      <p className="text-[10px] text-zinc-500 mt-0.5">โอนเงินผ่านบัญชีธนาคารกสิกรไทย<br/>รองรับทุกธนาคารชั้นนำ</p>
+                      <h4 className="font-bold text-white text-base">สแกนสลิปธนาคาร (ทุกธนาคาร)</h4>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">โอนเงินมาที่บัญชีธนาคารกสิกรไทย<br/>รองรับสลิปจากทุกธนาคารชั้นนำ</p>
                     </div>
                   </motion.button>
 
