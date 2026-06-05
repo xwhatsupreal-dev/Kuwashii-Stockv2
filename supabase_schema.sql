@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   password text NOT NULL,
   email text,
   balance numeric DEFAULT 0,
+  balance_rov numeric DEFAULT 0,
   is_admin boolean DEFAULT false,
   banned boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
@@ -18,6 +19,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email text;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username_last_changed timestamp with time zone;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS otp_code text;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS otp_expires_at timestamp with time zone;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS balance_rov numeric DEFAULT 0;
 
 -- 2. สร้างตารางกิจกรรมล่าสุด (Live Activities)
 CREATE TABLE IF NOT EXISTS public.activities (
