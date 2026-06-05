@@ -3581,7 +3581,7 @@ export default function App() {
                 </div>
                 <div className="px-3 pb-3 relative z-10 text-left">
                   <h3 className="text-xl font-black text-white group-hover:text-amber-400 transition-colors uppercase tracking-tight">
-                    สินค้า ROV
+                    สินค้า ROV โดย sokay0419
                   </h3>
                   <p className="text-sm text-zinc-500 mt-1 font-mono">
                     Arena of Valor accounts and codes.
@@ -5764,12 +5764,19 @@ export default function App() {
                 </h1>
 
                 {/* Creator Tag line requested by User */}
-                <div className="mt-2 text-sm text-zinc-400 flex items-center gap-2 font-mono">
+                <div className="mt-2 text-sm text-zinc-400 flex flex-wrap items-center gap-2 font-mono">
                   <span className="text-zinc-600">•</span>
                   <span>Made by</span>
                   <span className="text-amber-400 hover:text-amber-300 transition-colors cursor-pointer font-bold relative group">
                     Kuwashii El (@_.texraxit)
                     <span className="absolute bottom-0 left-0 w-full h-[1px] bg-amber-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                  </span>
+                  <span className="text-zinc-600 ml-2">•</span>
+                  <span className="ml-1 text-zinc-300 italic">
+                    สินค้าโดย{" "}
+                    <span className="text-zinc-100 font-bold not-italic font-sans underline decoration-amber-500/50 underline-offset-4">
+                      sokay0419
+                    </span>
                   </span>
                 </div>
               </div>
