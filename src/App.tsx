@@ -765,7 +765,10 @@ export default function App() {
             if (currentUser) setCurrentUser({ ...currentUser });
             sendDiscordTopupEmbed(activeUsername, amount, 'angpao', newBalance, true);
           } else {
-            const errorMsg = data.info || data.message || data.msg || data.error || 'ซองขวัญไม่ถูกต้อง หรือถูกใช้งานไปแล้ว';
+            let errorMsg = data.info || data.message || data.msg || data.error || 'ซองขวัญไม่ถูกต้อง หรือถูกใช้งานไปแล้ว';
+            if (typeof errorMsg === 'string') {
+               errorMsg = errorMsg.replace(/https:\/\/discord\.gg\/[a-zA-Z0-9]+/g, 'https://discord.gg/AQKtJpvyva');
+            }
             setTopupError(`API แจ้งเตือน: ${errorMsg}`);
             showToast(errorMsg, 'error');
             sendDiscordTopupEmbed(activeUsername, 0, 'angpao', liveUser.balance || 0, false);
@@ -926,7 +929,8 @@ export default function App() {
              sendDiscordTopupEmbed(activeUsername, amount, 'bank', newBalance, true);
           } else {
              const errorMsg = data.message?.massage_th || data.message || 'รหัส QR จากสลิปไม่สามารถตรวจสอบได้';
-             const finalErr = typeof errorMsg === 'string' ? errorMsg : 'สลิปไม่ถูกต้อง';
+             let finalErr = typeof errorMsg === 'string' ? errorMsg : 'สลิปไม่ถูกต้อง';
+             finalErr = finalErr.replace(/https:\/\/discord\.gg\/[a-zA-Z0-9]+/g, 'https://discord.gg/AQKtJpvyva');
              setTopupError(`API แจ้งเตือน: ${finalErr}`);
              showToast(finalErr, 'error');
              sendDiscordTopupEmbed(activeUsername, 0, 'bank', liveUser.balance || 0, false);
