@@ -201,6 +201,7 @@ function packExtraData(item: any): any {
   
   if (packed.gachaPool !== undefined) { extra.gachaPool = packed.gachaPool; delete packed.gachaPool; }
   if (packed.game !== undefined) { extra.game = packed.game; delete packed.game; }
+  if (packed.accountCredentials !== undefined) { extra.accountCredentials = packed.accountCredentials; delete packed.accountCredentials; }
   
   // Clean up any old markers
   if (packed.description) {

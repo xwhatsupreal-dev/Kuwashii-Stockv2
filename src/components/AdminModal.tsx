@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Save, Upload, Link, AlertCircle, Sparkles, Image as ImageIcon, Package, Coins, Clock, Plus, Trash2 } from 'lucide-react';
@@ -40,10 +39,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [isPinned, setIsPinned] = useState(false);
   const [isPopular, setIsPopular] = useState(false);
   const [gachaPool, setGachaPool] = useState<{ id: string; name: string; color?: string; guaranteedAtStock?: number; guaranteedAtStocks?: number[]; }[]>([]);
+  const [accountCredentialsText, setAccountCredentialsText] = useState('');
   const [claimedJackpots, setClaimedJackpots] = useState<any[]>([]);
   
   const [imageType, setImageType] = useState<'url' | 'upload' | 'presets'>('url');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageUrlsText, setImageUrlsText] = useState('');
   const [uploadBase64, setUploadBase64] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -63,6 +64,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setIsPinned(!!editingItem.isPinned);
       setIsPopular(!!editingItem.isPopular);
       setGachaPool(editingItem.gachaPool || []);
+      setAccountCredentialsText(editingItem.accountCredentials ? editingItem.accountCredentials.join('\n') : '');
       
       const fetchClaims = async () => {
         if (editingItem.category === 'สุ่มตัวละคร - ออสตา' || (editingItem.gachaPool && editingItem.gachaPool.length > 0)) {
@@ -72,6 +74,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       };
       fetchClaims();
 
+      setImageUrlsText(editingItem.imageUrls ? editingItem.imageUrls.join('\n') : '');
       const isBase64 = editingItem.imageUrl?.startsWith('data:image/');
       if (isBase64) {
         setImageType('upload');
@@ -99,6 +102,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setImageType('url');
       setImageUrl('');
       setUploadBase64('');
+      setImageUrlsText('');
     }
     setErrors({});
   }, [editingItem, isOpen, currentGame]);
@@ -217,21 +221,35 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     const pPerUnit = typeof piecesPerUnit === 'number' ? piecesPerUnit : parseInt(piecesPerUnit as string, 10);
     const finalPiecesPerUnit = (!isNaN(pPerUnit) && pPerUnit > 0) ? pPerUnit : undefined;
 
+    const addImgs = imageUrlsText.trim().split('\n').map(c => c.trim()).filter(c => c.length > 0);
+    const accCreds = accountCredentialsText.trim().split('\n').map(c => c.trim()).filter(c => c.length > 0);
+    let finalQty = currentQty;
+    let finalInitQty = finalInitialQuantity;
+
+    if (category === 'Starter Accounts' || category === 'รหัส ROV' || category === 'ไอดี ROV') {
+      if (accCreds.length > 0) {
+        finalQty = accCreds.length;
+        if (!editingItem || !editingItem.initialQuantity) finalInitQty = accCreds.length;
+      }
+    }
+
     onSave({
       id: editingItem ? editingItem.id : `${currentGame.toLowerCase()}-${Date.now()}`,
       game: currentGame,
       name: name.trim(),
       category,
       rarity,
-      quantity: currentQty,
-      initialQuantity: finalInitialQuantity,
+      quantity: finalQty,
+      initialQuantity: finalInitQty,
       piecesPerUnit: finalPiecesPerUnit,
       price: currentPrice,
       description: description.trim(),
       imageUrl: finalImageUrl || undefined,
+      imageUrls: addImgs.length > 0 ? addImgs : undefined,
       isPinned,
       isPopular,
-      gachaPool: category === 'สุ่มตัวละคร - ออสตา' && gachaPool.length > 0 ? gachaPool : undefined,
+      gachaPool: (category === 'สุ่มตัวละคร - ออสตา' || (gachaPool && gachaPool.length > 0)) ? gachaPool : undefined,
+      accountCredentials: accCreds.length > 0 ? accCreds : undefined,
     });
     
     onClose();
@@ -309,7 +327,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-1.5 p-2 rounded-xl bg-zinc-950/80 border border-zinc-900/40">
                 {(currentGame === 'AOTR' 
                   ? ['Serum', 'Bloodline', 'Skin', 'Artifact', 'Scroll/Key', 'Perk', 'Other'] as const
-                  : ['Starter Accounts', 'High Level / PvP', 'Rare Units', 'Gems / Currency', 'Rank Boosting', 'Bundle Offers', 'Gifts / Codes', 'Other Services', 'สุ่มตัวละคร - ออสตา', 'Other'] as const
+                  : currentGame === 'ROV' 
+                    ? ['รหัส ROV'] as const
+                    : ['Starter Accounts', 'High Level / PvP', 'Rare Units', 'Gems / Currency', 'Rank Boosting', 'Bundle Offers', 'Gifts / Codes', 'Other Services', 'สุ่มตัวละคร - ออสตา', 'Other'] as const
                   ).map((cat) => {
                   const isActive = category === cat;
                   return (
@@ -348,7 +368,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </div>
             </div>
 
-            {/* Rarity Select */}
+            {currentGame !== 'ROV' && (
+              <div className="mb-4">
+{/* Rarity Select */}
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-sans">
                 ระดับความหายาก (Rarity)
@@ -366,6 +388,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </select>
             </div>
 
+            </div>
+            )}
             {/* Quantity, Initial Quantity, Pieces per pack, and Price row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
@@ -373,13 +397,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   <Package className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
                   <span>เหลือในสต๊อก (สต๊อก)</span>
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-bold"
-                />
+                {(category === 'Starter Accounts' || category === 'รหัส ROV' || category === 'ไอดี ROV') ? (
+                  <div className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400/50 px-3 py-2 rounded-xl text-sm font-mono font-bold cursor-not-allowed flex items-center h-[38px]">
+                    {accountCredentialsText.trim() ? accountCredentialsText.trim().split('\n').filter(c => c.trim().length > 0).length : 0}
+                  </div>
+                ) : (
+                  <input
+                    type="number"
+                    min="0"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-bold"
+                  />
+                )}
                 {errors.quantity && <p className="text-xs text-red-500 mt-1">{errors.quantity}</p>}
               </div>
 
@@ -489,6 +519,23 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </label>
               </div>
             </div>
+
+            {(category === 'Starter Accounts' || category === 'รหัส ROV' || category === 'ไอดี ROV') && (
+              <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-850 space-y-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-sans">
+                    สต๊อกไอดี / รหัสผ่าน (Line by Line)
+                  </span>
+                  <span className="text-[10px] text-zinc-500">จำนวนสต๊อกจะนับตามบรรทัดอัตโนมัติ</span>
+                </div>
+                <textarea
+                  value={accountCredentialsText}
+                  onChange={e => setAccountCredentialsText(e.target.value)}
+                  placeholder="USER1:PASS1&#10;USER2:PASS2..."
+                  className="w-full bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:border-amber-500 h-32 resize-y"
+                />
+              </div>
+            )}
 
             {category === 'สุ่มตัวละคร - ออสตา' && (
               <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-850 space-y-3">
@@ -731,6 +778,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Additional Images */}
+            <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-850 space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-sans">
+                  รูปภาพเพิ่มเติม (Additional Images URL)
+                </span>
+                <span className="text-[10px] text-zinc-500">1 บรรทัดต่อ 1 ลิงก์</span>
+              </div>
+              <textarea
+                value={imageUrlsText}
+                onChange={e => setImageUrlsText(e.target.value)}
+                placeholder="https://images.unsplash.com/...\nhttps://images.unsplash.com/..."
+                className="w-full bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:border-amber-500 h-24 resize-y"
+              />
             </div>
 
             {/* Submit and Cancel items */}

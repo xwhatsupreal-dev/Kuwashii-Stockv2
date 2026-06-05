@@ -13,6 +13,7 @@ interface ItemCardProps {
   onBuy?: (item: StockItem, qty: number) => void;
   onTogglePin: (id: string) => void;
   onShareToAI?: (item: StockItem) => void;
+  appScreen?: string;
 }
 
 export const ItemCard: React.FC<ItemCardProps> = ({
@@ -25,6 +26,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
   onBuy,
   onTogglePin,
   onShareToAI,
+  appScreen,
 }) => {
   const getRarityColors = (rarity: StockItem['rarity']) => {
     switch (rarity) {
@@ -189,10 +191,12 @@ export const ItemCard: React.FC<ItemCardProps> = ({
           </div>
 
           {/* Rarity StarBadge */}
-          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1 ${colors.bg}`}>
-            <span className="w-1 h-1 rounded-full bg-current animate-pulse"></span>
-            {item.rarity}
-          </span>
+          {appScreen !== "ROV" && (
+            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1 ${colors.bg}`}>
+              <span className="w-1 h-1 rounded-full bg-current animate-pulse"></span>
+              {item.rarity}
+            </span>
+          )}
         </div>
 
         {/* Item Image with hover expansion */}

@@ -1,8 +1,8 @@
 export interface StockItem {
   id: string;
-  game?: 'AOTR' | 'ASTD';
+  game?: 'AOTR' | 'ASTD' | 'ROV';
   name: string;
-  category: 'Serum' | 'Bloodline' | 'Skin' | 'Artifact' | 'Scroll/Key' | 'Perk' | 'Starter Accounts' | 'High Level / PvP' | 'Rare Units' | 'Gems / Currency' | 'Rank Boosting' | 'Bundle Offers' | 'Gifts / Codes' | 'Other Services' | 'สุ่มตัวละคร - ออสตา' | 'Other';
+  category: 'Serum' | 'Bloodline' | 'Skin' | 'Artifact' | 'Scroll/Key' | 'Perk' | 'Starter Accounts' | 'High Level / PvP' | 'Rare Units' | 'Gems / Currency' | 'Rank Boosting' | 'Bundle Offers' | 'Gifts / Codes' | 'Other Services' | 'สุ่มตัวละคร - ออสตา' | 'ไอดี ROV' | 'คูปอง ROV' | 'รับปั้มแรงค์ ROV' | 'Other';
   rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythic';
   quantity: number;
   initialQuantity?: number;
@@ -10,9 +10,11 @@ export interface StockItem {
   price: number; // in Thai Baht
   description: string;
   imageUrl?: string;
+  imageUrls?: string[];
   isPinned?: boolean;
   isPopular?: boolean;
   gachaPool?: { id: string; name: string; color?: string; guaranteedAtStock?: number; guaranteedAtStocks?: number[]; }[];
+  accountCredentials?: string[]; 
   updatedAt: string;
 }
 
@@ -24,6 +26,7 @@ export interface PurchaseRecord {
   quantity?: number;
   date: string;
   gachaDrops?: { name: string; color?: string; }[];
+  credentialData?: string; 
 }
 
 export interface TopupRecord {
@@ -40,6 +43,7 @@ export interface UserData {
   password?: string;
   avatar?: string;
   balance: number;
+  balance_rov?: number;
   joinDate: string;
   purchases: PurchaseRecord[];
   topups?: TopupRecord[];

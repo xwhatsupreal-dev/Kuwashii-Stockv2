@@ -11,9 +11,11 @@ export async function fetchItems() {
     let pool = d.gacha_pool;
     let initialQty = d.initial_quantity;
     let pieces = d.pieces_per_unit;
+    let accCreds = undefined;
 
     if (d.gacha_pool && !Array.isArray(d.gacha_pool) && typeof d.gacha_pool === 'object') {
       pool = d.gacha_pool.pool || undefined;
+      accCreds = d.gacha_pool.accountCredentials || undefined;
       if (initialQty === undefined) initialQty = d.gacha_pool.initialQuantity;
       if (pieces === undefined) pieces = d.gacha_pool.piecesPerUnit;
     }
@@ -22,6 +24,7 @@ export async function fetchItems() {
       ...d,
       imageUrl: d.image,
       gachaPool: pool,
+      accountCredentials: accCreds,
       initialQuantity: initialQty,
       piecesPerUnit: pieces,
       updatedAt: d.created_at
@@ -40,7 +43,7 @@ export async function fetchUser(username: string) {
 
 export async function createUser(username: string, passwordHash: string) {
   const { data, error } = await supabase.from('profiles').insert([
-    { username, password: passwordHash, balance: 0, is_admin: false }
+    { username, password: passwordHash, balance: 0, balance_rov: 0, is_admin: false }
   ]).select().single();
   if (error) throw error;
   return data;
@@ -72,7 +75,8 @@ export async function fetchUserPurchases(username: string) {
     price: parseFloat(d.price),
     quantity: d.quantity,
     date: d.created_at,
-    gachaDrops: d.gacha_drops
+    gachaDrops: d.gacha_drops,
+    credentialData: d.credential_data
   }));
 }
 

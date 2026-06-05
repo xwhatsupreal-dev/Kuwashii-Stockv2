@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, History, ShoppingCart, PackageOpen, Calendar, Clock, Sparkles, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
@@ -119,13 +118,15 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                 sortedPurchases.map((purchase) => {
                   const { date, time } = formatDate(purchase.date);
                   const hasGachaDrops = purchase.gachaDrops && purchase.gachaDrops.length > 0;
+                  const hasCredentialData = !!purchase.credentialData;
+                  const canExpand = hasGachaDrops || hasCredentialData;
 
                   return (
                     <div key={purchase.id} className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
                       <div 
-                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-zinc-900/80 gap-4 ${hasGachaDrops ? 'cursor-pointer hover:bg-zinc-800/80 transition-colors' : ''} ${expandedPurchases.includes(purchase.id) ? 'border-b border-zinc-800/50' : ''}`}
+                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-zinc-900/80 gap-4 ${canExpand ? 'cursor-pointer hover:bg-zinc-800/80 transition-colors' : ''} ${expandedPurchases.includes(purchase.id) ? 'border-b border-zinc-800/50' : ''}`}
                         onClick={() => {
-                          if (hasGachaDrops) {
+                          if (canExpand) {
                             setExpandedPurchases(prev => 
                               prev.includes(purchase.id) 
                                 ? prev.filter(id => id !== purchase.id) 
@@ -135,8 +136,8 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg border flex-shrink-0 ${hasGachaDrops ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'}`}>
-                            {hasGachaDrops ? <PackageOpen className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
+                          <div className={`p-2 rounded-lg border flex-shrink-0 ${(hasGachaDrops || hasCredentialData) ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'}`}>
+                            {hasGachaDrops ? <PackageOpen className="w-5 h-5" /> : hasCredentialData ? <Sparkles className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
                           </div>
                           <div>
                             <p className="text-zinc-100 font-bold flex items-center gap-2">
@@ -156,13 +157,28 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                           <div className="font-mono font-bold text-emerald-400 text-right">
                             ฿{purchase.price}
                           </div>
-                          {hasGachaDrops && (
+                          {canExpand && (
                             <div className="text-zinc-500">
                               {expandedPurchases.includes(purchase.id) ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                             </div>
                           )}
                         </div>
                       </div>
+
+                      {hasCredentialData && expandedPurchases.includes(purchase.id) && (
+                        <div className="p-4 bg-emerald-950/20 border-b border-zinc-800/50">
+                          <div className="text-xs font-semibold text-emerald-500 mb-2 flex items-center gap-1.5 uppercase tracking-widest font-mono">
+                            ข้อมูลบัญชี / โค้ด
+                          </div>
+                          <div className="space-y-2">
+                            {purchase.credentialData!.split('\n').map((cred, idx) => (
+                              <div key={idx} className="bg-zinc-950 border border-emerald-900/50 text-zinc-300 px-4 py-3 rounded-xl font-mono text-xs flex-1 break-all select-all">
+                                {cred}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {hasGachaDrops && expandedPurchases.includes(purchase.id) && (
                         <div className="p-4 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-zinc-950">

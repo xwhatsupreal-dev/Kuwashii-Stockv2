@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Copy, Check, ShoppingCart, Minus, Plus, Box } from 'lucide-react';
@@ -149,6 +148,20 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
             <div className="text-zinc-400 text-[13px] leading-relaxed whitespace-pre-wrap mb-5 mt-3 font-medium">
               {item.description /* custom description here */}
               {item.description && <div className="h-px bg-zinc-800/50 my-3" />}
+
+              {/* Additional Images */}
+              {item.imageUrls && item.imageUrls.length > 0 && (
+                <div className="mb-4">
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-1.5 font-sans">📸 รูปภาพเพิ่มเติม:</span>
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-800">
+                    {item.imageUrls.map((url, idx) => (
+                      <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 w-20 h-20 bg-zinc-950 border border-zinc-850 rounded-lg overflow-hidden group cursor-pointer">
+                        <img src={url} alt={`Additional ${idx+1}`} referrerPolicy="no-referrer" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <>
                 <p className="text-red-400">🚨 โปรดอ่านก่อนสั่งซื้อ! 🚨</p>

@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Bell, Image as ImageIcon, Save, Check, Type } from 'lucide-react';

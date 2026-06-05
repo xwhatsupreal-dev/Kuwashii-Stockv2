@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Trophy, Sparkles } from 'lucide-react';
@@ -11,6 +10,7 @@ interface GachaResultModalProps {
     drops: { name: string; color?: string; isSalt?: boolean }[];
     purchaseQty?: number;
     remainingStock?: number;
+    credentialData?: string[];
   } | null;
 }
 
@@ -129,10 +129,39 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
             </AnimatePresence>
           </div>
 
+          {result.credentialData && result.credentialData.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + (result.drops.length * 0.1) }}
+              className="mt-6 border border-emerald-500/30 bg-emerald-900/10 rounded-2xl p-4 text-left relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[40px]" />
+              <div className="text-sm font-bold text-emerald-400 mb-2 font-mono flex justify-between items-center relative z-10">
+                <span>[ACCOUNT CREDENTIALS]</span>
+                <span className="text-xs text-emerald-500/70 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                  Secret Data
+                </span>
+              </div>
+              <div className="space-y-2 relative z-10">
+                {result.credentialData.map((cred, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <div className="bg-zinc-950 border border-zinc-800 text-zinc-300 px-4 py-3 rounded-xl font-mono text-xs flex-1 break-all select-all">
+                      {cred}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 text-[10px] text-zinc-500 text-center font-mono relative z-10">
+                โปรดก็อปปี้หรือแคปเจอร์รหัสนี้ไว้ ข้อมูลจะแสดงในประวัติการสั่งซื้อเช่นกัน
+              </div>
+            </motion.div>
+          )}
+
           <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 + (result.drops.length * 0.1) }}
+            transition={{ delay: 0.5 + (result.drops.length * 0.1) + 0.1 }}
             onClick={onClose}
             className={`w-full mt-6 py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer ${
               allSalt 

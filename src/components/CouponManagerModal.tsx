@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Plus, Trash2, Gift, Save } from 'lucide-react';

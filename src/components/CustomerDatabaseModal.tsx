@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Users, Search, DollarSign, Clock, Package, Edit2, History, ChevronDown, ChevronUp } from 'lucide-react';
@@ -40,6 +39,7 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
           username: d.username,
           email: d.email,
           balance: Number(d.balance),
+          balance_rov: Number(d.balance_rov),
           joinDate: d.created_at,
           password: d.password,
           purchaseCount: pCounts[d.username] || 0,
@@ -75,15 +75,16 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
 
     const user = users.find(u => u.username === username);
     if (user) {
-      const oldBalance = user.balance || 0;
+      const balanceField = appScreen === 'ROV' ? 'balance_rov' : 'balance';
+      const oldBalance = user[balanceField] || 0;
       const difference = amount - oldBalance;
       
-      const { error } = await supabase.from('profiles').update({ balance: amount }).eq('username', username);
+      const { error } = await supabase.from('profiles').update({ [balanceField]: amount }).eq('username', username);
       if (!error) {
-        setUsers(users.map(u => u.username === username ? { ...u, balance: amount } : u));
+        setUsers(users.map(u => u.username === username ? { ...u, [balanceField]: amount } : u));
         
         if (difference !== 0) {
-          const targetGame = appScreen === 'ASTD' ? 'ASTD' : 'AOTR';
+          const targetGame = appScreen;
           await supabase.from('topups').insert([{
             username: username,
             amount: difference,
@@ -238,7 +239,7 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                              <>
                                <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
                                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                                 <span className="text-emerald-400 font-mono font-bold">{(user.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                 <span className="text-emerald-400 font-mono font-bold">{((appScreen === 'ROV' ? user.balance_rov : user.balance) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                                </div>
                                {user.username !== 'Kuwashii_admin' && (
                                  confirmDeleteUser === user.username ? (
@@ -260,7 +261,7 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                                  ) : (
                                    <>
                                      <motion.button whileTap={{ scale: 0.95 }} 
-                                       onClick={() => { setEditingBalanceUser(user.username); setNewBalance(String(user.balance || 0)); }}
+                                       onClick={() => { setEditingBalanceUser(user.username); setNewBalance(String((appScreen === 'ROV' ? user.balance_rov : user.balance) || 0)); }}
                                        className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0"
                                        title="แก้ไขยอดเงิน (เติมเครดิต)"
                                      >
