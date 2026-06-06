@@ -3253,7 +3253,7 @@ export default function App() {
         <InquiryModal
           item={inquiringItem}
           onClose={() => setInquiringItem(null)}
-          onBuy={appScreen === "ASTD" ? handleBuyItem : undefined}
+          onBuy={appScreen !== "AOTR" ? handleBuyItem : undefined}
         />
       )}
 
@@ -5865,14 +5865,14 @@ export default function App() {
               <div className="flex flex-wrap items-center gap-2">
                 {/* Chat now button */}
                 <a
-                  href="https://m.me/kuwashii"
+                  href="https://discord.gg/AQKtJpvyva"
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="py-2.5 px-4 rounded-xl border border-blue-500/30 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-lg shadow-blue-500/5 hover:scale-[1.02] active:scale-95"
+                  className="py-2.5 px-4 rounded-xl border border-indigo-500/30 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-lg shadow-indigo-500/5 hover:scale-[1.02] active:scale-95"
                   id="btn-nav-chat"
                 >
-                  <MessageCircle className="w-4 h-4 text-blue-400" />
-                  <span>ทักแชททันที (Messenger)</span>
+                  <MessageCircle className="w-4 h-4 text-indigo-400" />
+                  <span>ดิสคอร์ดเซิฟเวอร์</span>
                 </a>
 
                 {currentUser ? (
@@ -6455,8 +6455,8 @@ export default function App() {
                     onDelete={handleDeleteItem}
                     onQuickQuantityChange={handleQuickQuantityChange}
                     onInquire={(it) => setInquiringItem(it)}
+                    onBuy={handleBuyItem}
                     onTogglePin={handleTogglePin}
-                    
                   />
                 ))}
               </AnimatePresence>

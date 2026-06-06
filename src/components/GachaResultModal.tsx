@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Trophy, Sparkles } from 'lucide-react';
+import { X, Trophy, Sparkles, MessageCircle } from 'lucide-react';
 
 interface GachaResultModalProps {
   isOpen: boolean;
@@ -155,6 +155,26 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
               <div className="mt-3 text-[10px] text-zinc-500 text-center font-mono relative z-10">
                 โปรดก็อปปี้หรือแคปเจอร์รหัสนี้ไว้ ข้อมูลจะแสดงในประวัติการสั่งซื้อเช่นกัน
               </div>
+            </motion.div>
+          )}
+
+          {!allSalt && !(result.credentialData && result.credentialData.length > 0) && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + (result.drops.length * 0.1) }}
+              className="mt-6 flex flex-col items-center"
+            >
+              <p className="text-zinc-400 text-xs mb-3 font-semibold">กรุณาติดต่อแอดมินพร้อมแคปหน้าจอเพื่อรับรางวัล</p>
+              <a
+                href={result.item?.game === 'ASTD' || !result.item?.game ? "https://m.me/DazzRFkaz" : "https://discord.gg/AQKtJpvyva"}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="w-full py-3 px-4 rounded-xl border border-blue-500/30 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 text-sm font-extrabold transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-500/5 hover:scale-[1.02] active:scale-95"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span>ติดต่อรับของรางวัลทันที</span>
+              </a>
             </motion.div>
           )}
 

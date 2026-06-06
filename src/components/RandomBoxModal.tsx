@@ -119,27 +119,15 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           className="relative max-w-[340px] w-full bg-zinc-950 rounded-2xl overflow-hidden shadow-2xl z-10 max-h-[85dvh] flex flex-col font-sans border border-zinc-800"
         >
-          {/* Top Banner Box */}
-          <div className="relative w-full h-40 bg-zinc-900 flex-shrink-0">
-            {item.imageUrl ? (
-              <img src={item.imageUrl} alt={item.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-amber-500 bg-gradient-to-br from-zinc-800 to-zinc-900 p-4">
-                <Box className="w-14 h-14 drop-shadow-md mb-2" />
-                <span className="text-white font-black text-lg drop-shadow-md uppercase">{item.game || 'MYSTERY BOX'}</span>
-              </div>
-            )}
-            
-            {/* Close button top right */}
-            <motion.button whileTap={{ scale: 0.95 }}
-              onClick={onClose}
-              className="absolute top-3 right-3 p-1.5 bg-black/50 backdrop-blur-md rounded-full text-zinc-400 hover:text-white hover:bg-black/70 transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </motion.button>
-          </div>
+          {/* Close button top right */}
+          <motion.button whileTap={{ scale: 0.95 }}
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1.5 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer z-50"
+          >
+            <X className="w-4 h-4" />
+          </motion.button>
 
-          <div className="p-4 sm:p-5 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-800 bg-zinc-950">
+          <div className="p-4 sm:p-5 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-800 bg-zinc-950 pt-10">
             <h2 className="text-xl font-black text-white mb-2 flex items-center gap-1.5 flex-wrap">
               {item.name} <span className="text-lg">📦</span>
             </h2>
@@ -153,11 +141,11 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
               {item.imageUrls && item.imageUrls.length > 0 && (
                 <div className="mb-4">
                   <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-1.5 font-sans">📸 รูปภาพเพิ่มเติม:</span>
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-800">
+                  <div className="flex flex-col gap-2">
                     {item.imageUrls.map((url, idx) => (
-                      <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 w-20 h-20 bg-zinc-950 border border-zinc-850 rounded-lg overflow-hidden group cursor-pointer">
-                        <img src={url} alt={`Additional ${idx+1}`} referrerPolicy="no-referrer" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                      </a>
+                      <div key={idx} className="w-full rounded-lg overflow-hidden border border-zinc-850 bg-zinc-950">
+                        <img src={url} alt={`Additional ${idx+1}`} referrerPolicy="no-referrer" className="w-full h-auto object-contain" />
+                      </div>
                     ))}
                   </div>
                 </div>
