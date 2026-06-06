@@ -412,23 +412,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             {/* Quantity, Initial Quantity, Pieces per pack, and Price row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-sans flex items-center gap-1.5">
-                  <Package className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-                  <span>เหลือในสต๊อก (สต๊อก)</span>
-                </label>
-                {(category === 'Starter Accounts' || category === 'รหัส ROV' || category === 'ไอดี ROV') ? (
-                  <div className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400/50 px-3 py-2 rounded-xl text-sm font-mono font-bold cursor-not-allowed flex items-center h-[38px]">
-                    {accountCredentialsText.trim() ? accountCredentialsText.trim().split('\n').filter(c => c.trim().length > 0).length : 0}
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-sans flex items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                    <span>เหลือในสต๊อก (สต๊อก)</span>
                   </div>
-                ) : (
-                  <input
-                    type="number"
-                    min="0"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-bold"
-                  />
-                )}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-bold"
+                />
                 {errors.quantity && <p className="text-xs text-red-500 mt-1">{errors.quantity}</p>}
               </div>
 

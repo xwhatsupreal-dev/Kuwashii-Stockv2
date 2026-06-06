@@ -159,7 +159,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
       id={`item-card-${item.id}`}
     >
       {/* Background radial gradient representing rarity */}
-      <div className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b ${colors.gradient} -z-10`} />
+      <div className={`absolute top-0 left-0 right-0 aspect-square bg-gradient-to-b ${colors.gradient} -z-10`} />
 
       {/* Top Banner & Badges */}
       <div className="p-3 sm:p-4 pb-1.5 sm:pb-2">
@@ -202,7 +202,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
         </div>
 
         {/* Item Image with hover expansion */}
-        <div className="relative w-full h-32 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800/70 mb-3 flex items-center justify-center group/carousel">
+        <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800/70 mb-3 flex items-center justify-center group/carousel">
           {(item.imageUrls && item.imageUrls.length > 0) || item.imageUrl ? (
             <>
               <img

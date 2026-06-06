@@ -12,7 +12,7 @@ export const ItemCardSkeleton: React.FC = () => {
       className="flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-900/80 bg-zinc-950/80 min-h-[460px] animate-pulse relative"
     >
       {/* Background radial gradient representing skeleton vibe */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-zinc-900/20 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 aspect-square bg-gradient-to-b from-zinc-900/20 via-transparent to-transparent pointer-events-none" />
 
       {/* Top Banner & Badges */}
       <div className="p-3 sm:p-4 pb-1.5 sm:pb-2">
@@ -25,7 +25,7 @@ export const ItemCardSkeleton: React.FC = () => {
         </div>
 
         {/* Item Image Box */}
-        <div className="relative w-full h-32 rounded-xl bg-zinc-900/60 border border-zinc-800/50 mb-3 flex flex-col items-center justify-center">
+        <div className="relative w-full aspect-square rounded-xl bg-zinc-900/60 border border-zinc-800/50 mb-3 flex flex-col items-center justify-center">
           <div className="w-10 h-10 rounded-full bg-zinc-900/80 flex items-center justify-center border border-zinc-800/30 mb-2">
             <Package className="w-5 h-5 text-zinc-700" />
           </div>
