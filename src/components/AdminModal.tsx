@@ -418,13 +418,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <span>เหลือในสต๊อก (สต๊อก)</span>
                   </div>
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-bold"
-                />
+                {(category === 'Starter Accounts' || category === 'รหัส ROV' || category === 'ไอดี ROV') ? (
+                  <div className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400/50 px-3 py-2 rounded-xl text-sm font-mono font-bold cursor-not-allowed flex items-center h-[38px]">
+                    {accountCredentialsText.trim() ? accountCredentialsText.trim().split('\n').filter(c => c.trim().length > 0).length : 0}
+                  </div>
+                ) : (
+                  <input
+                    type="number"
+                    min="0"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-bold"
+                  />
+                )}
                 {errors.quantity && <p className="text-xs text-red-500 mt-1">{errors.quantity}</p>}
               </div>
 
