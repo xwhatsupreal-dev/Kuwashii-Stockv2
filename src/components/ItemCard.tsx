@@ -28,6 +28,8 @@ export const ItemCard: React.FC<ItemCardProps> = ({
   onShareToAI,
   appScreen,
 }) => {
+  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+
   const getRarityColors = (rarity: StockItem['rarity']) => {
     switch (rarity) {
       case 'Mythic':
@@ -200,19 +202,40 @@ export const ItemCard: React.FC<ItemCardProps> = ({
         </div>
 
         {/* Item Image with hover expansion */}
-        <div className="relative w-full h-32 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800/70 mb-3 flex items-center justify-center">
-          {item.imageUrl ? (
-            <img
-              src={item.imageUrl}
-              alt={item.name}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              onError={(e) => {
-                // If loaded image fails, nullify to fallback custom graphics
-                (e.target as HTMLImageElement).src = '';
-                item.imageUrl = '';
-              }}
-            />
+        <div className="relative w-full h-32 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800/70 mb-3 flex items-center justify-center group/carousel">
+          {(item.imageUrls && item.imageUrls.length > 0) || item.imageUrl ? (
+            <>
+              <img
+                src={item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[currentImageIndex] : item.imageUrl!}
+                alt={item.name}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '';
+                }}
+              />
+              {item.imageUrls && item.imageUrls.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => prev === 0 ? item.imageUrls!.length - 1 : prev - 1); }}
+                    className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                  >
+                    &lsaquo;
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => prev === item.imageUrls!.length - 1 ? 0 : prev + 1); }}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                  >
+                    &rsaquo;
+                  </button>
+                  <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+                    {item.imageUrls.map((_, i) => (
+                      <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === currentImageIndex ? 'bg-white' : 'bg-white/40'}`} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           ) : (
             <div className="absolute inset-0 bg-gradient-to-tr from-zinc-950 to-zinc-900 flex flex-col items-center justify-center p-3">
               <div className="w-10 h-10 rounded-full bg-zinc-800/70 flex items-center justify-center border border-zinc-700/50 mb-2 text-zinc-500 group-hover:border-zinc-600 transition-colors">

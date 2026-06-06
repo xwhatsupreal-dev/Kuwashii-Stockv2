@@ -45,7 +45,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [imageType, setImageType] = useState<'url' | 'upload' | 'presets'>('url');
   const [imageUrl, setImageUrl] = useState('');
   const [imageUrlsText, setImageUrlsText] = useState('');
-  const [uploadBase64, setUploadBase64] = useState('');
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -74,16 +74,28 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       };
       fetchClaims();
 
-      setImageUrlsText(editingItem.imageUrls ? editingItem.imageUrls.join('\n') : '');
-      const isBase64 = editingItem.imageUrl?.startsWith('data:image/');
-      if (isBase64) {
+      let base64Imgs: string[] = [];
+      let normalUrls: string[] = [];
+      
+      const allImgs = editingItem.imageUrls ? [...editingItem.imageUrls] : (editingItem.imageUrl ? [editingItem.imageUrl] : []);
+      allImgs.forEach(img => {
+        if (img.startsWith('data:image/')) {
+          base64Imgs.push(img);
+        } else {
+          normalUrls.push(img);
+        }
+      });
+      
+      setImageUrlsText(normalUrls.join('\n'));
+      
+      if (base64Imgs.length > 0) {
         setImageType('upload');
-        setUploadBase64(editingItem.imageUrl || '');
+        setUploadedImages(base64Imgs);
         setImageUrl('');
       } else {
         setImageType('url');
-        setImageUrl(editingItem.imageUrl || '');
-        setUploadBase64('');
+        setImageUrl(normalUrls.length > 0 ? normalUrls[0] : '');
+        setUploadedImages([]);
       }
     } else {
       // Clear values for new item
@@ -101,7 +113,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setClaimedJackpots([]);
       setImageType('url');
       setImageUrl('');
-      setUploadBase64('');
+      setUploadedImages([]);
       setImageUrlsText('');
     }
     setErrors({});
@@ -148,10 +160,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
             const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // Compress to 60% quality jpeg
-            setUploadBase64(dataUrl);
+            setUploadedImages(prev => [...prev, dataUrl]);
             setImageType('upload');
           } else {
-            setUploadBase64(e.target!.result as string);
+            setUploadedImages(prev => [...prev, e.target!.result as string]);
             setImageType('upload');
           }
         };
@@ -162,8 +174,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      Array.from(e.target.files).forEach(file => processFile(file));
     }
   };
 
@@ -181,8 +193,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      Array.from(e.dataTransfer.files).forEach(file => processFile(file));
     }
   };
 
@@ -206,12 +218,20 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     e.preventDefault();
     if (!validate()) return;
 
-    let finalImageUrl = '';
+    const urlImgs = imageUrlsText.trim().split('\n').map(c => c.trim()).filter(c => c.length > 0);
+    
+    let allImages: string[] = [];
     if (imageType === 'url') {
-      finalImageUrl = imageUrl.trim();
+      if (imageUrl.trim()) allImages.push(imageUrl.trim());
+      allImages = [...allImages, ...urlImgs, ...uploadedImages]; 
     } else if (imageType === 'upload') {
-      finalImageUrl = uploadBase64;
+      allImages = [...uploadedImages, ...urlImgs];
+      if (imageUrl.trim() && !allImages.includes(imageUrl.trim())) allImages.push(imageUrl.trim());
     }
+
+    // fallback mapping string list
+    let finalImageUrl = allImages.length > 0 ? allImages[0] : '';
+    let addImgs = allImages;
 
     const currentQty = typeof quantity === 'number' ? quantity : (parseInt(quantity as string, 10) || 0);
     const currentPrice = typeof price === 'number' ? price : (parseInt(price as string, 10) || 0);
@@ -221,7 +241,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     const pPerUnit = typeof piecesPerUnit === 'number' ? piecesPerUnit : parseInt(piecesPerUnit as string, 10);
     const finalPiecesPerUnit = (!isNaN(pPerUnit) && pPerUnit > 0) ? pPerUnit : undefined;
 
-    const addImgs = imageUrlsText.trim().split('\n').map(c => c.trim()).filter(c => c.length > 0);
     const accCreds = accountCredentialsText.trim().split('\n').map(c => c.trim()).filter(c => c.length > 0);
     let finalQty = currentQty;
     let finalInitQty = finalInitialQuantity;
@@ -727,7 +746,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors ${
                       dragActive
                         ? 'border-amber-500 bg-amber-500/5'
-                        : uploadBase64
+                        : uploadedImages.length > 0
                         ? 'border-zinc-700 bg-zinc-900/60'
                         : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/20'
                     }`}
@@ -736,16 +755,31 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={handleFileChange}
                       className="hidden"
                     />
 
-                    {uploadBase64 ? (
+                    {uploadedImages.length > 0 ? (
                       <div className="text-center space-y-2">
-                        <div className="relative w-32 h-20 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800 mx-auto">
-                          <img src={uploadBase64} alt="upload preview" className="w-full h-full object-cover" />
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {uploadedImages.map((img, i) => (
+                            <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800">
+                              <img src={img} alt="upload preview" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setUploadedImages(prev => prev.filter((_, idx) => idx !== i));
+                                }}
+                                className="absolute top-1 right-1 w-5 h-5 bg-black/50 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-500"
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                        <p className="text-[10px] text-emerald-400 font-medium">รูปภาพอัปโหลดแล้วสำเร็จ! เปลี่ยนไฟล์คลิกที่นี่</p>
+                        <p className="text-[10px] text-emerald-400 font-medium">อัปโหลดสำเร็จ {uploadedImages.length} รูป! อัปโหลดเพิ่มคลิกที่นี่</p>
                       </div>
                     ) : (
                       <>

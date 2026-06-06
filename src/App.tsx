@@ -703,7 +703,7 @@ export default function App() {
               description: item.description,
               price: item.price,
               quantity: item.quantity,
-              image: item.imageUrl,
+              image: item.imageUrls ? JSON.stringify(item.imageUrls) : item.imageUrl,
               game: item.game,
               category: item.category,
               rarity: item.rarity,
@@ -735,7 +735,7 @@ export default function App() {
         description: item.description,
         price: item.price,
         quantity: item.quantity,
-        image: item.imageUrl,
+        image: item.imageUrls ? JSON.stringify(item.imageUrls) : item.imageUrl,
         game: item.game,
         category: item.category,
         rarity: item.rarity,
@@ -851,7 +851,7 @@ export default function App() {
           .from("profiles")
           .update({ [balanceField]: newBalance })
           .eq("username", activeUsername);
-        await supabase.from("topups").insert([
+        const { error: topupError } = await supabase.from("topups").insert([
           {
             username: activeUsername,
             amount: coupon.amount,
@@ -859,6 +859,15 @@ export default function App() {
             game: appScreen,
           },
         ]);
+        if (topupError) {
+          await supabase.from("topups").insert([
+            {
+              username: activeUsername,
+              amount: coupon.amount,
+              method: `Coupon: ${coupon.code}`,
+            },
+          ]);
+        }
 
         window.dispatchEvent(new Event("sync-update"));
 
@@ -923,7 +932,7 @@ export default function App() {
               .from("profiles")
               .update({ [balanceField]: newBalance })
               .eq("username", activeUsername);
-            await supabase.from("topups").insert([
+            const { error: topupError } = await supabase.from("topups").insert([
               {
                 username: activeUsername,
                 amount: amount,
@@ -931,6 +940,15 @@ export default function App() {
                 game: appScreen,
               },
             ]);
+            if (topupError) {
+              await supabase.from("topups").insert([
+                {
+                  username: activeUsername,
+                  amount: amount,
+                  method: `TrueMoney (Angpao) - ${topupCode.trim()}`,
+                },
+              ]);
+            }
 
             window.dispatchEvent(new Event("sync-update"));
 
@@ -1153,7 +1171,7 @@ export default function App() {
               .from("profiles")
               .update({ [balanceField]: newBalance })
               .eq("username", activeUsername);
-            await supabase.from("topups").insert([
+            const { error: topupError } = await supabase.from("topups").insert([
               {
                 username: activeUsername,
                 amount: amount,
@@ -1161,6 +1179,15 @@ export default function App() {
                 game: appScreen,
               },
             ]);
+            if (topupError) {
+              await supabase.from("topups").insert([
+                {
+                  username: activeUsername,
+                  amount: amount,
+                  method: `Bank Transfer - Ref: ${transactionId}`,
+                },
+              ]);
+            }
             window.dispatchEvent(new Event("sync-update"));
 
             const bankMsg = `เติมเงินสำเร็จ! ได้รับ ${amount} เครดิต (อ้างอิง: ${transactionId})`;
@@ -1915,7 +1942,7 @@ export default function App() {
         handleQuickQuantityChange(item.id, -purchaseQty, true);
       }
 
-      await supabase.from("purchases").insert([
+      const { error: purchaseError } = await supabase.from("purchases").insert([
         {
           username: currentUser.username,
           item_id: item.id,
@@ -1924,8 +1951,26 @@ export default function App() {
           quantity: purchaseQty,
           gacha_drops: drops.length > 0 ? drops : null,
           credential_data: extractCreds ? extractCreds.join("\n") : null,
+          game: item.game || appScreen,
         },
       ]);
+      if (purchaseError) {
+        console.error("Error inserting purchase:", purchaseError);
+        
+        // Retry with basic schema if the new columns don't exist
+        const { error: fallbackError } = await supabase.from("purchases").insert([
+          {
+            username: currentUser.username,
+            item_id: item.id,
+            item_name: item.name,
+            price: totalPrice,
+            quantity: purchaseQty,
+          },
+        ]);
+        if (fallbackError) {
+          console.error("Fallback purchase insert also failed:", fallbackError);
+        }
+      }
 
       if (item.game === "ASTD") {
         const configData = await getSystemConfig();

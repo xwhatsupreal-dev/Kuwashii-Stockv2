@@ -27,6 +27,7 @@ export interface PurchaseRecord {
   date: string;
   gachaDrops?: { name: string; color?: string; }[];
   credentialData?: string; 
+  game?: string;
 }
 
 export interface TopupRecord {
@@ -35,6 +36,7 @@ export interface TopupRecord {
   date: string;
   method?: string;
   refCode?: string;
+  game?: string;
 }
 
 export interface UserData {

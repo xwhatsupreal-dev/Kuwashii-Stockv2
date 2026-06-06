@@ -20,9 +20,19 @@ export async function fetchItems() {
       if (pieces === undefined) pieces = d.gacha_pool.piecesPerUnit;
     }
 
+    let imgUrls: string[] = [];
+    if (d.image) {
+      if (d.image.startsWith('[')) {
+        try { imgUrls = JSON.parse(d.image); } catch(e) { imgUrls = [d.image]; }
+      } else {
+        imgUrls = d.image.split(',').map((s: string) => s.trim()).filter((s: string) => s);
+      }
+    }
+
     return {
       ...d,
-      imageUrl: d.image,
+      imageUrl: imgUrls.length > 0 ? imgUrls[0] : undefined,
+      imageUrls: imgUrls.length > 0 ? imgUrls : undefined,
       gachaPool: pool,
       accountCredentials: accCreds,
       initialQuantity: initialQty,
@@ -71,12 +81,14 @@ export async function fetchUserPurchases(username: string) {
   if (error) return [];
   return data.map((d: any) => ({
     id: d.id,
+    itemId: d.item_id,
     itemName: d.item_name,
     price: parseFloat(d.price),
     quantity: d.quantity,
     date: d.created_at,
     gachaDrops: d.gacha_drops,
-    credentialData: d.credential_data
+    credentialData: d.credential_data,
+    game: d.game
   }));
 }
 

@@ -141,6 +141,11 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                           </div>
                           <div>
                             <p className="text-zinc-100 font-bold flex items-center gap-2">
+                              {purchase.game && (
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase shrink-0 ${purchase.game === 'ROV' ? 'bg-amber-500/20 text-amber-500' : purchase.game === 'AOTR' ? 'bg-red-500/20 text-red-500' : 'bg-indigo-500/20 text-indigo-500'}`}>
+                                  {purchase.game}
+                                </span>
+                              )}
                               <span className="truncate max-w-[200px] sm:max-w-[300px]">{purchase.itemName}</span>
                               {purchase.quantity && purchase.quantity > 1 && (
                                 <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 text-xs font-mono font-medium shrink-0">x{purchase.quantity}</span>
@@ -149,13 +154,13 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                             <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1 font-mono">
                               <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {date}</span>
                               <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {time}</span>
-                              <span>ID: {purchase.id.split('-')[1]}</span>
+                              <span>ID: {purchase.id.substring(0, 8)}</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-4 justify-between sm:justify-end w-full sm:w-auto mt-2 sm:mt-0">
-                          <div className="font-mono font-bold text-emerald-400 text-right">
-                            ฿{purchase.price}
+                          <div className={`font-mono font-bold text-right ${purchase.game === 'ROV' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            {purchase.game === 'ROV' ? '' : '฿'}{purchase.price} {purchase.game === 'ROV' ? 'เครดิต' : ''}
                           </div>
                           {canExpand && (
                             <div className="text-zinc-500">
@@ -271,7 +276,14 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                           <DollarSign className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="text-zinc-100 font-bold truncate">การเติมเงิน {topup.method}</p>
+                          <p className="text-zinc-100 font-bold flex items-center gap-2">
+                            {topup.game && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase shrink-0 ${topup.game === 'ROV' ? 'bg-amber-500/20 text-amber-500' : topup.game === 'AOTR' ? 'bg-red-500/20 text-red-500' : 'bg-indigo-500/20 text-indigo-500'}`}>
+                                {topup.game}
+                              </span>
+                            )}
+                            <span className="truncate">การเติมเงิน {topup.method}</span>
+                          </p>
                           <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1 font-mono">
                             <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {date}</span>
                             <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {time}</span>
@@ -279,8 +291,8 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                           </div>
                         </div>
                       </div>
-                      <div className={`font-mono font-bold text-right ${topup.amount > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {topup.amount > 0 ? '+' : ''}{topup.amount} ฿
+                      <div className={`font-mono font-bold text-right ${topup.amount > 0 ? (topup.game === 'ROV' ? 'text-amber-400' : 'text-emerald-400') : 'text-rose-400'}`}>
+                        {topup.amount > 0 ? '+' : ''}{topup.amount} {topup.game === 'ROV' ? 'เครดิต' : '฿'}
                       </div>
                     </div>
                   );

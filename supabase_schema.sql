@@ -48,11 +48,13 @@ CREATE TABLE IF NOT EXISTS public.purchases (
   quantity integer,
   gacha_drops jsonb,
   game text,
+  credential_data text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
 ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS game text;
 ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS gacha_drops jsonb;
+ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS credential_data text;
 
 -- 4. สร้างตารางประวัติการเติมเงิน (Topups)
 CREATE TABLE IF NOT EXISTS public.topups (
@@ -76,6 +78,7 @@ CREATE TABLE IF NOT EXISTS public.items (
   price numeric DEFAULT 0,
   quantity integer DEFAULT 0,
   image text,
+  images jsonb,
   game text,
   category text,
   rarity text,
@@ -157,3 +160,27 @@ BEGIN
     CREATE POLICY "Allow all operations for system_config" ON public.system_config FOR ALL USING (true);
   END IF;
 END $$;
+
+-- 10. ดึงประวัติการซื้อจากตาราง activities กลับมายังตาราง purchases (สำหรับคนที่ประวัติหาย)
+INSERT INTO public.purchases (username, item_name, price, quantity, gacha_drops, game, created_at)
+SELECT username, item_name, price, quantity, gacha_drops, game, timestamp
+FROM public.activities
+WHERE type = 'purchase'
+AND NOT EXISTS (
+  SELECT 1 FROM public.purchases p 
+  WHERE p.username = activities.username 
+  AND p.item_name = activities.item_name 
+  AND p.created_at = activities.timestamp
+);
+
+-- 11. ดึงประวัติการเติมเงินจากตาราง activities กลับมายังตาราง topups (หากเคยมีบันทึกไว้)
+INSERT INTO public.topups (username, amount, created_at, game)
+SELECT username, price, timestamp, game
+FROM public.activities
+WHERE type = 'topup'
+AND NOT EXISTS (
+  SELECT 1 FROM public.topups t 
+  WHERE t.username = activities.username 
+  AND t.amount = activities.price 
+  AND t.created_at = activities.timestamp
+);

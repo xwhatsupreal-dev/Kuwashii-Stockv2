@@ -17,7 +17,7 @@ export interface LiveActivity {
 }
 
 interface LiveActivitiesProps {
-  appScreen: 'ASTD' | 'AOTR';
+  appScreen: 'ASTD' | 'AOTR' | 'ROV';
   syncCounter: number;
   isAdmin?: boolean;
 }
@@ -53,8 +53,10 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
              
              if (appScreen === 'ASTD') {
                return !a.game || a.game === 'ASTD';
-             } else {
+             } else if (appScreen === 'AOTR') {
                return a.game === 'AOTR';
+             } else {
+               return a.game === 'ROV';
              }
           });
           setActivities(filtered.slice(0, 20));
@@ -140,11 +142,30 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
                 <div className="flex-1 min-w-0">
                   <p className="text-[9px] sm:text-sm font-medium text-zinc-300 font-sans leading-tight sm:leading-relaxed break-words line-clamp-2 sm:line-clamp-none">
                     {a.type === 'signup' ? (
-                      <>ผู้ใช้ใหม่ <span className="text-white font-bold">{a.username}</span> เข้าร่วม</>
+                      <>
+                        <span className="text-zinc-500 font-bold mr-1">
+                          [ระบบ]
+                        </span>
+                        ผู้ใช้ใหม่ <span className="text-white font-bold">{a.username}</span> เข้าร่วม
+                      </>
                     ) : a.type === 'topup' ? (
-                      <><span className="font-bold text-white break-all">{a.username}</span> เติมเงินสำเร็จ <span className="text-amber-400 font-bold ml-1">+{a.price?.toLocaleString()} ฿</span></>
+                      <>
+                        {a.game && (
+                          <span className={`px-1 py-0.5 rounded text-[9px] font-black uppercase shrink-0 mr-1.5 ${a.game === 'ROV' ? 'bg-amber-500/20 text-amber-500' : a.game === 'AOTR' ? 'bg-red-500/20 text-red-500' : 'bg-indigo-500/20 text-indigo-500'}`}>
+                            {a.game}
+                          </span>
+                        )}
+                        <span className="font-bold text-white break-all">{a.username}</span> เติมเงินสำเร็จ <span className={a.game === 'ROV' ? "text-amber-400 font-bold ml-1" : "text-emerald-400 font-bold ml-1"}>+{a.price?.toLocaleString()} {a.game === 'ROV' ? '(เครดิต)' : '฿'}</span>
+                      </>
                     ) : (
-                      <><span className="font-bold text-white break-all">{a.username}</span> ซื้อ <span className="text-indigo-300">[{a.itemName}]</span> <span className="text-yellow-400 font-bold font-mono ml-0.5 sm:ml-1">x{a.quantity}</span><span className="hidden sm:inline"> ชิ้น</span> {a.price && (<span className="text-emerald-400 font-bold ml-1">({a.price.toLocaleString()} ฿)</span>)}</>
+                      <>
+                        {a.game && (
+                          <span className={`px-1 py-0.5 rounded text-[9px] font-black uppercase shrink-0 mr-1.5 ${a.game === 'ROV' ? 'bg-amber-500/20 text-amber-500' : a.game === 'AOTR' ? 'bg-red-500/20 text-red-500' : 'bg-indigo-500/20 text-indigo-500'}`}>
+                            {a.game}
+                          </span>
+                        )}
+                        <span className="font-bold text-white break-all">{a.username}</span> ซื้อ <span className="text-indigo-300">[{a.itemName}]</span> <span className="text-yellow-400 font-bold font-mono ml-0.5 sm:ml-1">x{a.quantity}</span><span className="hidden sm:inline"> ชิ้น</span> {a.price && (<span className={a.game === 'ROV' ? "text-amber-400 font-bold ml-1" : "text-emerald-400 font-bold ml-1"}>({a.price.toLocaleString()} {a.game === 'ROV' ? 'เครดิต' : '฿'})</span>)}
+                      </>
                     )}
                   </p>
                   
