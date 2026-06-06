@@ -138,7 +138,7 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[40px]" />
               <div className="text-sm font-bold text-emerald-400 mb-2 font-mono flex justify-between items-center relative z-10">
-                <span>[ACCOUNT CREDENTIALS]</span>
+                <span>[{result.item?.game === 'ROV' ? 'Username:Password' : 'ข้อมูลบัญชี / โค้ด'}]</span>
                 <span className="text-xs text-emerald-500/70 border border-emerald-500/30 px-2 py-0.5 rounded-full">
                   Secret Data
                 </span>

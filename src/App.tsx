@@ -964,15 +964,15 @@ export default function App() {
               "angpao",
               newBalance,
               true,
+              appScreen
             );
           } else {
             let errorMsg =
-              data.info ||
-              data.message ||
-              data.msg ||
-              data.error ||
-              "ซองขวัญไม่ถูกต้อง หรือถูกใช้งานไปแล้ว";
-            if (typeof errorMsg === "string") {
+              data.message || "ซองของขวัญไม่ถูกต้องหรือถูกใช้งานไปแล้ว";
+            if (errorMsg.includes("ติดต่อผู้ดูแลระบบ")) {
+              errorMsg += " ";
+            }
+            if (errorMsg.includes("http")) {
               errorMsg = errorMsg.replace(
                 /https:\/\/discord\.gg\/[a-zA-Z0-9]+/g,
                 "https://discord.gg/AQKtJpvyva",
@@ -986,13 +986,12 @@ export default function App() {
               "angpao",
               (liveUser[appScreen === 'ROV' ? 'balance_rov' : 'balance'] || 0),
               false,
+              appScreen
             );
           }
         } catch (error: any) {
-          console.error("Topup fetch error:", error);
-          const catchErr =
-            "ระบบมีปัญหาในการตรวจสอบซองอั่งเปา: " +
-            (error?.message || "ไม่ทราบสาเหตุ");
+          console.error("Topup error:", error);
+          const catchErr = "ระบบเครือข่ายมีปัญหา หรือเรียกใช้ API ไม่ได้";
           setTopupError(catchErr);
           showToast(catchErr, "error");
         } finally {
@@ -1004,144 +1003,49 @@ export default function App() {
     }
 
     if (topupModalStep === "bank") {
+      if (!slipFile) {
+        showToast("กรุณาแนบสลิปการโอนเงิน", "error");
+        setIsProcessingTopup(false);
+        return;
+      }
+
       const processBankSlip = async () => {
         try {
-          if (!slipFile) {
-            showToast("กรุณาอัปโหลดสลิป", "error");
-            setIsProcessingTopup(false);
-            return;
-          }
-          const qrcode_text = await readQRFromImage(slipFile);
-          if (!qrcode_text) {
-            const qrErr = "ไม่พบ QR Code ในรูปภาพสลิป";
-            setTopupError(qrErr);
-            showToast(qrErr, "error");
-            setIsProcessingTopup(false);
-            return;
-          }
-
-          const res = await fetch("/api/topup/bank", {
+          setTopupError("");
+          const checkRes = await fetch("/api/easyslip", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ qrcode_text }),
+            body: JSON.stringify({
+              payload: slipPayload,
+            }),
           });
-          const data = await res.json();
-          if (data.status === "success") {
-            const transactionId = data.transactionId;
-            const amount = parseFloat(data.amount);
+          const data = await checkRes.json();
+          if (data.status === 200 && data.data) {
+            const amount = parseFloat(data.data.amount.amount) || 0;
+            const receiverName = data.data.receiver.name || "ไม่ทราบชื่อ";
+            const senderName = data.data.sender.name || "ไม่ทราบชื่อ";
+            const transRef = data.data.transRef;
 
-            // Check Receiver Name Verification
-            const stringifiedData = JSON.stringify(data);
-            const isNameMatch =
-              stringifiedData.includes("นาย ธีรเทพ ท") ||
-              stringifiedData.includes("นาย ธีรเทพ ทองเกตุ") ||
-              stringifiedData.includes("ธีรเทพ ท") ||
-              stringifiedData.includes("ธีรเทพ ทองเกตุ") ||
-              stringifiedData.includes("ธีรเทพ") ||
-              stringifiedData.includes("ทองเกตุ") ||
-              stringifiedData.toLowerCase().includes("teerathep") ||
-              stringifiedData.toLowerCase().includes("theerathep");
-
-            if (!isNameMatch) {
-              let displayFoundName =
-                data.receiver_name ||
-                data.receiverName ||
-                data.data?.receiver?.name ||
-                data.data?.receiver?.displayName ||
-                data.data?.receiver?.accountName;
-              if (!displayFoundName) {
-                const foundNameMatch =
-                  stringifiedData.match(/"name"\s*:\s*"([^"]+)"/) ||
-                  stringifiedData.match(/"receiver_name"\s*:\s*"([^"]+)"/);
-                if (foundNameMatch) displayFoundName = foundNameMatch[1];
-              }
-              const nameErr = `ชื่อผู้รับไม่ถูกต้อง: ${displayFoundName || "ไม่ทราบชื่อ"}`;
-              setTopupError(nameErr);
-              showToast(nameErr, "error");
-              setIsProcessingTopup(false);
-              return;
-            }
-
-            // Check if used in Supabase
             const { data: existingTopup } = await supabase
               .from("topups")
               .select("id")
-              .ilike("method", `%${transactionId}%`)
-              .limit(1);
-            if (existingTopup && existingTopup.length > 0) {
-              const usedErr = "สลิปนี้ถูกใช้งานไปแล้วในระบบของเรา";
-              setTopupError(usedErr);
-              showToast(usedErr, "error");
+              .eq("method", `Slip: ${transRef}`)
+              .single();
+
+            if (existingTopup) {
+              const errMsg = "สลิปนี้ถูกใช้งานไปแล้ว";
+              setTopupError(errMsg);
+              showToast(errMsg, "error");
               setIsProcessingTopup(false);
+              sendDiscordTopupEmbed(
+                activeUsername,
+                0,
+                "bank",
+                (liveUser[appScreen === 'ROV' ? 'balance_rov' : 'balance'] || 0),
+                false,
+                appScreen
+              );
               return;
-            }
-
-            // Time check
-            let slipTime: number | null = null;
-            try {
-              const stringData = JSON.stringify(data);
-              let dVal =
-                data.date ||
-                data.transDate ||
-                data.data?.transDate ||
-                data.data?.date;
-              let tVal =
-                data.time ||
-                data.transTime ||
-                data.data?.transTime ||
-                data.data?.time;
-
-              if (!dVal || !tVal) {
-                const dMatch = stringData.match(
-                  /"(?:transDate|date)"\s*:\s*"([^"]+)"/i,
-                );
-                const tMatch = stringData.match(
-                  /"(?:transTime|time)"\s*:\s*"([^"]+)"/i,
-                );
-                if (dMatch) dVal = dMatch[1];
-                if (tMatch) tVal = tMatch[1];
-              }
-
-              if (dVal && tVal) {
-                let cleanD = String(dVal).replace(/[-/]/g, "");
-                if (cleanD.length >= 8) {
-                  cleanD = `${cleanD.substring(0, 4)}-${cleanD.substring(4, 6)}-${cleanD.substring(6, 8)}`;
-                } else {
-                  cleanD = String(dVal);
-                }
-                let cleanT = String(tVal).trim();
-                if (cleanT.length === 5) cleanT += ":00"; // e.g. "20:40" -> "20:40:00"
-
-                slipTime = new Date(`${cleanD}T${cleanT}+07:00`).getTime();
-              } else {
-                const tsMatch = stringData.match(
-                  /"(?:timestamp|created_at)"\s*:\s*"([^"]+)"/i,
-                );
-                if (tsMatch) {
-                  slipTime = new Date(tsMatch[1]).getTime();
-                }
-              }
-            } catch (e) {}
-
-            if (slipTime && !isNaN(slipTime)) {
-              const now = Date.now();
-              const diffMinutes = Math.floor((now - slipTime) / (1000 * 60));
-
-              if (diffMinutes > 5) {
-                const timeErr = `สลิปนี้หมดอายุแล้ว (โอนผ่านไปแล้ว ${diffMinutes} นาที) กรุณาติดต่อแอดมินเพื่อตรวจสอบ`;
-                setTopupError(timeErr);
-                showToast(timeErr, "error");
-                setIsProcessingTopup(false);
-                return;
-              }
-
-              if (diffMinutes < -5) {
-                const timeErr = `เวลาในสลิปไม่ถูกต้อง (อนาคต) กรุณาติดต่อแอดมิน`;
-                setTopupError(timeErr);
-                showToast(timeErr, "error");
-                setIsProcessingTopup(false);
-                return;
-              }
             }
 
             const configData = await getSystemConfig();
@@ -1171,11 +1075,12 @@ export default function App() {
               .from("profiles")
               .update({ [balanceField]: newBalance })
               .eq("username", activeUsername);
+
             const { error: topupError } = await supabase.from("topups").insert([
               {
                 username: activeUsername,
                 amount: amount,
-                method: `Bank Transfer - Ref: ${transactionId}`,
+                method: `Slip: ${transRef}`,
                 game: appScreen,
               },
             ]);
@@ -1184,13 +1089,14 @@ export default function App() {
                 {
                   username: activeUsername,
                   amount: amount,
-                  method: `Bank Transfer - Ref: ${transactionId}`,
+                  method: `Slip: ${transRef}`,
                 },
               ]);
             }
+
             window.dispatchEvent(new Event("sync-update"));
 
-            const bankMsg = `เติมเงินสำเร็จ! ได้รับ ${amount} เครดิต (อ้างอิง: ${transactionId})`;
+            const bankMsg = `เติมเงินด้วยสลิปสำเร็จ! จำนวน ${amount.toLocaleString()} บาท\nจาก: ${senderName}\nถึง: ${receiverName}`;
             showToast(bankMsg, "success");
             setTopupSuccessMessage(bankMsg);
             setTopupModalStep("success");
@@ -1202,18 +1108,19 @@ export default function App() {
               "bank",
               newBalance,
               true,
+              appScreen
             );
           } else {
-            const errorMsg =
-              data.message?.massage_th ||
-              data.message ||
-              "รหัส QR จากสลิปไม่สามารถตรวจสอบได้";
-            let finalErr =
-              typeof errorMsg === "string" ? errorMsg : "สลิปไม่ถูกต้อง";
-            finalErr = finalErr.replace(
-              /https:\/\/discord\.gg\/[a-zA-Z0-9]+/g,
-              "https://discord.gg/AQKtJpvyva",
-            );
+            let finalErr = data.message || "ข้อมูลสลิปไม่ถูกต้อง หรือเช็คไม่ได้";
+            if (finalErr.includes("ติดต่อผู้ดูแลระบบ")) {
+              finalErr += " ";
+            }
+            if (finalErr.includes("http")) {
+              finalErr = finalErr.replace(
+                /https:\/\/discord\.gg\/[a-zA-Z0-9]+/g,
+                "https://discord.gg/AQKtJpvyva"
+              );
+            }
             setTopupError(`API แจ้งเตือน: ${finalErr}`);
             showToast(finalErr, "error");
             sendDiscordTopupEmbed(
@@ -1222,6 +1129,7 @@ export default function App() {
               "bank",
               (liveUser[appScreen === 'ROV' ? 'balance_rov' : 'balance'] || 0),
               false,
+              appScreen
             );
           }
         } catch (error: any) {
@@ -2011,6 +1919,7 @@ export default function App() {
         purchaseQty,
         liveItemQty - purchaseQty,
         webhookDrops,
+        appScreen
       );
 
       setInquiringItem(null);
@@ -2791,6 +2700,12 @@ export default function App() {
                 <p className="text-xs text-zinc-500">
                   ทำรายการผ่านช่องทางที่ท่านสะดวก
                 </p>
+              </div>
+              <div className="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
+                <span className="text-amber-500 text-[11px] font-bold leading-tight flex-1">⚠️ คำเตือน: ยอดเงินจะเข้าสู่โซนเกมที่คุณเลือกเท่านั้น (ASTD/ROV) ไม่สามารถโอนย้ายได้</span>
+              </div>
+              <div className="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
+                <span className="text-amber-500 text-xs font-bold leading-tight flex-1">⚠️ คำเตือน: เครดิต และ สต๊อกสินค้า จะแยกกันในแต่ละโซนเกม (ASTD/ROV) ไม่สามารถใช้ร่วมกันได้</span>
               </div>
 
               {topupModalStep === "select" ? (

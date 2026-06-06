@@ -173,7 +173,7 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                       {hasCredentialData && expandedPurchases.includes(purchase.id) && (
                         <div className="p-4 bg-emerald-950/20 border-b border-zinc-800/50">
                           <div className="text-xs font-semibold text-emerald-500 mb-2 flex items-center gap-1.5 uppercase tracking-widest font-mono">
-                            ข้อมูลบัญชี / โค้ด
+                            {purchase.game === 'ROV' ? 'Username:Password' : 'ข้อมูลบัญชี / โค้ด'}
                           </div>
                           <div className="space-y-2">
                             {purchase.credentialData!.split('\n').map((cred, idx) => (
@@ -237,7 +237,7 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                           </div>
                           
                           {/* Contact Button for winning drops */}
-                          {purchase.gachaDrops!.some(drop => !(drop as any).isSalt) && (
+                          {purchase.gachaDrops!.some(drop => !(drop as any).isSalt) && !hasCredentialData && (
                             <div className="mt-3">
                               <motion.button whileTap={{ scale: 0.95 }}
                                 onClick={() => window.open(purchase.game === 'ASTD' || !purchase.game ? "https://m.me/DazzRFkaz" : "https://discord.gg/AQKtJpvyva", "_blank")}
