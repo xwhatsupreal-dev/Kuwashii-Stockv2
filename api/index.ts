@@ -316,12 +316,12 @@ ${sharedItem.isPopular ? "⭐ สินค้านี้จัดเป็น�
 // True Wallet Topup Proxy
 app.post("/api/topup/true-wallet", async (req: express.Request, res: express.Response) => {
   try {
-    const { gift_link } = req.body;
+    const { gift_link, game } = req.body;
     
     // We send form data
     const params = new URLSearchParams();
     params.append('keyapi', '86eb4596fbb506a43b1b63b5911a5c78');
-    params.append('phone', '0801249138');
+    params.append('phone', game === 'ROV' ? '0801965815' : '0801249138');
     params.append('gift_link', gift_link);
     
     // Attempt fetch

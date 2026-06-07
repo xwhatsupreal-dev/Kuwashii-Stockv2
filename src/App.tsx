@@ -55,6 +55,7 @@ import {
   EyeOff,
   Edit3,
   Star,
+  LogOut,
 } from "lucide-react";
 
 import {
@@ -896,7 +897,7 @@ export default function App() {
           const res = await fetch("/api/topup/true-wallet", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ gift_link: topupCode.trim() }),
+            body: JSON.stringify({ gift_link: topupCode.trim(), game: appScreen }),
           });
           const data = await res.json();
           if (data.status === "success") {
@@ -1012,19 +1013,27 @@ export default function App() {
       const processBankSlip = async () => {
         try {
           setTopupError("");
-          const checkRes = await fetch("/api/easyslip", {
+          
+          const qrcode_text = await readQRFromImage(slipFile);
+          if (!qrcode_text) {
+            showToast("สลิปการโอนเงินไม่ถูกต้อง คิวอาร์โค้ดไม่สมบูรณ์ หรือไม่มีข้อมูล", "error");
+            setIsProcessingTopup(false);
+            return;
+          }
+
+          const checkRes = await fetch("/api/topup/bank", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              payload: slipPayload,
+              qrcode_text,
             }),
           });
           const data = await checkRes.json();
-          if (data.status === 200 && data.data) {
-            const amount = parseFloat(data.data.amount.amount) || 0;
-            const receiverName = data.data.receiver.name || "ไม่ทราบชื่อ";
-            const senderName = data.data.sender.name || "ไม่ทราบชื่อ";
-            const transRef = data.data.transRef;
+          if (data.status === "success" && data.data) {
+            const amount = parseFloat(data.data.amount) || 0;
+            const receiverName = data.data.receiver_name || "ไม่ทราบชื่อ";
+            const senderName = data.data.sender_name || "ไม่ทราบชื่อ";
+            const transRef = data.data.transRef || data.data.ref1;
 
             const { data: existingTopup } = await supabase
               .from("topups")
@@ -2701,11 +2710,17 @@ export default function App() {
                   ทำรายการผ่านช่องทางที่ท่านสะดวก
                 </p>
               </div>
-              <div className="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
-                <span className="text-amber-500 text-[11px] font-bold leading-tight flex-1">⚠️ คำเตือน: ยอดเงินจะเข้าสู่โซนเกมที่คุณเลือกเท่านั้น (ASTD/ROV) ไม่สามารถโอนย้ายได้</span>
-              </div>
-              <div className="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
-                <span className="text-amber-500 text-xs font-bold leading-tight flex-1">⚠️ คำเตือน: เครดิต และ สต๊อกสินค้า จะแยกกันในแต่ละโซนเกม (ASTD/ROV) ไม่สามารถใช้ร่วมกันได้</span>
+              <div className="mb-6 border-l-4 border-amber-500 bg-amber-500/10 rounded-r-xl p-4">
+                <div className="flex gap-3">
+                  <span className="text-xl leading-none">⚠️</span>
+                  <div>
+                    <h4 className="text-amber-500 font-bold text-sm mb-1">ข้อควรระวังก่อนทำรายการ</h4>
+                    <p className="text-amber-500/80 text-[11px] leading-relaxed">
+                      ระบบกระเป๋าเงินถูกแยกตามเกมที่ท่านกำลังให้ความสนใจ <b className="text-amber-400">(ขณะนี้ท่านอยู่ในส่วนของ {appScreen === 'ROV' ? 'เกม ROV' : 'เกม ASTD'})</b><br/>
+                      เครดิตที่ทำการเติมจะเข้าสู่กระเป๋าเกมนั้นๆ โดยตรง และ <b className="text-red-400">ไม่สามารถโอนย้ายข้ามเกมได้</b>
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {topupModalStep === "select" ? (
@@ -2943,18 +2958,19 @@ export default function App() {
                     <div className="mb-2 bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-xl flex flex-col items-center text-center">
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <p className="text-[10px] text-blue-300">
-                          กรุณาโอนเงินมาที่บัญชี (QR Code):
+                          {appScreen === "ROV" ? "กรุณาโอนเงินมาที่ (กสิกร/QR Code):" : "กรุณาโอนเงินมาที่บัญชี (QR Code):"}
                         </p>
                         <div className="flex items-center gap-2">
                           <p className="text-base md:text-lg font-bold text-white tracking-widest font-mono">
-                            213-3-81446-1
+                            {appScreen === "ROV" ? "184-8-29946-0" : "213-3-81446-1"}
                           </p>
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText("2133814461");
-                              showToast("คัดลอกเลขบัญชีแล้ว", "success");
+                              const textToCopy = appScreen === "ROV" ? "1848299460" : "2133814461";
+                              navigator.clipboard.writeText(textToCopy);
+                              showToast(appScreen === "ROV" ? "คัดลอกเลขบัญชีกสิกรแล้ว" : "คัดลอกเลขบัญชีแล้ว", "success");
                             }}
                             className="p-1 justify-center bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 rounded transition-colors duration-200"
                           >
@@ -2962,19 +2978,19 @@ export default function App() {
                           </motion.button>
                         </div>
                         <p className="text-sm md:text-base font-semibold text-blue-400">
-                          นายธีรเทพ ทองเกตุ
+                          {appScreen === "ROV" ? "ด.ช. รัชชานนท์ เรืองสวัสดิ์" : "นายธีรเทพ ทองเกตุ"}
                         </p>
                       </div>
 
                       <a
-                        href="https://img2.pic.in.th/1000098251.jpg"
+                        href={appScreen === "ROV" ? "https://img2.pic.in.th/1000108463.jpg" : "https://img2.pic.in.th/1000098251.jpg"}
                         download
                         target="_blank"
                         rel="noreferrer"
-                        className="block w-full max-w-[150px] border-2 border-blue-500/30 rounded-lg overflow-hidden my-2 hover:opacity-90 transition-opacity"
+                        className="block w-full max-w-[150px] border-2 border-blue-500/30 rounded-lg overflow-hidden my-2 hover:opacity-90 transition-opacity bg-white"
                       >
                         <img
-                          src="https://img2.pic.in.th/1000098251.jpg"
+                          src={appScreen === "ROV" ? "https://img2.pic.in.th/1000108463.jpg" : "https://img2.pic.in.th/1000098251.jpg"}
                           alt="Bank QR"
                           className="w-full h-auto"
                         />
@@ -3710,7 +3726,7 @@ export default function App() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         type="button"
-                        onClick={() => appScreen === 'ROV' ? showToast('ระบบเติมเงิน ROV จะเปิดให้บริการเร็วๆ นี้', 'info') : setShowTopupModal(true)}
+                        onClick={() => setShowTopupModal(true)}
                         className="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
                       >
                         <Wallet className="w-3.5 h-3.5" />
@@ -3937,7 +3953,7 @@ export default function App() {
                                     "error",
                                   );
                                 } else {
-                                  appScreen === 'ROV' ? showToast('ระบบเติมเงิน ROV จะเปิดให้บริการเร็วๆ นี้', 'info') : setShowTopupModal(true);
+                                  setShowTopupModal(true);
                                 }
                                 setIsAstdMenuOpen(false);
                               }}
@@ -4744,7 +4760,7 @@ export default function App() {
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       type="button"
-                      onClick={() => appScreen === 'ROV' ? showToast('ระบบเติมเงิน ROV จะเปิดให้บริการเร็วๆ นี้', 'info') : setShowTopupModal(true)}
+                      onClick={() => setShowTopupModal(true)}
                       className="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
                     >
                       <Wallet className="w-3.5 h-3.5" />
@@ -5810,7 +5826,7 @@ export default function App() {
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       type="button"
-                      onClick={() => appScreen === 'ROV' ? showToast('ระบบเติมเงิน ROV จะเปิดให้บริการเร็วๆ นี้', 'info') : setShowTopupModal(true)}
+                      onClick={() => setShowTopupModal(true)}
                       className="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
                     >
                       <Wallet className="w-3.5 h-3.5" />
@@ -5890,6 +5906,150 @@ export default function App() {
                   </span>
                   <span className="md:hidden">Hub</span>
                 </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  type="button"
+                  onClick={() => setIsAstdMenuOpen(!isAstdMenuOpen)}
+                  className="py-2.5 px-3 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white transition-all duration-300 flex items-center cursor-pointer shadow-xl shadow-black/30 relative"
+                >
+                  <Menu className="w-5 h-5 text-zinc-400" />
+                </motion.button>
+
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {isAstdMenuOpen && (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-40"
+                        onClick={() => setIsAstdMenuOpen(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute top-16 right-4 sm:right-6 lg:right-8 w-64 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                      >
+                        <div className="p-3 sm:hidden border-b border-zinc-800/50 mb-2">
+                          <div className="flex flex-col gap-2">
+                            {currentUser ? (
+                              <>
+                                <div className="flex items-center gap-2 px-2 py-1.5 mb-1 bg-zinc-950/50 rounded-lg">
+                                  {isAdmin ? (
+                                    <ShieldCheck className="w-4 h-4 text-amber-500" />
+                                  ) : (
+                                    <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                                  )}
+                                  <span className="text-sm font-semibold text-zinc-200">
+                                    {currentUser.username}
+                                  </span>
+                                  {!isAdmin && (
+                                    <span className="ml-auto text-xs font-mono text-emerald-400">
+                                      ฿
+                                      {Number(
+                                        (appScreen === 'ROV' ? currentUserData?.balance_rov : currentUserData?.balance) || 0,
+                                      ).toLocaleString(undefined, {
+                                        maximumFractionDigits: 2,
+                                        minimumFractionDigits: 0,
+                                      })}
+                                    </span>
+                                  )}
+                                </div>
+                                {isAdmin && (
+                                  <motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingItem(null);
+                                      setIsFormOpen(true);
+                                      setIsAstdMenuOpen(false);
+                                    }}
+                                    className="py-2 px-4 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-white text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                                  >
+                                    <Plus className="w-4 h-4 text-indigo-400" />{" "}
+                                    ลงขายสินค้า
+                                  </motion.button>
+                                )}
+                              </>
+                            ) : (
+                              <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                type="button"
+                                onClick={() => {
+                                  setShowAuthModal(true);
+                                  setIsAstdMenuOpen(false);
+                                }}
+                                className="w-full py-2 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-colors shadow-lg shadow-amber-500/20"
+                              >
+                                เข้าสู่ระบบ / สมัครสมาชิก
+                              </motion.button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="py-2">
+                          {currentUser ? (
+                            <>
+                              <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                  setShowTopupModal(true);
+                                  setIsAstdMenuOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2.5 hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
+                              >
+                                <Wallet className="w-4 h-4 text-amber-400" />{" "}
+                                เติมเงิน
+                              </motion.button>
+                              <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                  setShowHistoryModal(true);
+                                  setIsAstdMenuOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2.5 hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
+                              >
+                                <History className="w-4 h-4 text-blue-400" />{" "}
+                                ประวัติการทำรายการ
+                              </motion.button>
+                              <div className="h-px bg-zinc-800/50 my-1" />
+                              <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                  setIsAccountSettingsOpen(true);
+                                  setIsAstdMenuOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2.5 rounded-xl hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
+                              >
+                                <Settings className="w-4 h-4 text-zinc-400" /> ตั้งค่าบัญชี
+                              </motion.button>
+                              <div className="h-px bg-zinc-800/50 my-1" />
+                              <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                  logout();
+                                  setIsAstdMenuOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2.5 hover:bg-red-500/10 text-sm text-red-400 hover:text-red-300 transition-colors flex items-center gap-3"
+                              >
+                                <LogOut className="w-4 h-4" /> ออกจากระบบ
+                              </motion.button>
+                            </>
+                          ) : (
+                            <div className="px-4 py-3 text-center">
+                              <p className="text-xs text-zinc-500 mb-2">
+                                กรุณาเข้าสู่ระบบเพื่อใช้งานเมนูอื่นๆ
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
