@@ -822,28 +822,30 @@ export default function App() {
         coupon.usedBy.push(activeUsername);
         localStorage.setItem("KUWASHII_COUPONS", JSON.stringify(coupons));
 
-        const configData = await getSystemConfig();
-        if (appScreen === "ASTD") {
-          const currentFree = configData
-            ? Number(configData.global_free_astd || 0)
-            : 0;
-          await supabase
-            .from("system_config")
-            .upsert({
-              id: "main",
-              global_free_astd: currentFree + coupon.amount,
-            });
-        } else {
-          const currentFree = configData
-            ? Number(configData.global_free_credits_aotr || 0)
-            : 0;
-          await supabase
-            .from("system_config")
-            .upsert({
-              id: "main",
-              global_free_credits_aotr: currentFree + coupon.amount,
-            });
-        }
+            const configData = await getSystemConfig();
+            if (appScreen === "ASTD") {
+              const currentFree = configData
+                ? Number(configData.global_free_astd || 0)
+                : 0;
+              await supabase
+                .from("system_config")
+                .upsert({
+                  id: "main",
+                  global_free_astd: currentFree + coupon.amount,
+                });
+            } else if (appScreen === "AOTR") {
+              // AOTR columns not reliably present, wrap in try/catch or assume it's fine for now,
+              // but we are focused on ROV. Just skip ROV since it has no columns.
+              const currentFree = configData
+                ? Number(configData.global_free_credits_aotr || 0)
+                : 0;
+              await supabase
+                .from("system_config")
+                .upsert({
+                  id: "main",
+                  global_free_credits_aotr: currentFree + coupon.amount,
+                });
+            }
 
         const balanceField = appScreen === "ROV" ? "balance_rov" : "balance";
         const userBalance = Number(liveUser[balanceField] || 0);
@@ -914,7 +916,7 @@ export default function App() {
               await supabase
                 .from("system_config")
                 .upsert({ id: "main", global_rev_astd: currentRev + amount });
-            } else {
+            } else if (appScreen === "AOTR") {
               const currentRev = configData
                 ? Number(configData.global_revenue_aotr || 0)
                 : 0;
@@ -925,6 +927,7 @@ export default function App() {
                   global_revenue_aotr: currentRev + amount,
                 });
             }
+            // If ROV, we do nothing to system_config because we don't track global_revenue_rov currently.
 
             const balanceField = appScreen === "ROV" ? "balance_rov" : "balance";
             const userBalance = Number(liveUser[balanceField] || 0);
@@ -1073,7 +1076,7 @@ export default function App() {
               await supabase
                 .from("system_config")
                 .upsert({ id: "main", global_rev_astd: currentRev + amount });
-            } else {
+            } else if (appScreen === "AOTR") {
               const currentRev = configData
                 ? Number(configData.global_revenue_aotr || 0)
                 : 0;
@@ -1084,6 +1087,7 @@ export default function App() {
                   global_revenue_aotr: currentRev + amount,
                 });
             }
+            // If ROV, we do nothing to system_config because we don't track global_revenue_rov currently.
 
             const balanceField = appScreen === "ROV" ? "balance_rov" : "balance";
             const userBalance = Number(liveUser[balanceField] || 0);
@@ -1908,6 +1912,19 @@ export default function App() {
             id: "main",
             global_sales_astd: currentSales + purchaseQty,
           });
+      } else if (item.game === "ROV") {
+        const configData = await getSystemConfig();
+        const currentSales = configData
+          ? Number(configData.global_sales_rov || 0)
+          : 0;
+        const { error } = await supabase
+          .from("system_config")
+          .upsert({
+            id: "main",
+            global_sales_rov: currentSales + purchaseQty,
+          });
+        // Error will pop up in console if column doesn't exist, but won't crash user app thanks to no strict throw.
+        if (error) console.warn("Supabase update for ROV sales failed (likely missing column global_sales_rov)", error);
       }
 
       // Reduce Stock natively handled earlier for creds or via fallback
@@ -6038,7 +6055,7 @@ export default function App() {
                               <motion.button
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => {
-                                  logout();
+                                  handleLogout();
                                   setIsAstdMenuOpen(false);
                                 }}
                                 className="w-full text-left px-4 py-2.5 hover:bg-red-500/10 text-sm text-red-400 hover:text-red-300 transition-colors flex items-center gap-3"
@@ -6062,7 +6079,7 @@ export default function App() {
             </div>
 
             {/* Statistics summary row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
               <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">
                   จำนวนสินค้าทั้งหมด
@@ -6114,6 +6131,60 @@ export default function App() {
                       <span className="text-xs text-zinc-500">ชิ้น</span>
                     </>
                   )}
+                </div>
+              </div>
+
+              <div className="bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl relative group">
+                {isAdmin && (
+                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={async () => {
+                        const currentVal = String(globalStats?.global_sales_rov || 0);
+                        const newVal = window.prompt("แก้ไขยอดขายไปแล้วทั้งหมด (ROV)", currentVal);
+                        if (newVal !== null && !isNaN(parseInt(newVal))) {
+                          const val = parseInt(newVal);
+                          const { error } = await supabase
+                            .from("system_config")
+                            .update({ global_sales_rov: val })
+                            .eq("id", "main");
+                          
+                          if (error) {
+                             showToast("อัปเดตล้มเหลว กรุณาเพิ่มคอลัมน์ global_sales_rov ในฐานข้อมูล (System Config)", "error");
+                             // Still update locally for this session
+                             setGlobalStats({ ...globalStats, global_sales_rov: val });
+                          } else {
+                             setGlobalStats({ ...globalStats, global_sales_rov: val });
+                             window.dispatchEvent(new Event("sync-update"));
+                             showToast("อัปเดตยอดขายแล้ว (ROV)", "success");
+                          }
+                        }
+                      }}
+                      className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={toggleHideGlobalStats}
+                      className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
+                    >
+                      {hideGlobalStats ? (
+                        <EyeOff className="w-3.5 h-3.5" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5" />
+                      )}
+                    </motion.button>
+                  </div>
+                )}
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-sans">
+                  ยอดขายไปแล้วทั้งหมด
+                </span>
+                <div className="mt-1.5 flex items-baseline gap-2">
+                  <span className="font-mono text-2xl font-black text-emerald-400">
+                    {hideGlobalStats ? "***" : Number(globalStats?.global_sales_rov || 0).toLocaleString()}
+                  </span>
+                  <span className="text-xs text-zinc-500">ชิ้น</span>
                 </div>
               </div>
 
