@@ -315,12 +315,19 @@ export default function App() {
     // Initial fetch
     handleSync();
 
+    const throttledHandleSync = () => {
+      if ((window as any)._syncDebounce) clearTimeout((window as any)._syncDebounce);
+      (window as any)._syncDebounce = setTimeout(() => {
+        handleSync();
+      }, 3000);
+    };
+
     window.addEventListener("sync-update", handleSync);
 
     const realtimeChannel = supabase
       .channel("public-db-changes")
       .on("postgres_changes", { event: "*", schema: "public" }, () => {
-        handleSync();
+        throttledHandleSync();
       })
       .subscribe();
 

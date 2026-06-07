@@ -12,28 +12,8 @@ interface SalesChartProps {
 export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
   const [data, setData] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'sales' | 'signups' | 'topups'>('sales');
-  const [updateTrigger, setUpdateTrigger] = useState(0);
-
   useEffect(() => {
-    // Set up realtime subscriptions
-    const channel = supabase.channel('chart-updates')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'purchases' }, () => {
-        setUpdateTrigger(prev => prev + 1);
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
-        setUpdateTrigger(prev => prev + 1);
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'topups' }, () => {
-        setUpdateTrigger(prev => prev + 1);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  useEffect(() => {
+    // Analytics graph fetches once per tab/view mode to save Egress
     const fetchData = async () => {
       const now = new Date();
       // Round down to the current exact hour to make ticks predictable
@@ -118,7 +98,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
     };
 
     fetchData();
-  }, [viewMode, appScreen, updateTrigger]);
+  }, [viewMode, appScreen]);
 
   const getColor = () => {
     if (viewMode === 'sales') return '#818cf8';

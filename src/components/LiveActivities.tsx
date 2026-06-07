@@ -28,7 +28,7 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { data: raw, error } = await supabase.from('activities').select('*').order('timestamp', { ascending: false }).limit(150);
+        const { data: raw, error } = await supabase.from('activities').select('*').order('timestamp', { ascending: false }).limit(20);
         if (raw && !error) {
           const parsed: LiveActivity[] = raw.map((d: any) => ({
             id: d.id,
