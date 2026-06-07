@@ -363,7 +363,7 @@ app.post("/api/topup/bank", async (req: express.Request, res: express.Response) 
     const data = await response.json();
     
     // Server-side explicit time check (5 mins max)
-    if (data.status === 'success') {
+    if (data.status === 'success' || data.code === 200 || data.message === "เช็คสลิปสำเร็จ") {
        try {
            let dVal = data.date || data.transDate || data.data?.transDate || data.data?.date;
            let tVal = data.time || data.transTime || data.data?.transTime || data.data?.time;

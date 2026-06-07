@@ -1029,11 +1029,19 @@ export default function App() {
             }),
           });
           const data = await checkRes.json();
-          if (data.status === "success" && data.data) {
-            const amount = parseFloat(data.data.amount) || 0;
-            const receiverName = data.data.receiver_name || "ไม่ทราบชื่อ";
-            const senderName = data.data.sender_name || "ไม่ทราบชื่อ";
-            const transRef = data.data.transRef || data.data.ref1;
+          if (data.status === "success" || data.code === 200 || data.message === "เช็คสลิปสำเร็จ") {
+            const slipData = data.data || data;
+            const amount = parseFloat(slipData.amount?.amount || slipData.amount || data.amount) || 0;
+            const receiverName = slipData.receiver?.name || slipData.receiver?.account_name || slipData.receiver_name || data.receiver_name || "ไม่ทราบชื่อ";
+            const senderName = slipData.sender?.name || slipData.sender?.account_name || slipData.sender_name || data.sender_name || "ไม่ทราบชื่อ";
+            const transRef = slipData.transRef || slipData.ref1 || data.transRef || data.ref1 || `UNKNOWN-${Date.now()}`;
+
+            if (amount <= 0) {
+              setTopupError("ไม่พบยอดเงินในสลิป หรือสลิปไม่สมบูรณ์");
+              showToast("ไม่พบยอดเงินในสลิป หรือสลิปไม่สมบูรณ์", "error");
+              setIsProcessingTopup(false);
+              return;
+            }
 
             const { data: existingTopup } = await supabase
               .from("topups")
