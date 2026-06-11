@@ -72,12 +72,12 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
 
   if (activities.length === 0) {
     return (
-      <div className="mb-4 sm:mb-8 mt-3 sm:mt-4 p-2.5 sm:p-5 rounded-xl sm:rounded-3xl border border-zinc-800 shadow-2xl bg-zinc-950/90 relative overflow-hidden">
+      <div className="mb-4 sm:mb-8 mt-3 sm:mt-4 p-2.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-white/5 shadow-2xl bg-transparent/90 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-zinc-600/50 to-transparent" />
         <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-800/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
         <div className="flex flex-col mb-2 sm:mb-5 gap-2 sm:gap-3">
           <div>
-            <h2 className="text-sm sm:text-lg font-bold text-zinc-500 font-sans flex items-center gap-2 relative z-10">
+            <h2 className="text-sm sm:text-lg font-bold text-zinc-400 font-display tracking-tight flex items-center gap-2 relative z-10">
               กิจกรรมล่าสุด
             </h2>
             <p className="text-[9px] sm:text-xs text-zinc-600 mt-1 relative z-10">กำลังรอกิจกรรมใหม่จากผู้เล่น...</p>
@@ -97,19 +97,19 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
   };
 
   return (
-    <div className="mb-4 sm:mb-8 mt-3 sm:mt-4 p-2.5 sm:p-5 rounded-xl sm:rounded-3xl border border-zinc-800 shadow-2xl bg-zinc-950/90 relative overflow-hidden">
+    <div className="mb-4 sm:mb-8 mt-3 sm:mt-4 p-2.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-white/5 shadow-2xl bg-transparent/90 relative overflow-hidden">
       {/* Decorative gradient accents */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-zinc-600/50 to-transparent" />
       <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-800/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
       
       <div className="flex flex-row items-center justify-between mb-3 sm:mb-5 gap-2">
         <div>
-          <h2 className="text-sm sm:text-lg font-bold text-white font-sans flex items-center gap-2 relative z-10">
+          <h2 className="text-sm sm:text-lg font-bold text-white font-display tracking-tight flex items-center gap-2 relative z-10">
             กิจกรรมล่าสุด
           </h2>
           <p className="text-[9px] sm:text-xs text-zinc-400 mt-0.5 sm:mt-1 relative z-10">ติดตามกิจกรรมของร้านค้าแบบเรียลไทม์</p>
         </div>
-        <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full border border-zinc-800/80 shadow-inner min-w-fit max-w-fit relative z-10">
+        <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full border border-white/5/80 shadow-inner min-w-fit max-w-fit relative z-10">
           <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
           <span className="text-[9px] sm:text-xs font-bold text-zinc-300 whitespace-nowrap">สด</span>
         </div>
@@ -127,9 +127,9 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
                 initial={{ opacity: 0, height: 0, scale: 0.98, y: -10 }}
                 animate={{ opacity: 1, height: 'auto', scale: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="flex items-center gap-2 sm:gap-3.5 p-1.5 sm:p-3.5 rounded-lg sm:rounded-2xl border border-zinc-800/60 bg-black/40 hover:bg-zinc-900/40 transition-colors"
+                className="flex items-center gap-2 sm:gap-3.5 p-1.5 sm:p-3.5 rounded-lg sm:rounded-2xl border border-white/5/60 bg-black/40 hover:bg-white/5/40 transition-colors"
               >
-                <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-md sm:rounded-xl shrink-0 flex items-center justify-center border border-zinc-800/80 bg-zinc-900/50 shadow-inner">
+                <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-md sm:rounded-2xl shrink-0 flex items-center justify-center border border-white/5/80 glass-panel shadow-inner">
                   {a.type === 'signup' ? (
                     <User className="w-3 h-3 sm:w-4.5 sm:h-4.5 text-zinc-400" />
                   ) : a.type === 'topup' ? (
@@ -140,10 +140,10 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-sm font-medium text-zinc-300 font-sans leading-tight sm:leading-relaxed break-words line-clamp-2 sm:line-clamp-none">
+                  <p className="text-[9px] sm:text-sm font-medium text-zinc-300 font-display tracking-tight leading-tight sm:leading-relaxed break-words line-clamp-2 sm:line-clamp-none">
                     {a.type === 'signup' ? (
                       <>
-                        <span className="text-zinc-500 font-bold mr-1">
+                        <span className="text-zinc-400 font-bold mr-1">
                           [ระบบ]
                         </span>
                         ผู้ใช้ใหม่ <span className="text-white font-bold">{a.username}</span> เข้าร่วม
@@ -180,7 +180,7 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
                 </div>
                 
                 <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
-                  <span className="text-[8px] sm:text-[10px] font-medium text-zinc-500 whitespace-nowrap bg-zinc-900/50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">{getTimeAgo(a.timestamp)}</span>
+                  <span className="text-[8px] sm:text-[10px] font-medium text-zinc-400 whitespace-nowrap glass-panel px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">{getTimeAgo(a.timestamp)}</span>
                   {(Date.now() - new Date(a.timestamp.endsWith('Z') || a.timestamp.includes('+') ? a.timestamp : `${a.timestamp}Z`).getTime()) < 3600000 && (
                     <span className="text-[7.5px] sm:text-[9px] font-bold text-white px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap bg-zinc-800 border border-zinc-700 uppercase tracking-widest shadow-sm">
                       ใหม่

@@ -138,7 +138,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative max-w-sm w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-4 sm:p-5 overflow-hidden shadow-2xl z-10 max-h-[90dvh] flex flex-col"
+          className="relative max-w-sm w-full rounded-2xl border border-white/5 bg-transparent p-4 sm:p-5 overflow-hidden shadow-2xl z-10 max-h-[90dvh] flex flex-col"
         >
           {/* Accent decoration */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-amber-500 to-purple-600" />
@@ -151,7 +151,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
             </h3>
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
-              className="p-1 text-zinc-500 hover:text-white rounded-lg hover:bg-zinc-900 transition-colors"
+              className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
               id="btn-close-inquiry"
             >
               <X className="w-4.5 h-4.5" />
@@ -161,8 +161,8 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
           {/* Scrollable Content wrapper to prevent full-screen takeover on small viewports */}
           <div className="overflow-y-auto space-y-3.5 pr-0.5 scrollbar-thin scrollbar-thumb-zinc-800 pb-1 flex-1">
             {/* Item details card preview */}
-            <div className="flex gap-3 p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/30">
-              <div className="w-14 h-14 bg-zinc-950 border border-zinc-850 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+            <div className="flex gap-3 p-2.5 rounded-2xl border border-white/5 bg-white/5/30">
+              <div className="w-14 h-14 bg-transparent border border-zinc-850 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
                 {item.imageUrl ? (
                   <img src={item.imageUrl} alt={item.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
@@ -185,9 +185,9 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
 
             {/* Dedicated full item description wrapper */}
             {item.description && (
-              <div className="bg-zinc-900/20 p-3 rounded-xl border border-zinc-900 text-xs leading-relaxed">
-                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-1 font-sans">📝 คำอธิบายสินค้า / รายละเอียด:</span>
-                <p className="text-zinc-200 whitespace-pre-wrap font-sans font-medium text-[11px] leading-relaxed break-words">
+              <div className="bg-white/5/20 p-3 rounded-2xl border border-white/5 text-xs leading-relaxed">
+                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block mb-1 font-display tracking-tight">📝 คำอธิบายสินค้า / รายละเอียด:</span>
+                <p className="text-zinc-200 whitespace-pre-wrap font-display tracking-tight font-medium text-[11px] leading-relaxed break-words">
                   {item.description}
                 </p>
               </div>
@@ -196,10 +196,10 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
             {/* Additional Images */}
             {item.imageUrls && item.imageUrls.length > 0 && (
               <div className="mt-2">
-                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-1.5 font-sans">📸 รูปภาพเพิ่มเติม:</span>
+                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5 font-display tracking-tight">📸 รูปภาพเพิ่มเติม:</span>
                 <div className="flex flex-col gap-2">
                   {item.imageUrls.map((url, idx) => (
-                    <div key={idx} className="w-full rounded-lg overflow-hidden border border-zinc-850 bg-zinc-950">
+                    <div key={idx} className="w-full rounded-lg overflow-hidden border border-zinc-850 bg-transparent">
                       <img src={url} alt={`Additional ${idx+1}`} referrerPolicy="no-referrer" className="w-full h-auto object-contain" />
                     </div>
                   ))}
@@ -210,10 +210,10 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
             {/* Quantity Selector Slider & Buttons */}
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-zinc-400 font-sans">
+                <span className="text-xs text-zinc-400 font-display tracking-tight">
                   {hasPieces ? 'จำนวนชุดที่ต้องการ:' : 'จำนวนชิ้นที่ต้องการ:'}
                 </span>
-                <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-900 rounded-lg p-0.5">
+                <div className="flex items-center gap-1.5 bg-white/5 border border-white/5 rounded-lg p-0.5">
                   <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
                     onMouseDown={() => startAutoStep('dec')}
@@ -297,7 +297,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
 
               {/* Live calculation preview during purchase */}
               {hasPieces && (
-                <div className="bg-zinc-900/30 px-2 py-1.5 rounded-lg border border-zinc-905 text-[10px] flex justify-between items-center text-zinc-400 leading-none">
+                <div className="bg-white/5/30 px-2 py-1.5 rounded-lg border border-zinc-905 text-[10px] flex justify-between items-center text-zinc-400 leading-none">
                   <span>🎁 จะได้รับรวมเสมือนจริง:</span>
                   <span className="font-mono font-bold text-amber-400">
                     {quantity} ชุด × {item.piecesPerUnit} = <strong className="text-white font-black text-xs">{quantity * (item.piecesPerUnit || 1)} ชิ้น</strong>
@@ -306,10 +306,10 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
               )}
 
               {/* Total price section */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-900 bg-zinc-950">
+              <div className="flex items-center justify-between p-2.5 rounded-2xl border border-white/5 bg-transparent">
                 <div className="flex items-center gap-1.5">
                   <Coins className="w-3.5 h-3.5 text-yellow-500" />
-                  <span className="text-xs font-sans text-zinc-450">ราคาทั้งสิ้น:</span>
+                  <span className="text-xs font-display tracking-tight text-zinc-450">ราคาทั้งสิ้น:</span>
                 </div>
                 <span className="font-mono text-base font-black text-white">
                   ฿{totalPrice.toLocaleString()}
@@ -318,7 +318,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
             </div>
 
             {onBuy ? (
-              <div className="border-t border-zinc-900 pt-3 mt-3">
+              <div className="border-t border-white/5 pt-3 mt-3">
                 <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => {
@@ -335,9 +335,9 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
               <>
                 {/* Clipboard Message Copy Center */}
                 <div className="space-y-1.5 mt-3">
-                  <span className="text-[10px] text-zinc-450 font-sans block">กล่องแชทข้อความสั่งซื้อด่วน:</span>
+                  <span className="text-[10px] text-zinc-450 font-display tracking-tight block">กล่องแชทข้อความสั่งซื้อด่วน:</span>
                   <div className="relative">
-                    <pre className="text-[10px] font-mono leading-relaxed bg-zinc-900 border border-zinc-900 py-2 px-2.5 rounded-lg text-zinc-350 whitespace-pre h-16 overflow-y-auto overflow-x-hidden scrollbar">
+                    <pre className="text-[10px] font-mono leading-relaxed bg-white/5 border border-white/5 py-2 px-2.5 rounded-lg text-zinc-350 whitespace-pre h-16 overflow-y-auto overflow-x-hidden scrollbar">
                       {purchaseMessage}
                     </pre>
                     <div className="absolute top-1.5 right-1.5">
@@ -346,7 +346,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                         className={`p-1.5 rounded border transition-all duration-350 cursor-pointer ${
                           copied
                             ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
-                            : 'bg-black border-zinc-800 text-zinc-450 hover:text-white hover:border-zinc-700 shadow-md'
+                            : 'bg-black border-white/5 text-zinc-450 hover:text-white hover:border-white/10 shadow-md'
                         }`}
                         id="btn-copy-msg"
                         title="คัดลอกข้อความ"
@@ -358,7 +358,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                 </div>
 
                 {/* Social connections & Action instructions */}
-                <div className="border-t border-zinc-900 pt-3 space-y-2.5 flex-shrink-0">
+                <div className="border-t border-white/5 pt-3 space-y-2.5 flex-shrink-0">
                   <div className="flex items-center justify-between text-[9px] text-zinc-550 leading-none">
                     <span className="flex items-center gap-1">
                       <Users className="w-3 h-3 text-zinc-600" />
@@ -395,7 +395,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                       <span>แชท Discord</span>
                     </motion.button>
                   </div>
-                  <p className="text-[9px] text-zinc-600 text-center font-sans">
+                  <p className="text-[9px] text-zinc-600 text-center font-display tracking-tight">
                     *คัดลอกข้อความแชทแล้วทักไปแจ้งแอดมิน เพื่อส่งมอบและตัดสต๊อกของได้ทันที!
                   </p>
                 </div>

@@ -134,10 +134,10 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-4xl max-h-[85dvh] bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            className="relative w-full max-w-4xl max-h-[85dvh] bg-zinc-950 border border-white/5 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="p-6 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
+            <div className="p-6 border-b border-zinc-900 bg-zinc-900/60 backdrop-blur-md shrink-0">
               <motion.button whileTap={{ scale: 0.95 }}
                 onClick={onClose}
                 className="absolute top-6 right-6 p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
@@ -168,24 +168,24 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="ค้นหาชื่อผู้ใช้..."
-                    className="w-full bg-zinc-900 border border-zinc-800 py-2 pl-10 pr-4 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-zinc-900 border border-white/5 py-2 pl-10 pr-4 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
                   />
                 </div>
-                <div className="bg-zinc-900/50 border border-zinc-800 px-4 py-2 rounded-xl flex items-center gap-2">
+                <div className="bg-zinc-900/50 border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2">
                    <span className="text-zinc-500 text-xs">ลูกค้าทั้งหมด:</span>
                    <span className="text-indigo-400 font-black">{users.length} บัญชี</span>
                 </div>
               </div>
 
               {filteredUsers.length === 0 ? (
-                <div className="text-center py-12 bg-zinc-900/30 rounded-2xl border border-zinc-800/50">
+                <div className="text-center py-12 bg-zinc-900/30 rounded-2xl border border-white/5/50">
                   <Users className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
                   <p className="text-zinc-400 font-bold">ไม่พบรายชื่อลูกค้าในระบบ</p>
                 </div>
               ) : (
                 <div className="grid gap-4">
                   {filteredUsers.map((user, index) => (
-                    <div key={user.username || index} className="bg-zinc-900/20 border border-zinc-800 rounded-2xl overflow-hidden transition-colors hover:bg-zinc-900/40">
+                    <div key={user.username || index} className="bg-zinc-900/20 border border-white/5 rounded-2xl overflow-hidden transition-colors hover:bg-zinc-900/60 backdrop-blur-md">
                       <div className="p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
                           <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-black shrink-0">
@@ -211,14 +211,14 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-zinc-800/50">
+                        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-white/5/50">
                            {editingBalanceUser === user.username ? (
                              <div className="flex items-center gap-2">
                                 <input 
                                   type="number"
                                   value={newBalance}
                                   onChange={(e) => setNewBalance(e.target.value)}
-                                  className="w-24 bg-zinc-950 border border-zinc-700 py-1.5 px-2 text-sm text-white rounded-lg focus:outline-none focus:border-emerald-500"
+                                  className="w-24 bg-zinc-950 border border-white/10 py-1.5 px-2 text-sm text-white rounded-lg focus:outline-none focus:border-emerald-500"
                                   placeholder="เครดิต"
                                   autoFocus
                                 />
@@ -253,7 +253,7 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                                       </motion.button>
                                       <motion.button whileTap={{ scale: 0.95 }} 
                                         onClick={() => setConfirmDeleteUser(null)}
-                                        className="py-1 px-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] font-bold rounded-lg transition-colors border border-zinc-700"
+                                        className="py-1 px-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] font-bold rounded-lg transition-colors border border-white/10"
                                       >
                                         ยกเลิก
                                       </motion.button>

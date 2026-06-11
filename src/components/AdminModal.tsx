@@ -291,7 +291,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative max-w-lg w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-6 overflow-hidden shadow-2xl z-10 max-h-[90dvh] overflow-y-auto"
+          className="relative max-w-lg w-full rounded-2xl border border-white/5 bg-transparent p-6 overflow-hidden shadow-2xl z-10 max-h-[90dvh] overflow-y-auto"
         >
           {/* Neon orange accent strip */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-amber-600 to-amber-400" />
@@ -303,13 +303,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 <Sparkles className="w-5 h-5 text-amber-500" />
                 <span>{editingItem ? 'แก้ไขสต๊อกสินค้า' : 'เพิ่มไอเทมใหม่ในระบบ'}</span>
               </h3>
-              <p className="text-xs text-zinc-500 font-sans mt-0.5">
+              <p className="text-xs text-zinc-400 font-display tracking-tight mt-0.5">
                 กรอกรายละเอียดไอเทมในเกม Attack on Titan Revolution ของคลังสต๊อกคุณ
               </p>
             </div>
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
-              className="p-1.5 text-zinc-500 hover:text-white rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer"
+              className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </motion.button>
@@ -318,7 +318,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name input */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-sans">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-display tracking-tight">
                 ชื่อไอเทม (Item Name) <span className="text-red-500">*</span>
               </label>
               <input
@@ -326,8 +326,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="เช่น Yeager Bloodline, Attack Serum..."
-                className={`w-full bg-zinc-900 border text-zinc-100 px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all font-sans font-medium placeholder-zinc-600 ${
-                  errors.name ? 'border-red-500/80 bg-red-950/10' : 'border-zinc-800'
+                className={`w-full bg-white/5 border text-zinc-100 px-3.5 py-2.5 rounded-2xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all font-display tracking-tight font-medium placeholder-zinc-600 ${
+                  errors.name ? 'border-red-500/80 bg-red-950/10' : 'border-white/5'
                 }`}
               />
               {errors.name && (
@@ -340,10 +340,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
             {/* Category selection */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-2 font-sans">
-                เลือกหมวดหมู่ไอเทม (Item Category) <span className="text-zinc-500 font-normal">(คลิกเลือกโดยตรง)</span>
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-2 font-display tracking-tight">
+                เลือกหมวดหมู่ไอเทม (Item Category) <span className="text-zinc-400 font-normal">(คลิกเลือกโดยตรง)</span>
               </label>
-              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-1.5 p-2 rounded-xl bg-zinc-950/80 border border-zinc-900/40">
+              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-1.5 p-2 rounded-2xl bg-transparent/80 border border-white/5/40">
                 {(currentGame === 'AOTR' 
                   ? ['Serum', 'Bloodline', 'Skin', 'Artifact', 'Scroll/Key', 'Perk', 'Other'] as const
                   : currentGame === 'ROV' 
@@ -359,7 +359,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       className={`py-2 px-2.5 rounded-lg text-xs font-bold transition-all text-left flex items-center gap-1.5 border cursor-pointer select-none ${
                         isActive
                           ? 'bg-amber-500/15 border-amber-500/80 text-amber-400 font-extrabold shadow-sm shadow-amber-500/5'
-                          : 'bg-zinc-900/60 border-zinc-850 hover:border-zinc-700 text-zinc-400 hover:text-zinc-300'
+                          : 'bg-white/5/60 border-zinc-850 hover:border-white/10 text-zinc-400 hover:text-zinc-300'
                       }`}
                     >
                       <span className="text-sm">
@@ -391,13 +391,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               <div className="mb-4">
 {/* Rarity Select */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-sans">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-display tracking-tight">
                 ระดับความหายาก (Rarity)
               </label>
               <select
                 value={rarity}
                 onChange={(e) => setRarity(e.target.value as StockItem['rarity'])}
-                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-200 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all cursor-pointer font-sans"
+                className="w-full bg-white/5 border border-white/5 text-zinc-200 px-3 py-2.5 rounded-2xl text-sm focus:outline-none focus:border-amber-500 transition-all cursor-pointer font-display tracking-tight"
               >
                 <option value="Mythic">🔴 Mythic (แดงเทพ)</option>
                 <option value="Legendary">🟡 Legendary (ทองระดับตำนาน)</option>
@@ -412,14 +412,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             {/* Quantity, Initial Quantity, Pieces per pack, and Price row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-sans flex items-center justify-between gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-display tracking-tight flex items-center justify-between gap-1.5">
                   <div className="flex items-center gap-1.5">
                     <Package className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
                     <span>เหลือในสต๊อก (สต๊อก)</span>
                   </div>
                 </label>
                 {(category === 'Starter Accounts' || category === 'รหัส ROV' || category === 'ไอดี ROV') ? (
-                  <div className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400/50 px-3 py-2 rounded-xl text-sm font-mono font-bold cursor-not-allowed flex items-center h-[38px]">
+                  <div className="w-full bg-white/5 border border-zinc-850 text-emerald-400/50 px-3 py-2 rounded-2xl text-sm font-mono font-bold cursor-not-allowed flex items-center h-[38px]">
                     {accountCredentialsText.trim() ? accountCredentialsText.trim().split('\n').filter(c => c.trim().length > 0).length : 0}
                   </div>
                 ) : (
@@ -428,15 +428,15 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     min="0"
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-850 text-emerald-400 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-bold"
+                    className="w-full bg-white/5 border border-zinc-850 text-emerald-400 px-3 py-2 rounded-2xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-bold"
                   />
                 )}
                 {errors.quantity && <p className="text-xs text-red-500 mt-1">{errors.quantity}</p>}
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-sans flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-display tracking-tight flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-zinc-400" />
                   <span>จำนวนแรกรวม</span>
                 </label>
                 <input
@@ -445,12 +445,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   placeholder="ปล่อยว่างเพื่อเท่าคงเหลือ"
                   value={initialQuantity}
                   onChange={(e) => setInitialQuantity(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-850 text-zinc-200 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-medium placeholder:text-zinc-600"
+                  className="w-full bg-white/5 border border-zinc-850 text-zinc-200 px-3 py-2 rounded-2xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-medium placeholder:text-zinc-600"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-sans flex items-center gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-display tracking-tight flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span>จำนวนชิ้นต่อชุด</span>
                 </label>
@@ -460,12 +460,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   placeholder="เช่น 360 ชิ้นต่อ 1 สต๊อก"
                   value={piecesPerUnit}
                   onChange={(e) => setPiecesPerUnit(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-850 text-amber-400 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-medium placeholder:text-zinc-600"
+                  className="w-full bg-white/5 border border-zinc-850 text-amber-400 px-3 py-2 rounded-2xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-medium placeholder:text-zinc-600"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-sans flex items-center gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-display tracking-tight flex items-center gap-1.5">
                   <Coins className="w-3.5 h-3.5 text-yellow-500" />
                   <span>ราคาบาทต่อชิ้น/ชุด (Price ฿)</span>
                 </label>
@@ -474,7 +474,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   min="0"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-850 text-zinc-100 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-medium"
+                  className="w-full bg-white/5 border border-zinc-850 text-zinc-100 px-3 py-2 rounded-2xl text-sm focus:outline-none focus:border-amber-500 transition-all font-mono font-medium"
                 />
                 {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
               </div>
@@ -487,10 +487,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               const totalItems = currentQty * pCount;
               if (pCount > 1) {
                 return (
-                  <div className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span className="text-xs text-amber-300 font-medium">💡 คำนวณคลังเสมือนจริง:</span>
                     <span className="text-xs font-mono text-zinc-300">
-                      ได้สินค้า <strong className="text-amber-400 font-extrabold">{pCount}</strong> ชิ้นต่อชุด × สต๊อกมี <strong className="text-emerald-400 font-extrabold">{currentQty}</strong> ชุด = จะมีของข้างในรวมทั้งหมด <strong className="text-white text-sm bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800 font-extrabold">{totalItems} ชิ้น</strong>
+                      ได้สินค้า <strong className="text-amber-400 font-extrabold">{pCount}</strong> ชิ้นต่อชุด × สต๊อกมี <strong className="text-emerald-400 font-extrabold">{currentQty}</strong> ชุด = จะมีของข้างในรวมทั้งหมด <strong className="text-white text-sm bg-white/5 px-2 py-0.5 rounded-md border border-white/5 font-extrabold">{totalItems} ชิ้น</strong>
                     </span>
                   </div>
                 );
@@ -500,7 +500,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
             {/* Description textarea */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-sans">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5 font-display tracking-tight">
                 คำอธิบายคุณสมบัติ (Item Description)
               </label>
               <textarea
@@ -508,13 +508,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="ระบุสถานะหรือบัฟ เช่น 'เพิ่มโอกาสดรอป 20%, ดาเมจฟันไททันแรงขึ้น...'"
                 rows={3}
-                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-200 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-all font-sans placeholder-zinc-600 resize-none"
+                className="w-full bg-white/5 border border-white/5 text-zinc-200 px-3 py-2.5 rounded-2xl text-sm focus:outline-none focus:border-amber-500 transition-all font-display tracking-tight placeholder-zinc-600 resize-none"
               />
             </div>
 
             {/* Switches Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="flex items-center gap-2.5 bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/80">
+              <div className="flex items-center gap-2.5 bg-white/5/60 backdrop-blur-md p-3 rounded-2xl border border-white/5/80">
                 <input
                   type="checkbox"
                   id="pin-checkbox"
@@ -522,12 +522,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   onChange={(e) => setIsPinned(e.target.checked)}
                   className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
                 />
-                <label htmlFor="pin-checkbox" className="text-xs font-semibold text-zinc-350 cursor-pointer font-sans select-none flex items-center gap-1">
+                <label htmlFor="pin-checkbox" className="text-xs font-semibold text-zinc-350 cursor-pointer font-display tracking-tight select-none flex items-center gap-1">
                   <span>📌 ปักหมุดให้อยู่บนสุด</span>
                 </label>
               </div>
 
-              <div className="flex items-center gap-2.5 bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/80">
+              <div className="flex items-center gap-2.5 bg-white/5/60 backdrop-blur-md p-3 rounded-2xl border border-white/5/80">
                 <input
                   type="checkbox"
                   id="popular-checkbox"
@@ -535,33 +535,33 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   onChange={(e) => setIsPopular(e.target.checked)}
                   className="w-4 h-4 accent-rose-500 rounded cursor-pointer"
                 />
-                <label htmlFor="popular-checkbox" className="text-xs font-semibold text-zinc-350 cursor-pointer font-sans select-none flex items-center gap-1.5">
+                <label htmlFor="popular-checkbox" className="text-xs font-semibold text-zinc-350 cursor-pointer font-display tracking-tight select-none flex items-center gap-1.5">
                   <span>🔥 สินค้ายอดนิยม (Popular)</span>
                 </label>
               </div>
             </div>
 
             {(category === 'Starter Accounts' || category === 'รหัส ROV' || category === 'ไอดี ROV') && (
-              <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-850 space-y-3">
+              <div className="bg-white/5/60 p-4 rounded-2xl border border-zinc-850 space-y-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-sans">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-display tracking-tight">
                     สต๊อกไอดี / รหัสผ่าน (Line by Line)
                   </span>
-                  <span className="text-[10px] text-zinc-500">จำนวนสต๊อกจะนับตามบรรทัดอัตโนมัติ</span>
+                  <span className="text-[10px] text-zinc-400">จำนวนสต๊อกจะนับตามบรรทัดอัตโนมัติ</span>
                 </div>
                 <textarea
                   value={accountCredentialsText}
                   onChange={e => setAccountCredentialsText(e.target.value)}
                   placeholder="USER1:PASS1&#10;USER2:PASS2..."
-                  className="w-full bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:border-amber-500 h-32 resize-y"
+                  className="w-full bg-transparent border border-white/5 text-zinc-200 px-3 py-2 rounded-2xl text-xs sm:text-sm font-mono focus:outline-none focus:border-amber-500 h-32 resize-y"
                 />
               </div>
             )}
 
             {category === 'สุ่มตัวละคร - ออสตา' && (
-              <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-850 space-y-3">
+              <div className="bg-white/5/60 p-4 rounded-2xl border border-zinc-850 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-sans">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-display tracking-tight">
                     ตั้งค่าของรางวัลในกล่องสุ่ม (Gacha Pool)
                   </span>
                   <motion.button whileTap={{ scale: 0.95 }}
@@ -576,7 +576,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 {gachaPool.length > 0 ? (
                   <div className="space-y-2">
                     {gachaPool.map((reward, index) => (
-                      <div key={reward.id} className="flex flex-col gap-2 p-2 bg-zinc-950/50 rounded-lg border border-zinc-900">
+                      <div key={reward.id} className="flex flex-col gap-2 p-2 bg-transparent/50 rounded-lg border border-white/5">
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
@@ -587,7 +587,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               newPool[index].name = e.target.value;
                               setGachaPool(newPool);
                             }}
-                            className="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-amber-500 transition-all font-sans"
+                            className="flex-1 bg-transparent border border-white/5 text-zinc-200 px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-amber-500 transition-all font-display tracking-tight"
                           />
                           <input
                             type="color"
@@ -597,7 +597,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               newPool[index].color = e.target.value;
                               setGachaPool(newPool);
                             }}
-                            className="w-8 h-8 rounded shrink-0 cursor-pointer bg-zinc-950 border border-zinc-800 p-0.5"
+                            className="w-8 h-8 rounded shrink-0 cursor-pointer bg-transparent border border-white/5 p-0.5"
                           />
                           <motion.button whileTap={{ scale: 0.95 }}
                             type="button"
@@ -608,7 +608,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           </motion.button>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-zinc-500 font-sans whitespace-nowrap">สต๊อกที่การันตีออก (คั่นด้วยลูกน้ำ, ปล่อยว่างถ้าไม่มี):</span>
+                          <span className="text-[10px] text-zinc-400 font-display tracking-tight whitespace-nowrap">สต๊อกที่การันตีออก (คั่นด้วยลูกน้ำ, ปล่อยว่างถ้าไม่มี):</span>
                           <input
                             type="text"
                             placeholder="เช่น 1791, 993"
@@ -635,7 +635,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               }
                               setGachaPool(newPool);
                             }}
-                            className="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:border-amber-500 transition-all font-mono"
+                            className="flex-1 bg-transparent border border-white/5 text-zinc-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:border-amber-500 transition-all font-mono"
                           />
                         </div>
 
@@ -669,7 +669,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-4 text-xs text-zinc-500 border border-dashed border-zinc-800 rounded-xl bg-zinc-950/50">
+                  <div className="text-center py-4 text-xs text-zinc-400 border border-dashed border-white/5 rounded-2xl bg-transparent/50">
                     ยังไม่มีของรางวัลในกล่อง กำหนดไอเทมที่โอกาสดรอปได้เลย
                   </div>
                 )}
@@ -677,18 +677,18 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             )}
 
             {/* Image Source selector options */}
-            <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-850 space-y-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-sans">
+            <div className="bg-white/5/60 p-4 rounded-2xl border border-zinc-850 space-y-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-display tracking-tight">
                 รูปภาพประจำไอเทม (Visual Asset Selector)
               </span>
 
               {/* Source tabs selector */}
-              <div className="grid grid-cols-3 gap-2 p-1 rounded-lg bg-zinc-950 border border-zinc-850 text-xs">
+              <div className="grid grid-cols-3 gap-2 p-1 rounded-lg bg-transparent border border-zinc-850 text-xs">
                 <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => setImageType('url')}
                   className={`py-1.5 rounded-md font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
-                    imageType === 'url' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                    imageType === 'url' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
                   <Link className="w-3 h-3" />
@@ -698,7 +698,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   type="button"
                   onClick={() => setImageType('upload')}
                   className={`py-1.5 rounded-md font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
-                    imageType === 'upload' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                    imageType === 'upload' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
                   <Upload className="w-3 h-3" />
@@ -708,7 +708,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   type="button"
                   onClick={() => setImageType('presets')}
                   className={`py-1.5 rounded-md font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
-                    imageType === 'presets' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                    imageType === 'presets' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
                   <Sparkles className="w-3 h-3 text-amber-500" />
@@ -724,12 +724,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
                     placeholder="https://images.unsplash.com/... หรือ ลิงก์รูปภาพอื่นๆ"
-                    className="w-full bg-zinc-950 border border-zinc-850 text-zinc-100 px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-amber-500 font-mono"
+                    className="w-full bg-transparent border border-zinc-850 text-zinc-100 px-3 py-2 rounded-2xl text-xs focus:outline-none focus:border-amber-500 font-mono"
                   />
                   {imageUrl && (
                     <div className="mt-2 text-center">
-                      <p className="text-[10px] text-zinc-500 text-left mb-1">รูปภาพพรีวิวจากการกรอกลิงก์:</p>
-                      <div className="inline-block relative w-32 h-20 rounded-md overflow-hidden bg-zinc-950 border border-zinc-800">
+                      <p className="text-[10px] text-zinc-400 text-left mb-1">รูปภาพพรีวิวจากการกรอกลิงก์:</p>
+                      <div className="inline-block relative w-32 h-20 rounded-md overflow-hidden bg-transparent border border-white/5">
                         <img src={imageUrl} alt="preview" className="w-full h-full object-cover" onError={() => setErrors({ ...errors, image: 'พรีวิวรูปภาพจากลิงก์ล้มเหลว' })} />
                       </div>
                     </div>
@@ -745,12 +745,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     onDragLeave={handleDrag}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                    className={`border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors ${
                       dragActive
                         ? 'border-amber-500 bg-amber-500/5'
                         : uploadedImages.length > 0
-                        ? 'border-zinc-700 bg-zinc-900/60'
-                        : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/20'
+                        ? 'border-white/10 bg-white/5/60'
+                        : 'border-white/5 hover:border-white/10 hover:bg-white/5/20'
                     }`}
                   >
                     <input
@@ -766,7 +766,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       <div className="text-center space-y-2">
                         <div className="flex flex-wrap gap-2 justify-center">
                           {uploadedImages.map((img, i) => (
-                            <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800">
+                            <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden bg-transparent border border-white/5">
                               <img src={img} alt="upload preview" className="w-full h-full object-cover" />
                               <button
                                 type="button"
@@ -785,9 +785,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       </div>
                     ) : (
                       <>
-                        <ImageIcon className="w-7 h-7 text-zinc-500 mb-1.5" />
-                        <span className="text-xs text-zinc-300 font-medium font-sans">ลากไฟล์รูปภาพมาวาง หรือคลิกเพื่อค้นหารูป</span>
-                        <span className="text-[10px] text-zinc-500 mt-1 font-mono">ฟอร์แมต JPG, PNG, WEBP จากเครื่องคุณ</span>
+                        <ImageIcon className="w-7 h-7 text-zinc-400 mb-1.5" />
+                        <span className="text-xs text-zinc-300 font-medium font-display tracking-tight">ลากไฟล์รูปภาพมาวาง หรือคลิกเพื่อค้นหารูป</span>
+                        <span className="text-[10px] text-zinc-400 mt-1 font-mono">ฟอร์แมต JPG, PNG, WEBP จากเครื่องคุณ</span>
                       </>
                     )}
                   </div>
@@ -796,17 +796,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
               {imageType === 'presets' && (
                 <div className="space-y-2 animate-fadeIn">
-                  <p className="text-[10px] text-zinc-400 font-sans">คลิกลือกภาพม็อคเพื่อเติมเต็มรายละเอียดความสวยงามได้รวดเร็ว:</p>
+                  <p className="text-[10px] text-zinc-400 font-display tracking-tight">คลิกลือกภาพม็อคเพื่อเติมเต็มรายละเอียดความสวยงามได้รวดเร็ว:</p>
                   <div className="grid grid-cols-3 gap-2.5">
                     {PRESET_IMAGE_SUGGESTIONS.map((preset) => (
                       <motion.button whileTap={{ scale: 0.95 }}
                         type="button"
                         key={preset.name}
                         onClick={() => handlePresetSelect(preset.url)}
-                        className="group relative h-16 rounded-lg overflow-hidden border border-zinc-800 hover:border-amber-500 transition-all text-left flex items-end p-1 cursor-pointer bg-zinc-950"
+                        className="group relative h-16 rounded-lg overflow-hidden border border-white/5 hover:border-amber-500 transition-all text-left flex items-end p-1 cursor-pointer bg-transparent"
                       >
                         <img src={preset.url} alt={preset.name} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-90 group-hover:scale-105 transition-all" />
-                        <span className="relative text-[9px] text-white font-bold leading-none bg-black/80 p-0.5 rounded border border-zinc-900/30 w-full text-center truncate">
+                        <span className="relative text-[9px] text-white font-bold leading-none bg-black/80 p-0.5 rounded border border-white/5/30 w-full text-center truncate">
                           {preset.name}
                         </span>
                       </motion.button>
@@ -817,34 +817,34 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             </div>
 
             {/* Additional Images */}
-            <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-850 space-y-3">
+            <div className="bg-white/5/60 p-4 rounded-2xl border border-zinc-850 space-y-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-sans">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block font-display tracking-tight">
                   รูปภาพเพิ่มเติม (Additional Images URL)
                 </span>
-                <span className="text-[10px] text-zinc-500">1 บรรทัดต่อ 1 ลิงก์</span>
+                <span className="text-[10px] text-zinc-400">1 บรรทัดต่อ 1 ลิงก์</span>
               </div>
               <textarea
                 value={imageUrlsText}
                 onChange={e => setImageUrlsText(e.target.value)}
                 placeholder="https://images.unsplash.com/...\nhttps://images.unsplash.com/..."
-                className="w-full bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:border-amber-500 h-24 resize-y"
+                className="w-full bg-transparent border border-white/5 text-zinc-200 px-3 py-2 rounded-2xl text-xs sm:text-sm font-mono focus:outline-none focus:border-amber-500 h-24 resize-y"
               />
             </div>
 
             {/* Submit and Cancel items */}
-            <div className="flex gap-2.5 border-t border-zinc-900 pt-4 mt-5">
+            <div className="flex gap-2.5 border-t border-white/5 pt-4 mt-5">
               <motion.button whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={onClose}
-                className="w-1/2 py-2.5 px-4 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 bg-transparent text-xs font-bold transition-all cursor-pointer"
+                className="w-1/2 py-2.5 px-4 rounded-2xl border border-white/5 text-zinc-400 hover:text-white hover:bg-white/5 bg-transparent text-xs font-bold transition-all cursor-pointer"
               >
                 ยกเลิก
               </motion.button>
 
               <motion.button whileTap={{ scale: 0.95 }}
                 type="submit"
-                className="w-1/2 py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-100 text-black border-white text-xs font-bold shadow-lg flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all"
+                className="w-1/2 py-2.5 px-4 rounded-2xl bg-white hover:bg-zinc-100 text-black border-white text-xs font-bold shadow-lg flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all"
                 id="btn-submit-stock"
               >
                 <Save className="w-3.5 h-3.5" />

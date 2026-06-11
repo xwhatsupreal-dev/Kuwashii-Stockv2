@@ -66,7 +66,7 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl p-6 w-full max-w-2xl relative z-10 flex flex-col max-h-[85dvh]"
+          className="bg-zinc-950 border border-white/5 rounded-3xl shadow-2xl p-6 w-full max-w-2xl relative z-10 flex flex-col max-h-[85dvh]"
         >
           <div className="flex justify-between items-center mb-6 shrink-0">
             <div className="flex items-center gap-3">
@@ -84,7 +84,7 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
             </div>
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors border border-transparent hover:border-zinc-700"
+              className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors border border-transparent hover:border-white/10"
             >
               <X className="w-6 h-6" />
             </motion.button>
@@ -109,7 +109,7 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
             {activeTab === 'purchases' && (
               sortedPurchases.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-4 text-zinc-500">
+                  <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center mx-auto mb-4 text-zinc-500">
                     <ShoppingCart className="w-8 h-8" />
                   </div>
                   <p className="text-zinc-400">ยังไม่มีประวัติการทำรายการ</p>
@@ -122,9 +122,9 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                   const canExpand = hasGachaDrops || hasCredentialData;
 
                   return (
-                    <div key={purchase.id} className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
+                    <div key={purchase.id} className="bg-zinc-900/50 border border-white/5 rounded-2xl overflow-hidden">
                       <div 
-                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-zinc-900/80 gap-4 ${canExpand ? 'cursor-pointer hover:bg-zinc-800/80 transition-colors' : ''} ${expandedPurchases.includes(purchase.id) ? 'border-b border-zinc-800/50' : ''}`}
+                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-zinc-900/80 gap-4 ${canExpand ? 'cursor-pointer hover:bg-zinc-800/80 transition-colors' : ''} ${expandedPurchases.includes(purchase.id) ? 'border-b border-white/5/50' : ''}`}
                         onClick={() => {
                           if (canExpand) {
                             setExpandedPurchases(prev => 
@@ -171,7 +171,7 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                       </div>
 
                       {hasCredentialData && expandedPurchases.includes(purchase.id) && (
-                        <div className="p-4 bg-emerald-950/20 border-b border-zinc-800/50">
+                        <div className="p-4 bg-emerald-950/20 border-b border-white/5/50">
                           <div className="text-xs font-semibold text-emerald-500 mb-2 flex items-center gap-1.5 uppercase tracking-widest font-mono">
                             {purchase.game === 'ROV' ? 'Username:Password' : 'ข้อมูลบัญชี / โค้ด'}
                           </div>
@@ -206,9 +206,9 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                             }).map((drop: any, idx) => {
                               const isSalt = drop.isSalt;
                               return (
-                                <div key={idx} className="flex items-center gap-2.5 p-2.5 bg-zinc-900/80 rounded-xl border border-zinc-800/80 shadow-sm relative overflow-hidden">
+                                <div key={idx} className="flex items-center gap-2.5 p-2.5 bg-zinc-900/80 rounded-xl border border-white/5/80 shadow-sm relative overflow-hidden">
                                   <div 
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shadow-inner bg-zinc-950 border border-zinc-800 shrink-0"
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shadow-inner bg-zinc-950 border border-white/5 shrink-0"
                                     style={{ color: drop.color || (isSalt ? '#6b7280' : '#F59E0B') }}
                                   >
                                     {isSalt ? '🧂' : '✨'}
@@ -221,13 +221,13 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                                       </p>
                                     </div>
                                     {drop.count > 1 && (
-                                      <div className="text-xs font-bold font-mono text-zinc-300 bg-zinc-800 px-2 py-0.5 rounded-md shrink-0 border border-zinc-700/50 shadow-sm hidden sm:block">
+                                      <div className="text-xs font-bold font-mono text-zinc-300 bg-zinc-800 px-2 py-0.5 rounded-md shrink-0 border border-white/10/50 shadow-sm hidden sm:block">
                                         x{drop.count}
                                       </div>
                                     )}
                                   </div>
                                   {drop.count > 1 && (
-                                      <div className="absolute top-0 right-0 sm:hidden text-[10px] font-bold font-mono text-zinc-300 bg-zinc-800/80 px-1.5 py-0.5 rounded-bl-lg shrink-0 border-b border-l border-zinc-700/50 backdrop-blur-sm">
+                                      <div className="absolute top-0 right-0 sm:hidden text-[10px] font-bold font-mono text-zinc-300 bg-zinc-800/80 px-1.5 py-0.5 rounded-bl-lg shrink-0 border-b border-l border-white/10/50 backdrop-blur-sm">
                                         x{drop.count}
                                       </div>
                                     )}
@@ -259,7 +259,7 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
             {activeTab === 'topups' && (
               sortedTopups.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-4 text-zinc-500">
+                  <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center mx-auto mb-4 text-zinc-500">
                     <DollarSign className="w-8 h-8" />
                   </div>
                   <p className="text-zinc-400">ยังไม่มีประวัติการเติมเงิน</p>
@@ -268,7 +268,7 @@ export function HistoryModal({ isOpen, onClose, username }: HistoryModalProps) {
                 sortedTopups.map((topup) => {
                   const { date, time } = formatDate(topup.date);
                   return (
-                    <div key={topup.id} className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div key={topup.id} className="bg-zinc-900/50 border border-white/5 rounded-2xl overflow-hidden p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg border flex-shrink-0 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
                           <DollarSign className="w-5 h-5" />

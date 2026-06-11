@@ -41,7 +41,7 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
 
           <motion.button whileTap={{ scale: 0.95 }}
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded-xl transition-colors z-20 cursor-pointer"
+            className="absolute top-4 right-4 p-2 bg-zinc-900 border border-white/5 text-zinc-400 hover:text-white rounded-xl transition-colors z-20 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </motion.button>
@@ -99,7 +99,7 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 + (idx * 0.1) }}
-                  className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center gap-4 relative overflow-hidden"
+                  className="bg-zinc-900 border border-white/5 p-4 rounded-xl flex items-center gap-4 relative overflow-hidden"
                 >
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1.5"
@@ -146,7 +146,7 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
               <div className="space-y-2 relative z-10">
                 {result.credentialData.map((cred, idx) => (
                   <div key={idx} className="flex gap-2">
-                    <div className="bg-zinc-950 border border-zinc-800 text-zinc-300 px-4 py-3 rounded-xl font-mono text-xs flex-1 break-all select-all">
+                    <div className="bg-zinc-950 border border-white/5 text-zinc-300 px-4 py-3 rounded-xl font-mono text-xs flex-1 break-all select-all">
                       {cred}
                     </div>
                   </div>

@@ -12,12 +12,14 @@ export async function fetchItems() {
     let initialQty = d.initial_quantity;
     let pieces = d.pieces_per_unit;
     let accCreds = undefined;
+    let pinned = d.is_pinned || false;
 
     if (d.gacha_pool && !Array.isArray(d.gacha_pool) && typeof d.gacha_pool === 'object') {
       pool = d.gacha_pool.pool || undefined;
       accCreds = d.gacha_pool.accountCredentials || undefined;
       if (initialQty === undefined) initialQty = d.gacha_pool.initialQuantity;
       if (pieces === undefined) pieces = d.gacha_pool.piecesPerUnit;
+      if (d.gacha_pool.isPinned) pinned = d.gacha_pool.isPinned;
     }
 
     let imgUrls: string[] = [];
@@ -37,6 +39,8 @@ export async function fetchItems() {
       accountCredentials: accCreds,
       initialQuantity: initialQty,
       piecesPerUnit: pieces,
+      isPopular: d.popular || d.isPopular || false,
+      isPinned: pinned,
       updatedAt: d.created_at
     };
   }) as StockItem[];

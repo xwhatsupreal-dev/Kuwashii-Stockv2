@@ -47,7 +47,7 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            className="relative w-full max-w-5xl h-[85dvh] rounded-2xl border border-zinc-800 bg-zinc-950 flex flex-col overflow-hidden shadow-2xl z-10"
+            className="relative w-full max-w-5xl h-[85dvh] rounded-2xl border border-white/5 bg-zinc-950 flex flex-col overflow-hidden shadow-2xl z-10"
         >
           {/* Header */}
           <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-zinc-900">
@@ -85,7 +85,7 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
                 placeholder="ค้นหาชื่อสินค้า หมวดหมู่..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 text-white pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors placeholder-zinc-600 font-sans"
+                className="w-full bg-zinc-950 border border-white/5 text-white pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors placeholder-zinc-600 font-sans"
               />
             </div>
           </div>
@@ -108,11 +108,11 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
                             <td className="px-5 py-3">
                                 <div className="flex items-center gap-3">
                                    {item.imageUrl ? (
-                                     <div className="w-10 h-10 rounded-lg overflow-hidden border border-zinc-800 flex-shrink-0">
+                                     <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/5 flex-shrink-0">
                                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                                      </div>
                                    ) : (
-                                     <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-zinc-600">
+                                     <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center flex-shrink-0 text-zinc-600">
                                        <Package className="w-4 h-4" />
                                      </div>
                                    )}
@@ -121,7 +121,7 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
                             </td>
                             <td className="px-5 py-3 text-zinc-300 font-bold">{item.game}</td>
                             <td className="px-5 py-3">
-                                <span className="px-2.5 py-1 rounded-lg border border-zinc-800 bg-zinc-900 text-xs text-zinc-400 font-medium">
+                                <span className="px-2.5 py-1 rounded-lg border border-white/5 bg-zinc-900 text-xs text-zinc-400 font-medium">
                                     {item.category}
                                 </span>
                             </td>

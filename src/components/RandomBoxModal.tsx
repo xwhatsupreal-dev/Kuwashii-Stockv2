@@ -117,12 +117,12 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative max-w-[340px] w-full bg-zinc-950 rounded-2xl overflow-hidden shadow-2xl z-10 max-h-[85dvh] flex flex-col font-sans border border-zinc-800"
+          className="relative max-w-[340px] w-full bg-zinc-950 rounded-2xl overflow-hidden shadow-2xl z-10 max-h-[85dvh] flex flex-col font-sans border border-white/5"
         >
           {/* Close button top right */}
           <motion.button whileTap={{ scale: 0.95 }}
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer z-50"
+            className="absolute top-4 right-4 p-1.5 bg-zinc-900 border border-white/5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer z-50"
           >
             <X className="w-4 h-4" />
           </motion.button>
@@ -192,7 +192,7 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
                   onTouchStart={() => startAutoStep('dec')}
                   onTouchEnd={stopAutoStep}
                   disabled={validQuantity <= 1}
-                  className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-zinc-900 text-zinc-400 rounded-xl font-black text-xl hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 transition-all border border-zinc-800 cursor-pointer select-none"
+                  className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-zinc-900 text-zinc-400 rounded-xl font-black text-xl hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 transition-all border border-white/5 cursor-pointer select-none"
                 >
                   <Minus className="w-5 h-5 stroke-[2]" />
                 </motion.button>
@@ -219,7 +219,7 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
                         }
                     }
                   }}
-                  className="flex-1 h-full text-center bg-zinc-950 border border-zinc-800 rounded-xl font-bold text-base text-white focus:outline-none focus:border-amber-500/50"
+                  className="flex-1 h-full text-center bg-zinc-950 border border-white/5 rounded-xl font-bold text-base text-white focus:outline-none focus:border-amber-500/50"
                 />
 
                 <motion.button whileTap={{ scale: 0.95 }}
@@ -230,7 +230,7 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
                   onTouchStart={() => startAutoStep('inc')}
                   onTouchEnd={stopAutoStep}
                   disabled={validQuantity >= item.quantity}
-                  className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-zinc-900 text-zinc-400 rounded-xl font-black text-xl hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 transition-all border border-zinc-800 cursor-pointer select-none"
+                  className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-zinc-900 text-zinc-400 rounded-xl font-black text-xl hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 transition-all border border-white/5 cursor-pointer select-none"
                 >
                   <Plus className="w-5 h-5 stroke-[2]" />
                 </motion.button>

@@ -96,7 +96,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative max-w-sm sm:max-w-md w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl z-10 font-sans max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800"
+          className="relative max-w-sm sm:max-w-md w-full rounded-2xl border border-white/5 bg-zinc-950 p-6 shadow-2xl z-10 font-sans max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800"
         >
           <motion.button whileTap={{ scale: 0.95 }}
             type="button"
@@ -127,7 +127,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                   type="text"
                   value={editUsername}
                   onChange={(e) => setEditUsername(e.target.value)}
-                  className="flex-1 bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs font-mono"
+                  className="flex-1 bg-zinc-900 border border-white/5 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs font-mono"
                 />
                 <motion.button whileTap={{ scale: 0.95 }}
                   onClick={handleSaveUsername}
@@ -150,7 +150,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
                   placeholder={userEmail !== '-' ? userEmail : 'ใส่อีเมลของคุณ...'}
-                  className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs font-sans"
+                  className="flex-1 min-w-0 bg-zinc-900 border border-white/5 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs font-sans"
                 />
                 <motion.button whileTap={{ scale: 0.95 }}
                   onClick={handleSaveEmail}
@@ -176,7 +176,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="รหัสผ่านใหม่..."
-                    className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono pr-10"
+                    className="w-full bg-zinc-900 border border-white/5 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono pr-10"
                   />
                   <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
@@ -192,7 +192,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="ยืนยันรหัสผ่านใหม่..."
-                    className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono pr-10"
+                    className="w-full bg-zinc-900 border border-white/5 text-zinc-100 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono pr-10"
                   />
                   <motion.button whileTap={{ scale: 0.95 }}
                     type="button"

@@ -85,9 +85,9 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md max-h-[85dvh] bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col font-sans overflow-hidden"
+          className="relative w-full max-w-md max-h-[85dvh] bg-zinc-950 border border-white/5 rounded-3xl shadow-2xl flex flex-col font-sans overflow-hidden"
         >
-          <div className="p-6 border-b border-zinc-900 bg-zinc-900/40 shrink-0">
+          <div className="p-6 border-b border-zinc-900 bg-zinc-900/60 backdrop-blur-md shrink-0">
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
               className="absolute top-6 right-6 p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
@@ -106,12 +106,12 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
           </div>
 
           <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
-            <label className="flex items-center gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl cursor-pointer hover:bg-zinc-800 transition-colors">
+            <label className="flex items-center gap-3 p-4 bg-zinc-900/50 border border-white/5 rounded-2xl cursor-pointer hover:bg-zinc-800 transition-colors">
               <input
                 type="checkbox"
                 checked={settings.enabled}
                 onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
-                className="w-5 h-5 rounded bg-zinc-800 border-zinc-700 text-amber-500 focus:ring-amber-500"
+                className="w-5 h-5 rounded bg-zinc-800 border-white/10 text-amber-500 focus:ring-amber-500"
               />
               <span className="text-white font-bold text-sm">เปิดใช้งานแจ้งเตือน (Enable Popup)</span>
             </label>
@@ -125,7 +125,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                 value={settings.imageUrl}
                 onChange={(e) => setSettings({ ...settings, imageUrl: e.target.value })}
                 placeholder="https://..."
-                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans mb-3"
+                className="w-full bg-zinc-900 border border-white/5 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans mb-3"
               />
               <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
                  ลิงก์โปรโมท 1 (Link URL 1)
@@ -135,11 +135,11 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                 value={settings.linkUrl}
                 onChange={(e) => setSettings({ ...settings, linkUrl: e.target.value })}
                 placeholder="https://... (เว้นว่างได้)"
-                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans"
+                className="w-full bg-zinc-900 border border-white/5 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans"
               />
             </div>
 
-            <div className="pt-4 border-t border-zinc-800/50">
+            <div className="pt-4 border-t border-white/5/50">
               <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
                 <ImageIcon className="w-3 h-3" /> ลิงก์รูปภาพแจ้งเตือน 2 (Image URL 2 - เสริม)
               </label>
@@ -148,7 +148,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                 value={settings.imageUrl2 || ''}
                 onChange={(e) => setSettings({ ...settings, imageUrl2: e.target.value })}
                 placeholder="https://... (เว้นว่างได้)"
-                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans mb-3"
+                className="w-full bg-zinc-900 border border-white/5 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans mb-3"
               />
               <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
                  ลิงก์โปรโมท 2 (Link URL 2)
@@ -158,39 +158,39 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                 value={settings.linkUrl2 || ''}
                 onChange={(e) => setSettings({ ...settings, linkUrl2: e.target.value })}
                 placeholder="https://... (เว้นว่างได้)"
-                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans"
+                className="w-full bg-zinc-900 border border-white/5 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <label className="flex items-center gap-3 p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl cursor-pointer hover:bg-zinc-800 transition-colors">
+              <label className="flex items-center gap-3 p-3 bg-zinc-900/50 border border-white/5 rounded-xl cursor-pointer hover:bg-zinc-800 transition-colors">
                 <input
                   type="checkbox"
                   checked={settings.showInATOR}
                   onChange={(e) => setSettings({ ...settings, showInATOR: e.target.checked })}
-                  className="w-4 h-4 rounded bg-zinc-800 border-zinc-700 text-amber-500 focus:ring-amber-500"
+                  className="w-4 h-4 rounded bg-zinc-800 border-white/10 text-amber-500 focus:ring-amber-500"
                 />
                 <span className="text-zinc-300 font-bold text-xs flex-1">แสดงในหน้า ATOR</span>
               </label>
 
-              <label className="flex items-center gap-3 p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl cursor-pointer hover:bg-zinc-800 transition-colors">
+              <label className="flex items-center gap-3 p-3 bg-zinc-900/50 border border-white/5 rounded-xl cursor-pointer hover:bg-zinc-800 transition-colors">
                 <input
                   type="checkbox"
                   checked={settings.showInASTD}
                   onChange={(e) => setSettings({ ...settings, showInASTD: e.target.checked })}
-                  className="w-4 h-4 rounded bg-zinc-800 border-zinc-700 text-amber-500 focus:ring-amber-500"
+                  className="w-4 h-4 rounded bg-zinc-800 border-white/10 text-amber-500 focus:ring-amber-500"
                 />
                 <span className="text-zinc-300 font-bold text-xs flex-1">แสดงในหน้า ASTD</span>
               </label>
             </div>
 
-            <div className="pt-4 border-t border-zinc-800/50">
-              <label className="flex items-center gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl cursor-pointer hover:bg-zinc-800 transition-colors mb-4">
+            <div className="pt-4 border-t border-white/5/50">
+              <label className="flex items-center gap-3 p-4 bg-zinc-900/50 border border-white/5 rounded-2xl cursor-pointer hover:bg-zinc-800 transition-colors mb-4">
                 <input
                   type="checkbox"
                   checked={settings.marqueeEnabled || false}
                   onChange={(e) => setSettings({ ...settings, marqueeEnabled: e.target.checked })}
-                  className="w-5 h-5 rounded bg-zinc-800 border-zinc-700 text-amber-500 focus:ring-amber-500"
+                  className="w-5 h-5 rounded bg-zinc-800 border-white/10 text-amber-500 focus:ring-amber-500"
                 />
                 <span className="text-white font-bold text-sm">เปิดใช้งานแถบประกาศเลื่อน (Marquee)</span>
               </label>
@@ -204,7 +204,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                     value={(settings.marqueeTexts || (settings.marqueeText ? [settings.marqueeText] : [])).join('\n')}
                     onChange={(e) => setSettings({ ...settings, marqueeTexts: e.target.value.split('\n') })}
                     placeholder="ข้อความที่ 1&#10;ข้อความที่ 2"
-                    className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans mb-3 min-h-[100px] resize-y"
+                    className="w-full bg-zinc-900 border border-white/5 text-zinc-100 px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm font-sans mb-3 min-h-[100px] resize-y"
                   />
                   
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 flex items-center gap-2">
@@ -225,7 +225,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                       max="150"
                       value={settings.marqueeSpeed || 15}
                       onChange={(e) => setSettings({ ...settings, marqueeSpeed: parseInt(e.target.value) || 15 })}
-                      className="w-16 bg-zinc-900 border border-zinc-800 text-zinc-100 px-2 py-1 rounded-lg focus:outline-none focus:border-amber-500 transition-all text-sm font-sans text-center"
+                      className="w-16 bg-zinc-900 border border-white/5 text-zinc-100 px-2 py-1 rounded-lg focus:outline-none focus:border-amber-500 transition-all text-sm font-sans text-center"
                     />
                   </div>
                   <p className="text-[10px] text-zinc-500 mt-1 mb-3">ค่าน้อย = เร็ว / ค่ามาก = ช้า (แนะนำ: 10 - 20)</p>
@@ -235,7 +235,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                         สีพื้นหลัง (Background)
                       </label>
-                      <div className="flex bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden focus-within:border-amber-500 transition-all">
+                      <div className="flex bg-zinc-900 border border-white/5 rounded-xl overflow-hidden focus-within:border-amber-500 transition-all">
                         <input
                           type="color"
                           value={settings.marqueeBgColor || '#f59e0b'}
@@ -254,7 +254,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                         สีข้อความ (Text)
                       </label>
-                      <div className="flex bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden focus-within:border-amber-500 transition-all">
+                      <div className="flex bg-zinc-900 border border-white/5 rounded-xl overflow-hidden focus-within:border-amber-500 transition-all">
                         <input
                           type="color"
                           value={settings.marqueeTextColor || '#000000'}

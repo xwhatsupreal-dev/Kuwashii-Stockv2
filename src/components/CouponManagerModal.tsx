@@ -79,9 +79,9 @@ export const CouponManagerModal: React.FC<CouponManagerModalProps> = ({ isOpen, 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative max-w-2xl w-full bg-zinc-900 rounded-2xl flex flex-col font-sans border border-zinc-700 h-[80dvh] shadow-2xl"
+            className="relative max-w-2xl w-full bg-zinc-900 rounded-2xl flex flex-col font-sans border border-white/10 h-[80dvh] shadow-2xl"
           >
-            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-zinc-800 shrink-0">
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/5 shrink-0">
             <h2 className="text-lg font-black text-white flex items-center gap-2">
               <Gift className="w-5 h-5 text-indigo-500" />
               จัดการโค้ดคูปอง (เครดิตฟรี)
@@ -95,7 +95,7 @@ export const CouponManagerModal: React.FC<CouponManagerModalProps> = ({ isOpen, 
           </div>
 
           <div className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-6">
-            <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+            <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
               <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">สร้างคูปองใหม่</h3>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <input
@@ -103,27 +103,27 @@ export const CouponManagerModal: React.FC<CouponManagerModalProps> = ({ isOpen, 
                   value={newCode}
                   onChange={(e) => setNewCode(e.target.value)}
                   placeholder="ชื่อโค้ด"
-                  className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="bg-zinc-950 border border-white/5 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
                 />
                 <input
                   type="number"
                   value={newAmount}
                   onChange={(e) => setNewAmount(e.target.value)}
                   placeholder="เครดิตที่จะได้"
-                  className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="bg-zinc-950 border border-white/5 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
                 />
                 <input
                   type="number"
                   value={newMaxUses}
                   onChange={(e) => setNewMaxUses(e.target.value)}
                   placeholder="จำนวนคนที่รีดีมได้"
-                  className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="bg-zinc-950 border border-white/5 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
                 />
                 <input
                   type="date"
                   value={newExpiryDate}
                   onChange={(e) => setNewExpiryDate(e.target.value)}
-                  className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 text-zinc-400"
+                  className="bg-zinc-950 border border-white/5 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 text-zinc-400"
                   title="เวลาหมดอายุ (Optional)"
                 />
               </div>
@@ -145,7 +145,7 @@ export const CouponManagerModal: React.FC<CouponManagerModalProps> = ({ isOpen, 
                   coupons.map(c => {
                     const isExpired = c.expiresAt && new Date(c.expiresAt).getTime() < Date.now();
                     return (
-                      <div key={c.code} className="flex items-center justify-between p-3 rounded-xl border border-zinc-800/80 bg-zinc-950">
+                      <div key={c.code} className="flex items-center justify-between p-3 rounded-xl border border-white/5/80 bg-zinc-950">
                         <div>
                           <div className={`font-bold font-mono text-sm ${isExpired ? 'text-zinc-500 line-through' : 'text-emerald-400'}`}>
                             {c.code} {isExpired && <span className="text-xs text-red-500 font-sans font-bold no-underline ml-2">(หมดอายุ)</span>}
