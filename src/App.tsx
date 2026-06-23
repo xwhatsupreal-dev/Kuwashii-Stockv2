@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { FakeTurnstile } from './components/FakeTurnstile';
 import { motion, AnimatePresence } from "motion/react";
 import {
   Shield,
@@ -61,11 +62,12 @@ import {
 import {
   StockItem,
   CategoryFilter,
-  RarityFilter,
+  SaleFormatFilter,
   StockStatusFilter,
 } from "./types";
 import { DEFAULT_PRESETS } from "./presets";
 import { ItemCard } from "./components/ItemCard";
+import { CategoryList } from "./components/CategoryList";
 import { ItemCardSkeleton } from "./components/ItemCardSkeleton";
 import { InquiryModal } from "./components/InquiryModal";
 import { RandomBoxModal } from "./components/RandomBoxModal";
@@ -80,6 +82,8 @@ import { AnnouncementManagerModal } from "./components/AnnouncementManagerModal"
 import { AnnouncementPopup } from "./components/AnnouncementPopup";
 import { MarqueeAnnouncement } from "./components/MarqueeAnnouncement";
 import Snowfall from "./components/Snowfall";
+import { ShopHeader } from "./components/ShopHeader";
+import { ShopBanner } from "./components/ShopBanner";
 import jsQR from "jsqr";
 
 const readQRFromImage = (file: File): Promise<string | null> => {
@@ -115,6 +119,8 @@ import { supabase } from "./supabase";
 import { fetchItems, fetchUser, getSystemConfig } from "./queries";
 
 import { SalesChart } from "./components/SalesChart";
+import { MobileDrawer } from './components/MobileDrawer';
+import { Statement } from './components/Statement';
 
 export const addLiveActivity = async (
   activity: Omit<LiveActivity, "id" | "timestamp">,
@@ -171,12 +177,8 @@ export default function App() {
   const isUnderMaintenance = globalStats?.maintenance_mode;
 
   // --- Global Hub State ---
-  const [appScreen, setAppScreen] = useState<
-    "LOADING" | "SELECT" | "TRANSITION" | "AOTR" | "ASTD" | "ROV"
-  >("LOADING");
-  const [targetScreen, setTargetScreen] = useState<
-    "AOTR" | "ASTD" | "ROV" | null
-  >(null);
+  const [appScreen, setAppScreen] = useState<string>(window.location.pathname === "/shop" || window.location.search.includes("shop") ? "SHOP" : "STATEMENT");
+  const [targetScreen, setTargetScreen] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   // User & Admin Authentications
   const [currentUser, setCurrentUser] = useState<{ username: string } | null>(
@@ -262,11 +264,11 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilter>("all");
-  const [selectedRarity, setSelectedRarity] = useState<RarityFilter>("all");
+  const [selectedSaleFormat, setSelectedSaleFormat] = useState<SaleFormatFilter>("all");
   const [selectedStatus, setSelectedStatus] =
     useState<StockStatusFilter>("all");
   const [showPopularOnly, setShowPopularOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<string>("rarity-desc");
+  const [sortBy, setSortBy] = useState<string>("newest");
   const [syncCounter, setSyncCounter] = useState(0);
 
   // Sync Engine Listener
@@ -543,121 +545,6 @@ export default function App() {
   
   
 
-  const handleShareToAI = (item: StockItem) => {
-    setChatSharedItem(item);
-    setChatInput(
-      `ช่วยวิเคราะห์ความเทพ ประโยชน์ และความน่าซื้อของ ${item.name} (ระดับความหายาก: ${item.rarity}) ให้หน่อยครับว่าเอาไปใช้โรลเพลย์หรือทำคอมโบได้ดีแค่ไหน? ✨`,
-    );
-    showToast(
-      `แชร์ข้อมูลสินค้า "${item.name}" ไปยัง AI Chat เรียบร้อยแล้ว! 🔮`,
-      "success",
-    );
-
-    // Scroll smoothly to the AI Chatbox section
-    setTimeout(() => {
-      const chatSection = document.getElementById("ai-chat-section");
-      if (chatSection) {
-        chatSection.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }, 100);
-  };
-
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!chatInput.trim() || isChatLoading) return;
-
-    const userMsg = chatInput;
-    setChatInput("");
-    setIsChatLoading(true);
-
-    const updatedMessages = [
-      ...chatMessages,
-      { role: "user" as const, text: userMsg },
-    ];
-    setChatMessages(updatedMessages);
-
-    // Auto-scroll chat box container to bottom smoothly, without scrolling the main browser page
-    setTimeout(() => {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTo({
-          top: chatContainerRef.current.scrollHeight,
-          behavior: "smooth",
-        });
-      }
-    }, 60);
-
-    try {
-      const apiHistory = chatMessages.map((msg) => ({
-        role: msg.role === "user" ? "user" : "model",
-        parts: [{ text: msg.text }],
-      }));
-
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: userMsg,
-          history: apiHistory,
-          items: items.map((item) => ({
-            id: item.id,
-            name: item.name,
-            category: item.category,
-            rarity: item.rarity,
-            quantity: item.quantity,
-            price: item.price,
-            description: item.description || "",
-            isPopular: item.isPopular,
-          })),
-          sharedItem: chatSharedItem
-            ? {
-                id: chatSharedItem.id,
-                name: chatSharedItem.name,
-                category: chatSharedItem.category,
-                rarity: chatSharedItem.rarity,
-                quantity: chatSharedItem.quantity,
-                price: chatSharedItem.price,
-                description: chatSharedItem.description || "",
-                isPopular: chatSharedItem.isPopular,
-              }
-            : null,
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "ระบบประมวลผลคำตอบขัดข้องชั่วคราว");
-      }
-
-      const data = await res.json();
-      setChatMessages((prev) => [
-        ...prev,
-        { role: "model", text: data.answer },
-      ]);
-    } catch (err: any) {
-      console.error(err);
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          role: "model",
-          text: `❌ **เกิดข้อผิดพลาด:** ${err.message || "ไม่สามารถติดต่อเซิร์ฟเวอร์ปัญญาประดิษฐ์ในขณะนี้ กรุณาลองใหม่อีกครั้ง"}`,
-        },
-      ]);
-      showToast("เชื่อมต่อ AI ไม่สำเร็จ", "error");
-    } finally {
-      setIsChatLoading(false);
-      setTimeout(() => {
-        if (chatContainerRef.current) {
-          chatContainerRef.current.scrollTo({
-            top: chatContainerRef.current.scrollHeight,
-            behavior: "smooth",
-          });
-        }
-      }, 60);
-    }
-  };
-
   // Cleanup logic (7 days retention)
   useEffect(() => {
     async function cleanupOldData() {
@@ -707,7 +594,7 @@ export default function App() {
               image: item.imageUrls ? JSON.stringify(item.imageUrls) : item.imageUrl,
               game: item.game,
               category: item.category,
-              rarity: item.rarity,
+              rarity: item.saleFormat,
               popular: item.isPopular,
               gacha_pool: { pool: item.gachaPool, isPinned: item.isPinned || false },
             }));
@@ -739,7 +626,7 @@ export default function App() {
         image: item.imageUrls ? JSON.stringify(item.imageUrls) : item.imageUrl,
         game: item.game,
         category: item.category,
-        rarity: item.rarity,
+        rarity: item.saleFormat,
         popular: item.isPopular,
         gacha_pool: {
           pool: item.gachaPool || null,
@@ -824,7 +711,10 @@ export default function App() {
         localStorage.setItem("KUWASHII_COUPONS", JSON.stringify(coupons));
 
             const configData = await getSystemConfig();
-            if (appScreen === "ASTD") {
+            
+
+
+    if (appScreen === "SHOP") {
               const currentFree = configData
                 ? Number(configData.global_free_astd || 0)
                 : 0;
@@ -834,7 +724,7 @@ export default function App() {
                   id: "main",
                   global_free_astd: currentFree + coupon.amount,
                 });
-            } else if (appScreen === "AOTR") {
+            } else if (false) {
               // AOTR columns not reliably present, wrap in try/catch or assume it's fine for now,
               // but we are focused on ROV. Just skip ROV since it has no columns.
               const currentFree = configData
@@ -848,7 +738,7 @@ export default function App() {
                 });
             }
 
-        const balanceField = appScreen === "ROV" ? "balance_rov" : "balance";
+        const balanceField = false ? "balance_rov" : "balance";
         const userBalance = Number(liveUser[balanceField] || 0);
         const newBalance = userBalance + coupon.amount;
         await supabase
@@ -910,14 +800,14 @@ export default function App() {
             const ownerName = data.owner_profile || "ไม่ทราบชื่อ";
 
             const configData = await getSystemConfig();
-            if (appScreen === "ASTD") {
+            if (appScreen === "SHOP") {
               const currentRev = configData
                 ? Number(configData.global_rev_astd || 0)
                 : 0;
               await supabase
                 .from("system_config")
                 .upsert({ id: "main", global_rev_astd: currentRev + amount });
-            } else if (appScreen === "AOTR") {
+            } else if (false) {
               const currentRev = configData
                 ? Number(configData.global_revenue_aotr || 0)
                 : 0;
@@ -930,7 +820,7 @@ export default function App() {
             }
             // If ROV, we do nothing to system_config because we don't track global_revenue_rov currently.
 
-            const balanceField = appScreen === "ROV" ? "balance_rov" : "balance";
+            const balanceField = false ? "balance_rov" : "balance";
             const userBalance = Number(liveUser[balanceField] || 0);
             const newBalance = userBalance + amount;
             await supabase
@@ -1070,14 +960,14 @@ export default function App() {
             }
 
             const configData = await getSystemConfig();
-            if (appScreen === "ASTD") {
+            if (appScreen === "SHOP") {
               const currentRev = configData
                 ? Number(configData.global_rev_astd || 0)
                 : 0;
               await supabase
                 .from("system_config")
                 .upsert({ id: "main", global_rev_astd: currentRev + amount });
-            } else if (appScreen === "AOTR") {
+            } else if (false) {
               const currentRev = configData
                 ? Number(configData.global_revenue_aotr || 0)
                 : 0;
@@ -1090,7 +980,7 @@ export default function App() {
             }
             // If ROV, we do nothing to system_config because we don't track global_revenue_rov currently.
 
-            const balanceField = appScreen === "ROV" ? "balance_rov" : "balance";
+            const balanceField = false ? "balance_rov" : "balance";
             const userBalance = Number(liveUser[balanceField] || 0);
             const newBalance = userBalance + amount;
             await supabase
@@ -1674,7 +1564,7 @@ export default function App() {
     }
 
     const totalPrice = item.price * purchaseQty;
-    const balanceField = appScreen === "ROV" ? "balance_rov" : "balance";
+    const balanceField = false ? "balance_rov" : "balance";
     const userBalance = Number(user[balanceField] || 0);
     if (userBalance < totalPrice) {
       showToast(
@@ -2169,7 +2059,7 @@ export default function App() {
 
   // --- Filtering & Sorting Compute ---
   const filteredItems = items.filter((item) => {
-    const matchesGame = item.game === appScreen;
+    const matchesGame = true;
 
     if (!matchesGame) return false;
 
@@ -2181,8 +2071,8 @@ export default function App() {
 
     const matchesCategory =
       selectedCategory === "all" || item.category === selectedCategory;
-    const matchesRarity =
-      selectedRarity === "all" || item.rarity === selectedRarity;
+    const matchesSaleFormat =
+      selectedSaleFormat === "all" || item.saleFormat === selectedSaleFormat;
 
     let matchesStatus = true;
     if (selectedStatus === "in-stock") {
@@ -2198,7 +2088,7 @@ export default function App() {
     return (
       matchesSearch &&
       matchesCategory &&
-      matchesRarity &&
+      matchesSaleFormat &&
       matchesStatus &&
       matchesPopular
     );
@@ -2264,20 +2154,16 @@ export default function App() {
     // 2.5 Category Grouping: When viewing 'All' categories, group items of the same category together
     if (selectedCategory === "all") {
       const categoryOrder =
-        appScreen === "ASTD"
-          ? [
-              "สุ่มตัวละคร - ออสตา",
-              "Starter Accounts",
-              "High Level / PvP",
-              "Rare Units",
-              "Gems / Currency",
-              "Rank Boosting",
-              "Bundle Offers",
-              "Gifts / Codes",
-              "Other Services",
-              "Other",
-            ]
-          : appScreen === "ROV"
+        true ? [
+
+              "Grow A Garden 2",
+              "ALL STAR",
+              "Coming Soon",
+              "Other services",
+              "VIP Codes"
+
+]
+          : false
             ? ["รหัส ROV"]
             : [
                 "Serum",
@@ -2309,16 +2195,6 @@ export default function App() {
         return b.quantity - a.quantity;
       case "stock-asc":
         return a.quantity - b.quantity;
-      case "rarity-desc": {
-        const rarityWeights = {
-          Mythic: 5,
-          Legendary: 4,
-          Epic: 3,
-          Rare: 2,
-          Common: 1,
-        };
-        return rarityWeights[b.rarity] - rarityWeights[a.rarity];
-      }
       default: {
         const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
         const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -2340,21 +2216,21 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-zinc-900 "
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="relative glass-panel-light p-8 rounded-2xl flex flex-col items-center shadow-2xl"
+              className="relative bg-zinc-950 border border-zinc-800 p-8 rounded-2xl flex flex-col items-center shadow-2xl"
             >
               <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
                 <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
               </div>
-              <h3 className="text-lg font-bold text-white tracking-widest mb-2 font-display">
+              <h3 className="text-lg font-bold text-zinc-100 tracking-widest mb-2 font-display">
                 ระบบกำลังทำรายการ...
               </h3>
-              <p className="text-xs text-zinc-400 font-mono">
+              <p className="text-xs text-zinc-500 font-mono">
                 กรุณารอสักครู่ (Do not close)
               </p>
             </motion.div>
@@ -2367,25 +2243,26 @@ export default function App() {
       {/* Authentication Modal */}
       <AnimatePresence>
         {showAuthModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowAuthModal(false)}
-              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+              className="absolute inset-0 bg-zinc-900 "
             />
 
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative max-w-sm w-full rounded-2xl border border-white/5 bg-transparent p-6 shadow-2xl z-10"
+              className="relative max-w-sm w-full rounded-2xl border border-zinc-800 bg-transparent p-6 shadow-2xl z-10"
             >
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 type="button"
-                className="absolute top-4 right-4 text-zinc-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors"
+                className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-100 p-1 rounded-md hover:bg-zinc-900 transition-colors"
                 onClick={() => setShowAuthModal(false)}
               >
                 <X className="w-5 h-5" />
@@ -2396,52 +2273,27 @@ export default function App() {
                   <Shield className="w-6 h-6 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="font-display text-base font-bold text-white">
+                  <h3 className="font-display text-base font-bold text-zinc-100">
                     {authMode === "login"
                       ? "เข้าสู่ระบบบัญชีของคุณ"
                       : authMode === "forgot"
                         ? "รีเซ็ตรหัสผ่าน"
                         : "สมัครสมาชิกใหม่"}
                   </h3>
-                  <p className="text-xs text-zinc-400 mt-1">
+                  <p className="text-xs text-zinc-500 mt-1">
                     ระบบตัวแทนใช้งานและผู้ดูแลคลังสินค้า
                   </p>
                 </div>
               </div>
 
-              {authMode !== "forgot" && authMode !== "forgot_verify_otp" && (
-                <div className="flex gap-2 w-full p-1 glass-panel rounded-2xl mb-5 border border-white/5">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => {
-                      setAuthMode("login");
-                      setAuthError("");
-                    }}
-                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${authMode === "login" ? "bg-zinc-800 text-white shadow-md" : "text-zinc-400 hover:text-zinc-300"}`}
-                  >
-                    เข้าสู่ระบบ
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => {
-                      setAuthMode("register");
-                      setAuthError("");
-                    }}
-                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${authMode === "register" ? "bg-zinc-800 text-white shadow-md" : "text-zinc-400 hover:text-zinc-300"}`}
-                  >
-                    สมัครสมาชิก
-                  </motion.button>
-                </div>
-              )}
+              
 
               <form onSubmit={handleAuthSubmit} className="space-y-4 font-display tracking-tight">
                 <div className="space-y-3">
                   {authMode !== "forgot" &&
                     authMode !== "forgot_verify_otp" && (
                       <div>
-                        <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
+                        <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">
                           ชื่อผู้ใช้งาน (Username)
                         </label>
                         <input
@@ -2459,7 +2311,7 @@ export default function App() {
                             authMode === "login" || authMode === "register"
                           }
                           autoComplete="username"
-                          className="w-full glass-panel-light text-zinc-100 px-3.5 py-2.5 rounded-2xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-medium"
+                          className="w-full bg-zinc-950 border border-zinc-800 text-zinc-200 px-3.5 py-2.5 rounded-2xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-medium"
                         />
                       </div>
                     )}
@@ -2471,7 +2323,7 @@ export default function App() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                     >
-                      <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1 mt-3">
+                      <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1 mt-3">
                         อีเมล (Email){" "}
                         <span className="text-emerald-500">*จำเป็น</span>
                       </label>
@@ -2491,7 +2343,7 @@ export default function App() {
                         required
                         autoComplete="email"
                         readOnly={authMode === "forgot_verify_otp"}
-                        className={`w-full glass-panel-light text-zinc-100 px-3.5 py-2.5 rounded-2xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-medium ${authMode === "forgot_verify_otp" ? "opacity-70 cursor-not-allowed" : ""}`}
+                        className={`w-full bg-zinc-950 border border-zinc-800 text-zinc-200 px-3.5 py-2.5 rounded-2xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-medium ${authMode === "forgot_verify_otp" ? "opacity-70 cursor-not-allowed" : ""}`}
                       />
                     </motion.div>
                   )}
@@ -2513,7 +2365,7 @@ export default function App() {
                         }}
                         placeholder="123456"
                         required
-                        className="w-full bg-white/5 border border-amber-500/50 text-amber-100 px-3.5 py-2.5 rounded-2xl focus:outline-none focus:border-amber-500 transition-all text-sm placeholder-zinc-600 font-mono tracking-widest font-bold text-center"
+                        className="w-full bg-zinc-900 border border-amber-500/50 text-amber-100 px-3.5 py-2.5 rounded-2xl focus:outline-none focus:border-amber-500 transition-all text-sm placeholder-zinc-600 font-mono tracking-widest font-bold text-center"
                         maxLength={6}
                       />
                     </motion.div>
@@ -2524,7 +2376,7 @@ export default function App() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                     >
-                      <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1 mt-3">
+                      <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1 mt-3">
                         {authMode === "forgot_verify_otp"
                           ? "รหัสผ่านใหม่ (New Password)"
                           : "รหัสผ่าน (Password)"}
@@ -2548,13 +2400,13 @@ export default function App() {
                               ? "current-password"
                               : "new-password"
                           }
-                          className="w-full glass-panel-light text-zinc-100 px-3.5 py-2.5 rounded-2xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold pr-10"
+                          className="w-full bg-zinc-950 border border-zinc-800 text-zinc-200 px-3.5 py-2.5 rounded-2xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold pr-10"
                         />
                         <motion.button
                           whileTap={{ scale: 0.95 }}
                           type="button"
                           onClick={() => setShowAuthPassword(!showAuthPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-300 transition-colors"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-400 transition-colors"
                         >
                           {showAuthPassword ? (
                             <EyeOff className="w-4 h-4" />
@@ -2564,7 +2416,7 @@ export default function App() {
                         </motion.button>
                       </div>
                       {authMode === "login" && (
-                        <label className="flex items-center gap-2 mt-3 cursor-pointer group w-fit text-[11px] text-zinc-400">
+                        <label className="flex items-center gap-2 mt-3 cursor-pointer group w-fit text-[11px] text-zinc-500">
                           <div className="relative flex items-center justify-center">
                             <input
                               type="checkbox"
@@ -2572,13 +2424,13 @@ export default function App() {
                               onChange={(e) =>
                                 setRememberAuth(e.target.checked)
                               }
-                              className="appearance-none w-3.5 h-3.5 rounded border border-zinc-700 bg-white/5 checked:bg-indigo-500 checked:border-indigo-500 transition-colors cursor-pointer"
+                              className="appearance-none w-3.5 h-3.5 rounded border border-zinc-700 bg-zinc-900 checked:bg-indigo-500 checked:border-indigo-500 transition-colors cursor-pointer"
                             />
                             <Check
-                              className={`w-2.5 h-2.5 text-white absolute pointer-events-none transition-opacity ${rememberAuth ? "opacity-100" : "opacity-0"}`}
+                              className={`w-2.5 h-2.5 text-zinc-100 absolute pointer-events-none transition-opacity ${rememberAuth ? "opacity-100" : "opacity-0"}`}
                             />
                           </div>
-                          <span className="group-hover:text-zinc-300 transition-colors">
+                          <span className="group-hover:text-zinc-400 transition-colors">
                             จดจำการเข้าสู่ระบบไว้
                           </span>
                         </label>
@@ -2591,7 +2443,7 @@ export default function App() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                     >
-                      <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1 mt-3">
+                      <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1 mt-3">
                         ยืนยันรหัสผ่าน (Confirm Password){" "}
                         <span className="text-emerald-500">*จำเป็น</span>
                       </label>
@@ -2606,7 +2458,7 @@ export default function App() {
                           placeholder="ยืนยันรหัสผ่านอีกครั้ง..."
                           required={authMode === "register"}
                           autoComplete="new-password"
-                          className="w-full glass-panel-light text-zinc-100 px-3.5 py-2.5 rounded-2xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold pr-10"
+                          className="w-full bg-zinc-950 border border-zinc-800 text-zinc-200 px-3.5 py-2.5 rounded-2xl focus:outline-none focus:border-indigo-500 transition-all text-xs placeholder-zinc-600 font-mono tracking-wider font-semibold pr-10"
                         />
                         <motion.button
                           whileTap={{ scale: 0.95 }}
@@ -2614,7 +2466,7 @@ export default function App() {
                           onClick={() =>
                             setShowAuthConfirmPassword(!showAuthConfirmPassword)
                           }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-300 transition-colors"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-400 transition-colors"
                         >
                           {showAuthConfirmPassword ? (
                             <EyeOff className="w-4 h-4" />
@@ -2660,7 +2512,7 @@ export default function App() {
                         setAuthError("");
                         setAuthOtpCode("");
                       }}
-                      className="w-1/2 py-2 px-4 rounded-2xl border border-white/5 text-zinc-400 hover:text-white bg-transparent text-xs font-semibold cursor-pointer transition-colors"
+                      className="w-1/2 py-2 px-4 rounded-2xl border border-zinc-800 text-zinc-500 hover:text-zinc-100 bg-transparent text-xs font-semibold cursor-pointer transition-colors"
                     >
                       กลับไปหน้าเข้าสู่ระบบ
                     </motion.button>
@@ -2669,7 +2521,7 @@ export default function App() {
                       whileTap={{ scale: 0.95 }}
                       type="button"
                       onClick={() => setShowAuthModal(false)}
-                      className="w-1/2 py-2 px-4 rounded-2xl border border-white/5 text-zinc-400 hover:text-white bg-transparent text-xs font-semibold cursor-pointer transition-colors"
+                      className="w-1/2 py-2 px-4 rounded-2xl border border-zinc-800 text-zinc-500 hover:text-zinc-100 bg-transparent text-xs font-semibold cursor-pointer transition-colors"
                     >
                       ยกเลิก
                     </motion.button>
@@ -2678,7 +2530,7 @@ export default function App() {
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       type="submit"
-                      className="w-1/2 py-2 px-4 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white border-none text-[11px] font-extrabold cursor-pointer transition-all active:scale-95 leading-tight"
+                      className="w-1/2 py-2 px-4 rounded-2xl bg-amber-600 hover:bg-amber-500 text-zinc-100 border-none text-[11px] font-extrabold cursor-pointer transition-all active:scale-95 leading-tight"
                     >
                       ยืนยัน OTP และเปลี่ยนรหัสผ่าน
                     </motion.button>
@@ -2686,20 +2538,16 @@ export default function App() {
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       type="submit"
-                      className={`w-1/2 py-2 px-4 rounded-2xl ${authMode === "login" ? "bg-indigo-600 hover:bg-indigo-500" : authMode === "forgot" ? "bg-amber-600 hover:bg-amber-500" : "bg-emerald-600 hover:bg-emerald-500"} text-white border-none text-xs font-extrabold cursor-pointer transition-all active:scale-95`}
+                      className={`w-1/2 py-2 px-4 rounded-2xl ${authMode === "login" ? "bg-indigo-600 hover:bg-indigo-500" : authMode === "forgot" ? "bg-amber-600 hover:bg-amber-500" : "bg-emerald-600 hover:bg-emerald-500"} text-zinc-100 border-none text-xs font-extrabold cursor-pointer transition-all active:scale-95`}
                     >
-                      {authMode === "login"
-                        ? "เข้าสู่ระบบ"
-                        : authMode === "forgot"
-                          ? "ขอรับรหัส OTP"
-                          : "ลงทะเบียน"}
+                      {authMode === "forgot" ? "ขอรับรหัส OTP" : "เข้าสู่ระบบ"}
                     </motion.button>
                   )}
                 </div>
               </form>
             </motion.div>
           </div>
-        )}
+)}
       </AnimatePresence>
 
       {/* Top Up Modal */}
@@ -2710,7 +2558,7 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-zinc-900 "
               onClick={() => {
                 setShowTopupModal(false);
                 setTopupModalStep("select");
@@ -2723,16 +2571,16 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-transparent border border-white/5 rounded-3xl shadow-2xl p-5 w-full max-w-sm relative z-10 max-h-[85vh] overflow-y-auto custom-scrollbar"
+              className="bg-transparent border border-zinc-800 rounded-3xl shadow-2xl p-5 w-full max-w-sm relative z-10 max-h-[85vh] overflow-y-auto custom-scrollbar"
             >
               <div className="text-center mb-5">
                 <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-500 mb-2">
                   <Wallet className="w-5 h-5" />
                 </div>
-                <h3 className="font-display text-lg font-bold text-white mb-1">
+                <h3 className="font-display text-lg font-bold text-zinc-100 mb-1">
                   เลือกช่องทาง <span className="text-red-500">ชำระเงิน</span>
                 </h3>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-zinc-500">
                   ทำรายการผ่านช่องทางที่ท่านสะดวก
                 </p>
               </div>
@@ -2742,7 +2590,7 @@ export default function App() {
                   <div>
                     <h4 className="text-amber-500 font-bold text-sm mb-1">ข้อควรระวังก่อนทำรายการ</h4>
                     <p className="text-amber-500/80 text-[11px] leading-relaxed">
-                      ระบบกระเป๋าเงินถูกแยกตามเกมที่ท่านกำลังให้ความสนใจ <b className="text-amber-400">(ขณะนี้ท่านอยู่ในส่วนของ {appScreen === 'ROV' ? 'เกม ROV' : 'เกม ASTD'})</b><br/>
+                      ระบบกระเป๋าเงินของคุณสามารถใช้งานได้ทุกบริการ<br/>
                       เครดิตที่ทำการเติมจะเข้าสู่กระเป๋าเกมนั้นๆ โดยตรง และ <b className="text-red-400">ไม่สามารถโอนย้ายข้ามเกมได้</b>
                     </p>
                   </div>
@@ -2755,16 +2603,16 @@ export default function App() {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setSelectedTopupChannel("angpao")}
                     disabled={!tosAccepted}
-                    className={`w-full bg-white/5 border ${selectedTopupChannel === "angpao" ? "border-red-500 bg-red-500/10" : "border-white/5 hover:border-red-500/50 hover:bg-zinc-800/50"} rounded-2xl p-4 flex items-center gap-4 transition-all text-left group ${!tosAccepted ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
+                    className={`w-full bg-zinc-900 border ${selectedTopupChannel === "angpao" ? "border-red-500 bg-red-500/10" : "border-zinc-800 hover:border-red-500/50 hover:bg-zinc-900"} rounded-2xl p-4 flex items-center gap-4 transition-all text-left group ${!tosAccepted ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
                   >
                     <div className="w-14 h-14 bg-red-500 rounded-2xl flex items-center justify-center shadow-inner pt-1 pl-1 rotate-[-5deg] group-hover:rotate-[-2deg] transition-transform">
-                      <Gift className="w-8 h-8 text-white/90 drop-shadow-md" />
+                      <Gift className="w-8 h-8 text-zinc-100/90 drop-shadow-md" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-white text-base">
+                      <h4 className="font-bold text-zinc-100 text-base">
                         เติมผ่านซองอั่งเปา
                       </h4>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                      <p className="text-[11px] text-zinc-500 mt-0.5">
                         เติมเงินผ่านระบบซองอั่งเปา
                         <br />
                         ของทรูมันนี่วอลเลท
@@ -2776,19 +2624,19 @@ export default function App() {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setSelectedTopupChannel("bank")}
                     disabled={!tosAccepted}
-                    className={`w-full relative bg-white/5 border ${selectedTopupChannel === "bank" ? "border-blue-500 bg-blue-500/10" : "border-white/5 hover:border-indigo-500/50 hover:bg-zinc-800/50"} rounded-2xl p-4 flex items-center gap-4 transition-all text-left ${!tosAccepted ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
+                    className={`w-full relative bg-zinc-900 border ${selectedTopupChannel === "bank" ? "border-blue-500 bg-blue-900/200/10" : "border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900"} rounded-2xl p-4 flex items-center gap-4 transition-all text-left ${!tosAccepted ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
                   >
-                    <div className="absolute -top-3 -right-3 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg backdrop-blur-md z-10">
+                    <div className="absolute -top-3 -right-3 bg-blue-900/200/10 border border-blue-500/30 text-blue-400 text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg  z-10">
                       <Star className="w-3 h-3" /> แนะนำ
                     </div>
-                    <div className="w-14 h-14 bg-blue-500 rounded-2xl flex items-center justify-center shadow-inner">
-                      <Landmark className="w-8 h-8 text-white/90 drop-shadow-md" />
+                    <div className="w-14 h-14 bg-blue-900/200 rounded-2xl flex items-center justify-center shadow-inner">
+                      <Landmark className="w-8 h-8 text-zinc-100/90 drop-shadow-md" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-white text-base">
+                      <h4 className="font-bold text-zinc-100 text-base">
                         เติมผ่านธนาคาร (รองรับทุกธนาคาร)
                       </h4>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                      <p className="text-[11px] text-zinc-500 mt-0.5">
                         โอนเงินมาที่บัญชีธนาคารกสิกรไทย
                         <br />
                         รองรับสลิปจากทุกธนาคารชั้นนำ
@@ -2800,14 +2648,14 @@ export default function App() {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setSelectedTopupChannel("coupon")}
                     disabled={!tosAccepted}
-                    className={`w-full bg-white/5 border ${selectedTopupChannel === "coupon" ? "border-emerald-500 bg-emerald-500/10" : "border-white/5 hover:border-emerald-500/50 hover:bg-zinc-800/50"} rounded-2xl p-4 flex items-center gap-4 transition-all text-left ${!tosAccepted ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
+                    className={`w-full bg-zinc-900 border ${selectedTopupChannel === "coupon" ? "border-emerald-500 bg-emerald-500/10" : "border-zinc-800 hover:border-emerald-500/50 hover:bg-zinc-900"} rounded-2xl p-4 flex items-center gap-4 transition-all text-left ${!tosAccepted ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
                   >
                     <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-inner">
-                      <Ticket className="w-8 h-8 text-white/90 drop-shadow-md" />
+                      <Ticket className="w-8 h-8 text-zinc-100/90 drop-shadow-md" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-white text-base">คูปอง</h4>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                      <h4 className="font-bold text-zinc-100 text-base">คูปอง</h4>
+                      <p className="text-[11px] text-zinc-500 mt-0.5">
                         เติมเงินผ่านรหัสคูปอง
                         <br />
                         หรือโค้ดส่วนลดพิเศษ
@@ -2815,7 +2663,7 @@ export default function App() {
                     </div>
                   </motion.button>
 
-                  <div className="pt-4 border-t border-white/5/50 space-y-4">
+                  <div className="pt-4 border-t border-zinc-800 space-y-4">
                     <label className="flex items-center gap-3 cursor-pointer group">
                       <div className="relative flex items-center justify-center">
                         <input
@@ -2826,10 +2674,10 @@ export default function App() {
                             if (!e.target.checked)
                               setSelectedTopupChannel(null);
                           }}
-                          className="peer appearance-none w-5 h-5 border-2 border-zinc-700 rounded bg-white/5 checked:bg-red-500 checked:border-red-500 transition-all"
+                          className="peer appearance-none w-5 h-5 border-2 border-zinc-700 rounded bg-zinc-900 checked:bg-red-500 checked:border-red-500 transition-all"
                         />
                         <svg
-                          className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100"
+                          className="absolute w-3 h-3 text-zinc-100 pointer-events-none opacity-0 peer-checked:opacity-100"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -2842,7 +2690,7 @@ export default function App() {
                           />
                         </svg>
                       </div>
-                      <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 transition-colors select-none">
+                      <span className="text-[11px] text-zinc-500 group-hover:text-zinc-400 transition-colors select-none">
                         ยอมรับ{" "}
                         <span
                           className="text-red-500 font-medium hover:underline"
@@ -2873,7 +2721,7 @@ export default function App() {
                           setTopupModalStep(selectedTopupChannel);
                         }
                       }}
-                      className="w-full py-3 px-4 rounded-2xl bg-zinc-300 hover:bg-white text-black text-sm font-bold opacity-80 hover:opacity-100 flex justify-center items-center gap-2 transition-all"
+                      className="w-full py-3 px-4 rounded-2xl bg-zinc-300 hover:bg-zinc-200 text-black text-sm font-bold opacity-80 hover:opacity-100 flex justify-center items-center gap-2 transition-all"
                     >
                       ถัดไป <span>→</span>
                     </motion.button>
@@ -2884,7 +2732,7 @@ export default function App() {
                   <div className="w-16 h-16 bg-emerald-500/20 border-2 border-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 scale-110">
                     <CheckCircle className="w-8 h-8 text-emerald-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">
+                  <h3 className="text-xl font-bold text-zinc-100 mb-2">
                     ทำรายการสำเร็จ!
                   </h3>
                   <div className="text-emerald-300 text-sm mb-6 px-4 leading-relaxed font-mono tracking-wide flex flex-col gap-2">
@@ -2913,14 +2761,14 @@ export default function App() {
                       setTopupSuccessMessage("");
                       setTosAccepted(false);
                     }}
-                    className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-extrabold cursor-pointer transition-all shadow-lg"
+                    className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-zinc-100 text-sm font-extrabold cursor-pointer transition-all shadow-lg"
                   >
                     ตกลง
                   </motion.button>
                 </div>
               ) : (
                 <form onSubmit={handleTopupSubmit} className="space-y-4">
-                  <div className="flex items-center gap-3 mb-5 p-3 rounded-2xl glass-panel">
+                  <div className="flex items-center gap-3 mb-5 p-3 rounded-2xl bg-zinc-900 shadow-sm border border-zinc-800">
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       type="button"
@@ -2928,11 +2776,11 @@ export default function App() {
                         setTopupModalStep("select");
                         setTopupCode("");
                       }}
-                      className="text-zinc-400 hover:text-white"
+                      className="text-zinc-500 hover:text-zinc-100"
                     >
                       <ChevronLeft className="w-5 h-5" />
                     </motion.button>
-                    <h4 className="font-bold text-sm text-zinc-300">
+                    <h4 className="font-bold text-sm text-zinc-400">
                       {topupModalStep === "angpao"
                         ? "กรอกลิ้งค์ซองอั่งเปา"
                         : topupModalStep === "bank"
@@ -2955,8 +2803,8 @@ export default function App() {
                         บาท, ค่าธรรมเนียม 2.9%)
                       </p>
 
-                      <div className="mt-4 glass-panel p-3 rounded-lg border border-[#5865F2]/20 flex flex-col gap-2">
-                        <p className="text-[11px] text-zinc-300 leading-relaxed text-left">
+                      <div className="mt-4 bg-zinc-900 shadow-sm border border-zinc-800 p-3 rounded-lg border border-[#5865F2]/20 flex flex-col gap-2">
+                        <p className="text-[11px] text-zinc-400 leading-relaxed text-left">
                           หากลูกค้าเติมเงินไปแล้วไม่เข้า ให้เปิดทิกเก็ตใน{" "}
                           <strong className="text-[#5865F2]">Discord</strong>{" "}
                           ได้เลย พร้อมแนบลิงค์ซองอั่งเปาที่เติมไปด้วย
@@ -2965,7 +2813,7 @@ export default function App() {
                           href="https://discord.gg/AQKtJpvyva"
                           target="_blank"
                           rel="noreferrer"
-                          className="w-full bg-[#5865F2] hover:bg-[#4752C4] shadow-md shadow-[#5865F2]/20 transition-colors py-2 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-2 mt-1"
+                          className="w-full bg-[#5865F2] hover:bg-[#4752C4] shadow-md shadow-[#5865F2]/20 transition-colors py-2 rounded-lg text-zinc-100 text-xs font-bold flex items-center justify-center gap-2 mt-1"
                         >
                           <svg
                             className="w-3.5 h-3.5"
@@ -2981,42 +2829,42 @@ export default function App() {
                   )}
 
                   {topupModalStep === "bank" && (
-                    <div className="mb-2 bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-2xl flex flex-col items-center text-center">
+                    <div className="mb-2 bg-blue-900/200/10 border border-blue-500/20 p-2.5 rounded-2xl flex flex-col items-center text-center">
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <p className="text-[11px] text-blue-300">
-                          {appScreen === "ROV" ? "กรุณาโอนเงินมาที่ (กสิกร/QR Code):" : "กรุณาโอนเงินมาที่บัญชี (QR Code):"}
+                          {false ? "กรุณาโอนเงินมาที่ (กสิกร/QR Code):" : "กรุณาโอนเงินมาที่บัญชี (QR Code):"}
                         </p>
                         <div className="flex items-center gap-2">
-                          <p className="text-base md:text-lg font-bold text-white tracking-widest font-mono">
-                            {appScreen === "ROV" ? "184-8-29946-0" : "213-3-81446-1"}
+                          <p className="text-base md:text-lg font-bold text-zinc-100 tracking-widest font-mono">
+                            {false ? "184-8-29946-0" : "213-3-81446-1"}
                           </p>
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             type="button"
                             onClick={() => {
-                              const textToCopy = appScreen === "ROV" ? "1848299460" : "2133814461";
+                              const textToCopy = false ? "1848299460" : "2133814461";
                               navigator.clipboard.writeText(textToCopy);
-                              showToast(appScreen === "ROV" ? "คัดลอกเลขบัญชีกสิกรแล้ว" : "คัดลอกเลขบัญชีแล้ว", "success");
+                              showToast(false ? "คัดลอกเลขบัญชีกสิกรแล้ว" : "คัดลอกเลขบัญชีแล้ว", "success");
                             }}
-                            className="p-1 justify-center bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 rounded transition-colors duration-200"
+                            className="p-1 justify-center bg-blue-900/200/20 text-blue-400 hover:bg-blue-900/200/40 rounded transition-colors duration-200"
                           >
                             <Copy className="w-4 h-4" />
                           </motion.button>
                         </div>
                         <p className="text-sm md:text-base font-semibold text-blue-400">
-                          {appScreen === "ROV" ? "ด.ช. รัชชานนท์ เรืองสวัสดิ์" : "นายธีรเทพ ทองเกตุ"}
+                          {false ? "ด.ช. รัชชานนท์ เรืองสวัสดิ์" : "นายธีรเทพ ทองเกตุ"}
                         </p>
                       </div>
 
                       <a
-                        href={appScreen === "ROV" ? "https://img2.pic.in.th/1000108463.jpg" : "https://img2.pic.in.th/1000098251.jpg"}
+                        href={false ? "https://img2.pic.in.th/1000108463.jpg" : "https://img2.pic.in.th/1000098251.jpg"}
                         download
                         target="_blank"
                         rel="noreferrer"
-                        className="block w-full max-w-[150px] border-2 border-blue-500/30 rounded-lg overflow-hidden my-2 hover:opacity-90 transition-opacity bg-white"
+                        className="block w-full max-w-[150px] border-2 border-blue-500/30 rounded-lg overflow-hidden my-2 hover:opacity-90 transition-opacity bg-zinc-900"
                       >
                         <img
-                          src={appScreen === "ROV" ? "https://img2.pic.in.th/1000108463.jpg" : "https://img2.pic.in.th/1000098251.jpg"}
+                          src={false ? "https://img2.pic.in.th/1000108463.jpg" : "https://img2.pic.in.th/1000098251.jpg"}
                           alt="Bank QR"
                           className="w-full h-auto"
                         />
@@ -3033,8 +2881,8 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="w-full mt-3 glass-panel p-3 rounded-lg border border-[#5865F2]/20 flex flex-col gap-2">
-                        <p className="text-[11px] text-zinc-300 leading-relaxed text-left">
+                      <div className="w-full mt-3 bg-zinc-900 shadow-sm border border-zinc-800 p-3 rounded-lg border border-[#5865F2]/20 flex flex-col gap-2">
+                        <p className="text-[11px] text-zinc-400 leading-relaxed text-left">
                           หากลูกค้าโอนเงินไปแล้วนำรูปมาอัพโหลดไม่ได้หรือเกินเวลา
                           ให้เปิดทิกเก็ตใน{" "}
                           <strong className="text-[#5865F2]">Discord</strong>{" "}
@@ -3044,7 +2892,7 @@ export default function App() {
                           href="https://discord.gg/AQKtJpvyva"
                           target="_blank"
                           rel="noreferrer"
-                          className="w-full bg-[#5865F2] hover:bg-[#4752C4] shadow-md shadow-[#5865F2]/20 transition-colors py-2 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-2 mt-1"
+                          className="w-full bg-[#5865F2] hover:bg-[#4752C4] shadow-md shadow-[#5865F2]/20 transition-colors py-2 rounded-lg text-zinc-100 text-xs font-bold flex items-center justify-center gap-2 mt-1"
                         >
                           <svg
                             className="w-3.5 h-3.5"
@@ -3079,10 +2927,10 @@ export default function App() {
 
                   <div>
                     {topupModalStep === "bank" ? (
-                      <label className="flex flex-col items-center justify-center w-full min-h-[5rem] py-2 border-2 border-dashed border-zinc-700 rounded-2xl cursor-pointer hover:border-blue-500 hover:bg-blue-500/5 transition-colors bg-white/5 group">
+                      <label className="flex flex-col items-center justify-center w-full min-h-[5rem] py-2 border-2 border-dashed border-zinc-700 rounded-2xl cursor-pointer hover:border-blue-500 hover:bg-blue-900/200/5 transition-colors bg-zinc-900 group">
                         <div className="flex flex-col items-center justify-center pt-2 pb-2 px-4 text-center">
-                          <UploadCloud className="w-5 h-5 text-zinc-400 mb-1 group-hover:text-blue-400 transition-colors" />
-                          <p className="text-[9px] text-zinc-400 font-mono break-all max-w-full">
+                          <UploadCloud className="w-5 h-5 text-zinc-500 mb-1 group-hover:text-blue-400 transition-colors" />
+                          <p className="text-[9px] text-zinc-500 font-mono break-all max-w-full">
                             {slipFile ? (
                               <img
                                 src={URL.createObjectURL(slipFile)}
@@ -3115,7 +2963,7 @@ export default function App() {
                             : "กรอกโค้ดที่นี่..."
                         }
                         required
-                        className="w-full glass-panel-light text-zinc-100 px-3.5 py-3 rounded-2xl focus:outline-none focus:border-red-500 transition-all text-xs font-mono placeholder-zinc-600"
+                        className="w-full bg-zinc-950 border border-zinc-800 text-zinc-200 px-3.5 py-3 rounded-2xl focus:outline-none focus:border-red-500 transition-all text-xs font-mono placeholder-zinc-600"
                       />
                     )}
                   </div>
@@ -3125,7 +2973,7 @@ export default function App() {
                       whileTap={{ scale: 0.95 }}
                       type="submit"
                       disabled={isProcessingTopup}
-                      className="w-full py-3 px-4 rounded-2xl bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-extrabold flex justify-center items-center gap-2 transition-all shadow-lg"
+                      className="w-full py-3 px-4 rounded-2xl bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-100 text-sm font-extrabold flex justify-center items-center gap-2 transition-all shadow-lg"
                     >
                       {isProcessingTopup ? (
                         <>
@@ -3157,32 +3005,32 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-zinc-900 "
               onClick={() => setShowTopupTos(false)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-transparent border border-white/5 rounded-3xl shadow-2xl p-6 sm:p-8 w-full max-w-sm relative z-10"
+              className="bg-transparent border border-zinc-800 rounded-3xl shadow-2xl p-6 sm:p-8 w-full max-w-sm relative z-10"
             >
               <div className="text-center mb-6">
-                <h3 className="font-display text-lg font-bold text-white mb-2">
+                <h3 className="font-display text-lg font-bold text-zinc-100 mb-2">
                   ข้อกำหนดในการให้บริการ
                 </h3>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-zinc-500">
                   กรุณาอ่านและทำความเข้าใจก่อนทำรายการ
                 </p>
               </div>
-              <div className="glass-panel p-4 rounded-2xl border border-white/5/80 mb-6 space-y-3">
-                <p className="text-[11px] text-zinc-300 leading-relaxed text-center">
+              <div className="bg-zinc-900 shadow-sm border border-zinc-800 p-4 rounded-2xl border border-zinc-800/80 mb-6 space-y-3">
+                <p className="text-[11px] text-zinc-400 leading-relaxed text-center">
                   การทำรายการเติมเงินเข้าระบบทุกช่องทาง (ทั้งซองอั่งเปา, ธนาคาร,
                   หรือคูปอง){" "}
                   <strong className="text-red-400">
                     จะไม่สามารถขอคืนเงินได้ในทุกกรณี
                   </strong>
                 </p>
-                <p className="text-[11px] text-zinc-400 leading-relaxed text-center">
+                <p className="text-[11px] text-zinc-500 leading-relaxed text-center">
                   เมื่อท่านทำการยืนยัน
                   ถือว่าท่านยอมรับข้อตกลงนี้และเข้าใจว่ายอดเงินจะถูกเพิ่มเข้าเป็นเครดิตในระบบทันที
                 </p>
@@ -3190,7 +3038,7 @@ export default function App() {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowTopupTos(false)}
-                className="w-full py-3 px-4 rounded-2xl bg-zinc-300 hover:bg-white text-black text-sm font-bold flex justify-center items-center transition-all"
+                className="w-full py-3 px-4 rounded-2xl bg-zinc-300 hover:bg-zinc-200 text-black text-sm font-bold flex justify-center items-center transition-all"
               >
                 รับทราบและปิดหน้าต่าง
               </motion.button>
@@ -3311,13 +3159,13 @@ export default function App() {
   const renderStaleOverlay = () => {
     if (!isStale) return null;
     return (
-      <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center select-none pointer-events-auto">
+      <div className="fixed inset-0 z-[99999] bg-zinc-900  flex flex-col items-center justify-center p-4 text-center select-none pointer-events-auto">
         <div className="bg-transparent border border-red-500/30 p-6 sm:p-8 rounded-2xl w-[90%] max-w-sm shadow-2xl shadow-red-500/10">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4 animate-pulse" />
-          <h2 className="text-lg sm:text-xl font-black text-white mb-2">
+          <h2 className="text-lg sm:text-xl font-black text-zinc-100 mb-2">
             เซสชั่นหมดอายุ
           </h2>
-          <p className="text-[11px] sm:text-xs text-zinc-400 mb-6 leading-relaxed">
+          <p className="text-[11px] sm:text-xs text-zinc-500 mb-6 leading-relaxed">
             ระบบตรวจพบว่าคุณไม่มีการเคลื่อนไหวเกิน 10 นาที
             <br />
             เพื่อรีเฟรชสต๊อกล่าสุด กรุณาโหลดหน้าเว็บใหม่
@@ -3325,7 +3173,7 @@ export default function App() {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => window.location.reload()}
-            className="w-full py-3 sm:py-4 px-6 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs sm:text-sm tracking-wide shadow-lg shadow-red-500/25 transition-all outline-none"
+            className="w-full py-3 sm:py-4 px-6 rounded-2xl bg-red-600 hover:bg-red-500 text-zinc-100 font-bold text-xs sm:text-sm tracking-wide shadow-lg shadow-red-500/25 transition-all outline-none"
           >
             รีเฟรชหน้าเว็บ (Refresh)
           </motion.button>
@@ -3348,9 +3196,9 @@ export default function App() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[99999] bg-black/95 flex flex-col items-center justify-center p-6 text-center select-none text-white font-display tracking-tight"
+          className="fixed inset-0 z-[99999] bg-zinc-900 flex flex-col items-center justify-center p-6 text-center select-none text-zinc-100 font-display tracking-tight"
         >
-          <div className="max-w-md w-full glass-panel p-8 rounded-3xl border border-amber-500/30 shadow-2xl backdrop-blur-md relative">
+          <div className="max-w-md w-full bg-zinc-900 shadow-sm border border-zinc-800 p-8 rounded-3xl border border-amber-500/30 shadow-2xl  relative">
             <div className="w-20 h-20 mx-auto bg-amber-500/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
               <svg
                 className="w-10 h-10 text-amber-500"
@@ -3370,7 +3218,7 @@ export default function App() {
             <h2 className="text-3xl font-display font-medium tracking-tighter glowing-text mb-3">
               ระบบอยู่ระหว่างการปรับปรุง 🛠️
             </h2>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+            <p className="text-zinc-500 text-sm leading-relaxed mb-6">
               ขณะนี้เว็บไซต์กำลังอยู่ในช่วงปรับปรุงระบบชั่วคราว
               กรุณาอดทนรอและระบบจะเปิดให้ใช้งานอีกครั้งโดยอัตโนมัติเมื่อเสร็จสิ้น!
               ขออภัยในความไม่สะดวกครับ
@@ -3392,7 +3240,7 @@ export default function App() {
                 setShowAuthModal(true);
                 setAuthMode("login");
               }}
-              className="absolute bottom-4 right-4 text-[11px] text-zinc-700 hover:text-zinc-400 transition-colors"
+              className="absolute bottom-4 right-4 text-[11px] text-zinc-700 hover:text-zinc-500 transition-colors"
             >
               Admin Login
             </motion.button>
@@ -3402,83 +3250,7 @@ export default function App() {
       );
     }
 
-    if (appScreen === "LOADING" || appScreen === "TRANSITION") {
-      return (
-        <motion.div
-          key="loading"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          className="min-h-[100vh] min-h-[100dvh] bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-mono"
-        >
-          {/* Abstract CRT Scanline Effect */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:100%_4px] z-50 pointer-events-none opacity-50" />
-
-          {/* Dynamic Dark Gradients */}
-          <div className="absolute top-0 left-1/4 w-[40rem] h-[40rem] bg-indigo-900/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-[40rem] h-[40rem] bg-emerald-900/10 rounded-full blur-3xl" />
-
-          <div className="z-10 flex flex-col items-center relative gap-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={
-                loadingProgress === 100
-                  ? {
-                      opacity: [1, 0, 1, 0, 0.5, 0],
-                      scale: [1, 1.05, 0.95, 1.1, 0.9, 1.2],
-                      filter: [
-                        "hue-rotate(0deg)",
-                        "hue-rotate(90deg)",
-                        "invert(0.8)",
-                        "blur(4px)",
-                        "none",
-                      ],
-                      x: [0, -10, 15, -20, 10, 0],
-                      y: [0, 10, -10, 15, -5, 0],
-                    }
-                  : { opacity: 1, scale: 1 }
-              }
-              transition={{
-                duration: loadingProgress === 100 ? 0.2 : 0.8,
-                ease: loadingProgress === 100 ? "linear" : "easeInOut",
-              }}
-              className="relative flex flex-col items-center justify-center gap-6"
-            >
-              <img
-                src="https://s.imgz.io/2026/05/31/100009859524d3e1b8f0277601.gif"
-                alt="Loading"
-                className="w-48 h-48 sm:w-64 sm:h-64 object-contain opacity-90 rounded-2xl drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-              />
-
-              <div className="flex flex-col items-center w-full max-w-[16rem]">
-                <div className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-zinc-400 to-white tracking-[0.2em] uppercase text-[11px] mb-3 opacity-80 animate-pulse">
-                  {appScreen === "LOADING"
-                    ? "SYSTEM STARTUP..."
-                    : "SECURING CONNECTION..."}
-                </div>
-                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden shadow-inner">
-                  <div
-                    className="h-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-all duration-300 ease-out"
-                    style={{ width: `${loadingProgress}%` }}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Floating background coordinates */}
-          <div className="absolute top-8 left-8 text-[9px] text-zinc-800 font-mono hidden md:block">
-            SYS.LOC.::45.9921_12.0019
-          </div>
-          <div className="absolute bottom-8 right-8 text-[9px] text-zinc-800 font-mono hidden md:block">
-            {`MEM::[0x${Math.floor(Math.random() * 1000000)
-              .toString(16)
-              .toUpperCase()}]`}
-          </div>
-        </motion.div>
-      );
-    }
+    
 
     if (appScreen === "SELECT") {
       return (
@@ -3488,7 +3260,7 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.99 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="min-h-[100vh] min-h-[100dvh] bg-transparent flex flex-col items-center p-6 sm:p-10 relative w-full overflow-y-auto text-white"
+          className="min-h-[100vh] min-h-[100dvh] bg-transparent flex flex-col items-center p-6 sm:p-10 relative w-full overflow-y-auto text-zinc-100"
         >
           <div
             className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat opacity-50 z-0"
@@ -3506,14 +3278,14 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               className="text-center mb-16"
             >
-              <h1 className="font-display text-xl sm:text-3xl font-display font-medium tracking-tighter glowing-text text-white tracking-wide">
+              <h1 className="font-display text-xl sm:text-3xl font-display font-medium tracking-tighter glowing-text text-zinc-100 tracking-wide">
                 เลือกเกมที่
                 <span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
                   สนใจ
                 </span>
                 ได้เลย 🎮
               </h1>
-              <p className="text-zinc-400 mt-2 text-[11px] sm:text-sm max-w-xl mx-auto">
+              <p className="text-zinc-500 mt-2 text-[11px] sm:text-sm max-w-xl mx-auto">
                 สวัสดีค้าบ 🙏 สนใจเกมไหนดูก่อนได้เลยน้า
                 ร้านเรามีของให้เลือกเพียบ แถมมีระบบสุ่มกล่องด้วย
                 ทักเข้ามาสอบถามได้ตลอดเลยค้าบผม!
@@ -3530,16 +3302,16 @@ export default function App() {
                   setTargetScreen("AOTR");
                   setAppScreen("TRANSITION");
                 }}
-                className="group relative rounded-3xl border border-white/5 bg-white/5/60 p-3 shadow-2xl backdrop-blur-md cursor-pointer hover:border-amber-500/50 transition-all duration-500 overflow-hidden shadow-xl shadow-black/40"
+                className="group relative rounded-3xl border border-zinc-800 bg-zinc-900 p-3 shadow-2xl  cursor-pointer hover:border-amber-500/50 transition-all duration-500 overflow-hidden shadow-xl shadow-black/40"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-600/10 to-red-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="aspect-video w-full rounded-2xl overflow-hidden relative mb-4">
                   <img
-                    src="https://img1.pic.in.th/images/1000098144.webp"
+                    src="https://img2.pic.in.th/1000111145.png"
                     alt="Attack on Titan"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-50 group-hover:opacity-90"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent opacity-80" />
+                  <div className="absolute inset-0 bg-zinc-900" />
                   <div className="absolute bottom-4 left-4 z-20">
                     <span className="px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-400 text-[11px] font-black uppercase tracking-widest backdrop-blur border border-amber-500/30">
                       Attack on titan Revolution
@@ -3547,10 +3319,10 @@ export default function App() {
                   </div>
                 </div>
                 <div className="px-3 pb-3 relative z-10 text-left">
-                  <h3 className="text-xl font-black text-white group-hover:text-amber-400 transition-colors uppercase tracking-tight">
+                  <h3 className="text-xl font-black text-zinc-100 group-hover:text-amber-400 transition-colors uppercase tracking-tight">
                     สินค้า ATOR โดย Kuwashii El
                   </h3>
-                  <p className="text-sm text-zinc-400 mt-1 font-mono">
+                  <p className="text-sm text-zinc-500 mt-1 font-mono">
                     Connect to the Paradis terminal.
                   </p>
                 </div>
@@ -3565,7 +3337,7 @@ export default function App() {
                   setTargetScreen("ASTD");
                   setAppScreen("TRANSITION");
                 }}
-                className="group relative rounded-3xl border border-white/5 bg-white/5/60 p-3 shadow-2xl backdrop-blur-md cursor-pointer hover:border-emerald-500/50 transition-all duration-500 overflow-hidden shadow-xl shadow-black/40"
+                className="group relative rounded-3xl border border-zinc-800 bg-zinc-900 p-3 shadow-2xl  cursor-pointer hover:border-emerald-500/50 transition-all duration-500 overflow-hidden shadow-xl shadow-black/40"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-cyan-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="aspect-video w-full rounded-2xl overflow-hidden relative mb-4">
@@ -3574,7 +3346,7 @@ export default function App() {
                     alt="All Star Tower Defense"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-50 group-hover:opacity-90"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent opacity-80" />
+                  <div className="absolute inset-0 bg-zinc-900" />
                   <div className="absolute bottom-4 left-4 z-20">
                     <span className="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-400 text-[11px] font-black uppercase tracking-widest backdrop-blur border border-emerald-500/30">
                       All Star Tower Defense
@@ -3582,10 +3354,10 @@ export default function App() {
                   </div>
                 </div>
                 <div className="px-3 pb-3 relative z-10 text-left">
-                  <h3 className="text-xl font-black text-white group-hover:text-emerald-400 transition-colors uppercase tracking-tight">
-                    สินค้า ASTD โดย Dazz kar
+                  <h3 className="text-xl font-black text-zinc-100 group-hover:text-emerald-400 transition-colors uppercase tracking-tight">
+                    
                   </h3>
-                  <p className="text-sm text-zinc-400 mt-1 font-mono">
+                  <p className="text-sm text-zinc-500 mt-1 font-mono">
                     Connect to the Multiverse defense grid.
                   </p>
                 </div>
@@ -3596,7 +3368,7 @@ export default function App() {
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
-                className="group relative rounded-3xl border border-white/5 bg-white/5/60 p-3 shadow-2xl backdrop-blur-md hover:bg-zinc-800/80 hover:border-emerald-500/50 cursor-pointer transition-all duration-500 overflow-hidden shadow-xl shadow-black/40 hover:-translate-y-1 hover:shadow-emerald-900/20"
+                className="group relative rounded-3xl border border-zinc-800 bg-zinc-900 p-3 shadow-2xl  hover:bg-zinc-900 hover:border-emerald-500/50 cursor-pointer transition-all duration-500 overflow-hidden shadow-xl shadow-black/40 hover:-translate-y-1 hover:shadow-emerald-900/20"
                 onClick={() => {
                   setTargetScreen("ROV");
                   setAppScreen("TRANSITION");
@@ -3609,7 +3381,7 @@ export default function App() {
                     alt="ROV"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
+                  <div className="absolute inset-0 bg-zinc-900" />
                   <div className="absolute bottom-4 left-4 z-20">
                     <span className="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-300 text-[11px] font-black uppercase tracking-widest backdrop-blur border border-emerald-500/30">
                       ROV
@@ -3617,10 +3389,10 @@ export default function App() {
                   </div>
                 </div>
                 <div className="px-3 pb-3 relative z-10 text-left">
-                  <h3 className="text-xl font-black text-white group-hover:text-amber-400 transition-colors uppercase tracking-tight">
+                  <h3 className="text-xl font-black text-zinc-100 group-hover:text-amber-400 transition-colors uppercase tracking-tight">
                     สินค้า ROV โดย sokay0419
                   </h3>
-                  <p className="text-sm text-zinc-400 mt-1 font-mono">
+                  <p className="text-sm text-zinc-500 mt-1 font-mono">
                     Arena of Valor accounts and codes.
                   </p>
                 </div>
@@ -3632,7 +3404,28 @@ export default function App() {
       );
     }
 
-    if (appScreen === "ASTD") {
+    if (appScreen === 'STATEMENT') {
+      return (
+        <motion.div
+           key='statement'
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           exit={{ opacity: 0 }}
+           className='min-h-[100vh] min-h-[100dvh] flex flex-col bg-zinc-950 text-zinc-200 font-display tracking-tight w-full'
+        >
+          <ShopHeader toggleSidebar={() => setIsAstdMenuOpen(true)} onSearchToggle={() => {}} currentUser={currentUser} onLoginClick={() => { setShowAuthModal(true); setAuthMode('login'); }} />
+          
+          <main className='flex-grow w-full pt-20 pb-10'>
+            <Statement currentUser={currentUser} onLoginClick={() => { setShowAuthModal(true); setAuthMode('login'); }} />
+          </main>
+          
+          {renderModals()}
+        </motion.div>
+      );
+    }
+
+
+    if (appScreen === "SHOP") {
       return (
         <motion.div
           key="astd"
@@ -3640,11 +3433,12 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.99 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="min-h-[100vh] min-h-[100dvh] flex flex-col bg-transparent text-zinc-100 font-display tracking-tight selection:bg-indigo-500 selection:text-white pb-20 sm:pb-0 relative w-full"
+          className="min-h-[100vh] min-h-[100dvh] flex flex-col bg-transparent text-zinc-200 font-display tracking-tight selection:bg-indigo-500 selection:text-zinc-100 pb-20 sm:pb-0 relative w-full"
         >
+        <ShopHeader toggleSidebar={() => setIsAstdMenuOpen(true)} onSearchToggle={() => {}} currentUser={currentUser} onLoginClick={() => { setShowAuthModal(true); setAuthMode("login"); }} />
           <MarqueeAnnouncement appScreen={appScreen} />
           <AnnouncementPopup appScreen={appScreen} />
-          <Snowfall />
+          
 
           {/* Dynamic Floating Toast Notification */}
           <AnimatePresence>
@@ -3654,12 +3448,12 @@ export default function App() {
                 animate={{ opacity: 1, y: 0, x: "-50%" }}
                 exit={{ opacity: 0, y: -30, x: "-50%" }}
                 style={{ zIndex: 9999 }}
-                className={`fixed top-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold tracking-wide border backdrop-blur-md ${
+                className={`fixed top-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold tracking-wide border  ${
                   toastMessage.type === "success"
                     ? "bg-emerald-950/90 text-emerald-400 border-emerald-500/30"
                     : toastMessage.type === "error"
                       ? "bg-red-950/90 text-red-400 border-red-500/30"
-                      : "glass-panel text-zinc-300 border-zinc-705"
+                      : "bg-zinc-900 shadow-sm border border-zinc-800 text-zinc-400 border-zinc-705"
                 }`}
               >
                 {toastMessage.type === "success" ? (
@@ -3675,811 +3469,18 @@ export default function App() {
           </AnimatePresence>
 
           {/* Hero Header Section */}
-          <header className="relative border-b border-white/5 bg-transparent py-7 overflow-hidden">
-            {/* Background Atmosphere */}
-            <div className="absolute top-0 right-0 w-[45rem] h-[24rem] bg-gradient-to-l from-indigo-600/5 to-transparent filter blur-3xl pointer-events-none -z-10" />
-            <div className="absolute top-0 left-0 w-[30rem] h-[20rem] bg-gradient-to-r from-blue-600/5 to-transparent filter blur-3xl pointer-events-none -z-10" />
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                {/* Title, Branding & Credits */}
-                <div>
-                  <div className="flex items-center gap-2.5 mb-2.5">
-                    <span className="bg-indigo-600 text-white text-[11px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-md animate-pulse shadow-md shadow-indigo-950">
-                      Live Stock
-                    </span>
-                    <span className="text-zinc-600 text-xs font-mono">
-                      v1.2.0
-                    </span>
-                  </div>
-                  <h1 className="font-display text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                    <span>ALL STAR TOWER DEFENSE</span>
-                    <span className="text-zinc-400 font-light">|</span>
-                    <span className="bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">
-                      STOCK CHECKER
-                    </span>
-                  </h1>
-
-                  {/* Creator Tag line requested by User */}
-                  <div className="mt-2 text-sm text-zinc-400 flex flex-wrap items-center gap-2 font-mono">
-                    <span className="text-zinc-600">•</span>
-                    <span>Made by</span>
-                    <span className="text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer font-bold relative group">
-                      Kuwashii El (@_.texraxit)
-                      <span className="absolute bottom-0 left-0 w-full h-[1px] bg-indigo-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
-                    </span>
-                    <span className="text-zinc-600 ml-2">•</span>
-                    <span className="ml-1 text-zinc-300 italic">
-                      สินค้าโดย{" "}
-                      <span className="text-zinc-100 font-bold not-italic font-display tracking-tight underline decoration-indigo-500/50 underline-offset-4">
-                        Dazz kar
-                      </span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Top Actions */}
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Chat now button */}
-                  <a
-                    href="https://m.me/DazzRFkaz"
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="py-2.5 px-4 rounded-2xl border border-blue-500/30 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-lg shadow-blue-500/5 hover:scale-[1.02] active:scale-95"
-                    id="btn-nav-chat-astd"
-                  >
-                    <MessageCircle className="w-4 h-4 text-blue-400" />
-                    <span>ทักแชททันที (Messenger)</span>
-                  </a>
-
-                  {currentUser ? (
-                    <div className="flex flex-wrap items-center gap-2 glass-panel-light p-1 rounded-2xl">
-                      {/* User Tag */}
-                      <span
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-display tracking-tight ${isAdmin ? "text-amber-400 bg-amber-500/10" : "text-indigo-400 bg-indigo-500/10"}`}
-                      >
-                        {isAdmin ? (
-                          <ShieldCheck className="w-3.5 h-3.5 animate-pulse" />
-                        ) : (
-                          <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                        )}
-                        <span>
-                          {currentUser.username} {isAdmin && "(Admin)"}
-                        </span>
-                      </span>
-
-                      {/* Top Up Button for EVERYONE */}
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        type="button"
-                        onClick={() => setShowTopupModal(true)}
-                        className="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
-                      >
-                        <Wallet className="w-3.5 h-3.5" />
-                        <span>เติมเงิน</span>
-                      </motion.button>
-
-                      {!isAdmin && (
-                        <>
-                          <span className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
-                            <Coins className="w-3.5 h-3.5" />
-                            <span>
-                              เครดิต: ฿
-                              {Number(
-                                (appScreen === 'ROV' ? currentUserData?.balance_rov : currentUserData?.balance) || 0,
-                              ).toLocaleString(undefined, {
-                                maximumFractionDigits: 2,
-                                minimumFractionDigits: 0,
-                              })}
-                            </span>
-                          </span>
-                        </>
-                      )}
-
-                      {/* Add Product Shortcut (Only Admins) */}
-                      {isAdmin && (
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          type="button"
-                          onClick={() => {
-                            setEditingItem(null);
-                            setIsFormOpen(true);
-                          }}
-                          className="py-1.5 px-3 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-md shadow-white/5 active:scale-95"
-                          id="btn-nav-add-astd"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">ลงขายสินค้า</span>
-                        </motion.button>
-                      )}
-
-                      {/* History Button (User only) */}
-                      {!isAdmin && (
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          type="button"
-                          onClick={() => setShowHistoryModal(true)}
-                          className="py-1.5 px-3 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border border-indigo-500/20 hidden sm:flex"
-                        >
-                          <History className="w-3.5 h-3.5" />
-                          <span>ประวัติ</span>
-                        </motion.button>
-                      )}
-
-                      {/* Logout Button */}
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        type="button"
-                        onClick={handleLogout}
-                        className="py-1.5 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
-                        id="btn-nav-logout-astd"
-                      >
-                        <span className="hidden sm:inline">ออกจากระบบ</span>
-                        <span className="sm:hidden">ออก</span>
-                      </motion.button>
-                    </div>
-                  ) : (
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      type="button"
-                      onClick={() => {
-                        setShowAuthModal(true);
-                        setAuthMode("login");
-                      }}
-                      className="py-2.5 px-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-xl shadow-black/30"
-                      id="btn-nav-auth-astd"
-                    >
-                      <Shield className="w-4 h-4 text-indigo-500" />
-                      <span>เข้าสู่ระบบ / สมัครสมาชิก</span>
-                    </motion.button>
-                  )}
-                  <div className="h-6 w-px bg-zinc-800 hidden sm:block" />
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => {
-                      localStorage.removeItem("KUWASHII_LAST_SCREEN");
-                      setAppScreen("SELECT");
-                    }}
-                    className="py-2.5 px-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-xl shadow-black/30"
-                  >
-                    <Layers className="w-4 h-4 text-indigo-500" />
-                    <span className="hidden md:inline">
-                      กลับหน้าเข้าสู่ระบบ (Hub)
-                    </span>
-                    <span className="md:hidden">Hub</span>
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setIsAstdMenuOpen(!isAstdMenuOpen)}
-                    className="py-2.5 px-3 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white transition-all duration-300 flex items-center cursor-pointer shadow-xl shadow-black/30 relative"
-                  >
-                    <Menu className="w-5 h-5 text-zinc-400" />
-                  </motion.button>
-
-                  {/* Dropdown Menu */}
-                  <AnimatePresence>
-                    {isAstdMenuOpen && (
-                      <>
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="fixed inset-0 z-40"
-                          onClick={() => setIsAstdMenuOpen(false)}
-                        />
-                        <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute top-16 right-4 sm:right-6 lg:right-8 w-64 bg-white/5/95 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl z-50 overflow-hidden"
-                        >
-                          <div className="p-3 sm:hidden border-b border-white/5/50 mb-2">
-                            <div className="flex flex-col gap-2">
-                              {currentUser ? (
-                                <>
-                                  <div className="flex items-center gap-2 px-2 py-1.5 mb-1 bg-transparent/50 rounded-lg">
-                                    {isAdmin ? (
-                                      <ShieldCheck className="w-4 h-4 text-amber-500" />
-                                    ) : (
-                                      <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                                    )}
-                                    <span className="text-sm font-semibold text-zinc-200">
-                                      {currentUser.username}
-                                    </span>
-                                    {!isAdmin && (
-                                      <span className="ml-auto text-xs font-mono text-emerald-400">
-                                        ฿
-                                        {Number(
-                                          (appScreen === 'ROV' ? currentUserData?.balance_rov : currentUserData?.balance) || 0,
-                                        ).toLocaleString(undefined, {
-                                          maximumFractionDigits: 2,
-                                          minimumFractionDigits: 0,
-                                        })}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {isAdmin && (
-                                    <motion.button
-                                      whileTap={{ scale: 0.95 }}
-                                      type="button"
-                                      onClick={() => {
-                                        setEditingItem(null);
-                                        setIsFormOpen(true);
-                                        setIsAstdMenuOpen(false);
-                                      }}
-                                      className="py-2 px-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 text-white text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
-                                    >
-                                      <Plus className="w-4 h-4 text-indigo-400" />{" "}
-                                      ลงขายสินค้า
-                                    </motion.button>
-                                  )}
-                                  {!isAdmin && (
-                                    <motion.button
-                                      whileTap={{ scale: 0.95 }}
-                                      type="button"
-                                      onClick={() => {
-                                        setShowHistoryModal(true);
-                                        setIsAstdMenuOpen(false);
-                                      }}
-                                      className="py-2 px-4 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer border border-indigo-500/20"
-                                    >
-                                      <History className="w-4 h-4" />{" "}
-                                      ประวัติการทำรายการ
-                                    </motion.button>
-                                  )}
-                                  <motion.button
-                                    whileTap={{ scale: 0.95 }}
-                                    type="button"
-                                    onClick={() => {
-                                      handleLogout();
-                                      setIsAstdMenuOpen(false);
-                                    }}
-                                    className="py-2 px-4 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
-                                  >
-                                    ออกจากระบบ
-                                  </motion.button>
-                                </>
-                              ) : (
-                                <motion.button
-                                  whileTap={{ scale: 0.95 }}
-                                  type="button"
-                                  onClick={() => {
-                                    setShowAuthModal(true);
-                                    setAuthMode("login");
-                                    setIsAstdMenuOpen(false);
-                                  }}
-                                  className="py-2.5 px-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 text-zinc-300 text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-                                >
-                                  <Shield className="w-4 h-4 text-indigo-500" />{" "}
-                                  เข้าสู่ระบบ / สมัครสมาชิก
-                                </motion.button>
-                              )}
-                            </div>
-                          </div>
-                          <div className="py-2 px-3">
-                            <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2 px-3">
-                              Menu
-                            </div>
-                            <motion.button
-                              whileTap={{ scale: 0.95 }}
-                              className="w-full text-left px-4 py-2.5 rounded-2xl hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
-                            >
-                              <ShoppingCart className="w-4 h-4 text-indigo-400" />{" "}
-                              ตะกร้าสินค้า
-                            </motion.button>
-                            <motion.button
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => {
-                                if (!currentUser) {
-                                  showToast(
-                                    "กรุณาเข้าสู่ระบบก่อนทำการเติมเงิน",
-                                    "error",
-                                  );
-                                } else {
-                                  setShowTopupModal(true);
-                                }
-                                setIsAstdMenuOpen(false);
-                              }}
-                              className="w-full text-left px-4 py-2.5 rounded-2xl hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
-                            >
-                              <Wallet className="w-4 h-4 text-amber-400" />{" "}
-                              เติมเงิน
-                            </motion.button>
-                            <motion.button
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => {
-                                if (!currentUser) {
-                                  showToast(
-                                    "กรุณาเข้าสู่ระบบก่อนดูประวัติการสั่งซื้อ",
-                                    "error",
-                                  );
-                                } else {
-                                  setShowHistoryModal(true);
-                                }
-                                setIsAstdMenuOpen(false);
-                              }}
-                              className="w-full text-left px-4 py-2.5 rounded-2xl hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
-                            >
-                              <RotateCcw className="w-4 h-4 text-emerald-400" />{" "}
-                              ประวัติการสั่งซื้อ
-                            </motion.button>
-                            <motion.button
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => {
-                                if (!currentUser) return;
-                                setIsAccountSettingsOpen(true);
-                                setIsAstdMenuOpen(false);
-                              }}
-                              className="w-full text-left px-4 py-2.5 rounded-2xl hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
-                            >
-                              <Settings className="w-4 h-4 text-zinc-400" />{" "}
-                              ตั้งค่าบัญชี
-                            </motion.button>
-                          </div>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              {/* Statistics summary row - Real Data for ASTD */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-8">
-                <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm">
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                    จำนวนสินค้าทั้งหมด
-                  </span>
-                  <div className="mt-1.5 flex items-baseline gap-2">
-                    <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-white">
-                      {totalStockItems}
-                    </span>
-                    <span className="text-xs text-zinc-400">รายการ</span>
-                  </div>
-                </div>
-
-                <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm">
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                    สินค้าสะสมในสต๊อก
-                  </span>
-                  <div className="mt-1.5 flex items-baseline gap-2">
-                    <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-yellow-500">
-                      {totalStockUnits.toLocaleString()}
-                    </span>
-                    <span className="text-xs text-zinc-400">ชิ้น</span>
-                  </div>
-                </div>
-
-                <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm relative group">
-                  {isAdmin && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={async () => {
-                          const currentVal = String(
-                            globalStats?.global_sales_astd || 0,
-                          );
-                          const newVal = window.prompt(
-                            "แก้ไขยอดขายไปแล้วทั้งหมด (ASTD)",
-                            currentVal,
-                          );
-                          if (newVal !== null && !isNaN(parseInt(newVal))) {
-                            const val = parseInt(newVal);
-                            await supabase
-                              .from("system_config")
-                              .update({ global_sales_astd: val })
-                              .eq("id", "main");
-                            setGlobalStats({
-                              ...globalStats,
-                              global_sales_astd: val,
-                            });
-                            window.dispatchEvent(new Event("sync-update"));
-                            showToast("อัปเดตยอดขายแล้ว (ASTD)", "success");
-                          }
-                        }}
-                        className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </motion.button>
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={toggleHideGlobalStats}
-                        className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
-                      >
-                        {hideGlobalStats ? (
-                          <EyeOff className="w-3.5 h-3.5" />
-                        ) : (
-                          <Eye className="w-3.5 h-3.5" />
-                        )}
-                      </motion.button>
-                    </div>
-                  )}
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                    ขายไปแล้วทั้งหมด
-                  </span>
-                  <div className="mt-1.5 flex items-baseline gap-2">
-                    <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-emerald-400">
-                      {hideGlobalStats
-                        ? "***"
-                        : Number(
-                            globalStats?.global_sales_astd || 0,
-                          ).toLocaleString()}
-                    </span>
-                    <span className="text-xs text-zinc-400">ชิ้น</span>
-                  </div>
-                </div>
-
-                <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm relative group">
-                  {isAdmin && (
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={toggleHideGlobalStats}
-                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      {hideGlobalStats ? (
-                        <EyeOff className="w-3.5 h-3.5" />
-                      ) : (
-                        <Eye className="w-3.5 h-3.5" />
-                      )}
-                    </motion.button>
-                  )}
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                    จำนวนลูกค้าในเว็ป
-                  </span>
-                  <div className="mt-1.5 flex items-baseline gap-2">
-                    <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-indigo-400">
-                      {hideGlobalStats ? "***" : globalStats?.user_count || 0}
-                    </span>
-                    <span className="text-xs text-zinc-400">บัญชี</span>
-                  </div>
-                </div>
-
-                <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm relative group">
-                  {isAdmin && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={async () => {
-                          const currentRev = String(
-                            globalStats?.global_rev_astd || 0,
-                          );
-                          const newVal = window.prompt(
-                            "แก้ไขยอดการเติมเงินรวม ASTD",
-                            currentRev,
-                          );
-                          if (newVal !== null && !isNaN(parseFloat(newVal))) {
-                            const val = parseFloat(newVal);
-                            await supabase
-                              .from("system_config")
-                              .update({ global_rev_astd: val })
-                              .eq("id", "main");
-                            setGlobalStats({
-                              ...globalStats,
-                              global_rev_astd: val,
-                            });
-                            window.dispatchEvent(new Event("sync-update"));
-                            showToast(
-                              "อัปเดตยอดเติมเงินรวม (ASTD) แล้ว",
-                              "success",
-                            );
-                          }
-                        }}
-                        className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </motion.button>
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={toggleHideGlobalStats}
-                        className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
-                      >
-                        {hideGlobalStats ? (
-                          <EyeOff className="w-3.5 h-3.5" />
-                        ) : (
-                          <Eye className="w-3.5 h-3.5" />
-                        )}
-                      </motion.button>
-                    </div>
-                  )}
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                    ยอดการเติมเงินรวม
-                  </span>
-                  <div className="mt-1.5 flex items-baseline gap-1">
-                    <span className="text-zinc-400 font-mono text-xs">฿</span>
-                    <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-white">
-                      {hideGlobalStats
-                        ? "***"
-                        : Number(
-                            globalStats?.global_rev_astd || 0,
-                          ).toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm relative group">
-                  {isAdmin && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={async () => {
-                          const currentRev = String(
-                            globalStats?.global_free_astd || 0,
-                          );
-                          const newVal = window.prompt(
-                            "แก้ไขยอดเครดิตฟรีแจกแล้ว ASTD",
-                            currentRev,
-                          );
-                          if (newVal !== null && !isNaN(parseFloat(newVal))) {
-                            const val = parseFloat(newVal);
-                            await supabase
-                              .from("system_config")
-                              .update({ global_free_astd: val })
-                              .eq("id", "main");
-                            setGlobalStats({
-                              ...globalStats,
-                              global_free_astd: val,
-                            });
-                            window.dispatchEvent(new Event("sync-update"));
-                            showToast(
-                              "อัปเดตยอดเครดิตฟรี (ASTD) แล้ว",
-                              "success",
-                            );
-                          }
-                        }}
-                        className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </motion.button>
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={toggleHideGlobalStats}
-                        className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
-                      >
-                        {hideGlobalStats ? (
-                          <EyeOff className="w-3.5 h-3.5" />
-                        ) : (
-                          <Eye className="w-3.5 h-3.5" />
-                        )}
-                      </motion.button>
-                    </div>
-                  )}
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                    เครดิตฟรีแจกแล้ว
-                  </span>
-                  <div className="mt-1.5 flex items-baseline gap-1">
-                    <span className="text-zinc-400 font-mono text-xs">C</span>
-                    <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-yellow-400">
-                      {hideGlobalStats
-                        ? "***"
-                        : Number(
-                            globalStats?.global_free_astd || 0,
-                          ).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <SalesChart appScreen={appScreen} updateTrigger={syncCounter} />
-
-              <LiveActivities
-                appScreen={appScreen}
-                syncCounter={syncCounter}
-                isAdmin={isAdmin}
-              />
-            </div>
-          </header>
+          <ShopBanner globalStats={globalStats} />
 
           {/* Main Container */}
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 flex-grow w-full">
-            {/* Banner announcement board */}
-            <div className="mb-6 p-3 sm:p-4 rounded-2xl sm:rounded-2xl bg-gradient-to-r from-indigo-950/20 via-zinc-900/50 to-zinc-900/20 border border-white/5 shadow-sm backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 animate-pulse" />
-                </div>
-                <div>
-                  <p className="text-[11px] sm:text-xs font-bold text-zinc-300">
-                    บอร์ดข้อมูลร้านค้า ASTD
-                  </p>
-                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 line-clamp-1 sm:line-clamp-none">
-                    สินค้าหายากจากเกม All Star Tower Defense
-                    การันตีคุณภาพและจัดส่งด่วนโดย Dazz kar
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                <div className="flex flex-1 sm:flex-none items-center justify-center sm:justify-start gap-1.5 sm:gap-2 bg-transparent/50 px-2 sm:px-3 py-1.5 rounded-lg sm:rounded-2xl border border-zinc-850">
-                  <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-550/80" />
-                  <span className="text-[11px] sm:text-[11px] text-zinc-300">
-                    อัปเดตล่าสุด:{" "}
-                    <strong className="text-indigo-400">
-                      {getLatestUpdatedRelativeTime(currentContextItems)}
-                    </strong>
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                  <span className="text-[11px] sm:text-xs font-mono font-semibold text-emerald-400">
-                    สถานะ: พร้อมขาย
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Category Cards Section (Recommended) */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight tracking-tight">
-                  หมวดหมู่แนะนำสำหรับคุณ
-                </h2>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-transparent border border-white/5 text-zinc-400 hover:text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-colors"
-                >
-                  ดูเพิ่มเติม{" "}
-                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </motion.button>
-              </div>
+            {/* Category Cards Section */}
+            <CategoryList />
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="glass-panel/80 rounded-2xl p-3 shadow-xl transform transition-all hover:-translate-y-1 hover:bg-white/5 duration-300 group flex flex-col h-full">
-                  <div className="relative h-24 sm:h-36 rounded-2xl overflow-hidden mb-3 border border-white/5/50 shrink-0">
-                    <img
-                      src="https://img1.pic.in.th/images/1000098143.jpg"
-                      alt="สุ่มตัวละคร - ออสตา"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-900/40 to-transparent" />
-                    <div className="absolute bottom-2 left-2 text-white font-black drop-shadow-md text-[11px] sm:text-xs uppercase tracking-wider">
-                      ALL STAR TOWER DEFENSE
-                    </div>
-                  </div>
-                  <h3 className="text-sm sm:text-base font-bold text-white mb-1.5 font-display tracking-tight leading-tight line-clamp-2">
-                    สุ่มตัวละคร - ออสตา
-                  </h3>
-                  <p className="text-zinc-400 mb-3 text-[11px] sm:text-xs font-display tracking-tight flex items-center gap-1.5 mt-auto">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse"></span>
-                    มีสินค้า{" "}
-                    {
-                      items.filter(
-                        (i) =>
-                          i.category === "สุ่มตัวละคร - ออสตา" &&
-                          i.game === "ASTD",
-                      ).length
-                    }{" "}
-                    ชิ้น
-                  </p>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedCategory("สุ่มตัวละคร - ออสตา")}
-                    className="w-full bg-[#f40000] hover:bg-red-600 active:bg-red-700 text-white font-bold py-2 sm:py-2.5 rounded-lg sm:rounded-2xl transition-all duration-300 text-xs sm:text-sm shadow-md shadow-red-600/20 mt-auto"
-                  >
-                    ดูสินค้า
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-
-            {/* Search and Filters Hub */}
-            <section className="bg-white/5/20 border border-white/5 p-3 sm:p-5 rounded-2xl sm:rounded-2xl mb-6 space-y-3 sm:space-y-4">
-              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="ค้นหาสินค้า ASTD..."
-                    className="w-full bg-transparent border border-zinc-850 py-2.5 sm:py-3 pl-10 pr-10 rounded-lg sm:rounded-2xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-display tracking-tight"
-                  />
-                  {search && (
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setSearch("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white hover:bg-white/5 rounded-md transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </motion.button>
-                  )}
-                </div>
-                <div className="flex items-center justify-between md:justify-start gap-2.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
-                  <span className="text-[11px] sm:text-xs text-zinc-400 font-display tracking-tight flex-shrink-0">
-                    เรียงตาม:
-                  </span>
-                  <div className="relative">
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="w-full bg-transparent border border-zinc-850 py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-2xl text-[11px] sm:text-xs text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer font-display tracking-tight appearance-none pr-8 sm:pr-8 font-medium"
-                    >
-                      <option value="rarity-desc">
-                        ความหายาก (หายากสุด-ทั่วไป)
-                      </option>
-                      <option value="price-desc">ราคา (แพงสุด - ถูกสุด)</option>
-                      <option value="price-asc">ราคา (ถูกสุด - แพงสุด)</option>
-                      <option value="stock-desc">
-                        จำนวนคงเหลือ (มากสุด - น้อยสุด)
-                      </option>
-                      <option value="stock-asc">
-                        จำนวนคงเหลือ (น้อยสุด - มากสุด)
-                      </option>
-                      <option value="name-asc">ชื่อไอเทม (ก-ฮ / A-Z)</option>
-                    </select>
-                    <ChevronDown className="absolute right-2 sm:right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 sm:space-y-2">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight block mb-1">
-                  หมวดหมู่ไอเทม (Item Categories)
-                </span>
-                <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin scrollbar-thumb-zinc-800">
-                  {(
-                    [
-                      "all",
-                      "สุ่มตัวละคร - ออสตา",
-                      "Starter Accounts",
-                      "High Level / PvP",
-                      "Rare Units",
-                      "Gems / Currency",
-                      "Rank Boosting",
-                      "Bundle Offers",
-                      "Gifts / Codes",
-                      "Other Services",
-                      "Other",
-                    ] as const
-                  ).map((cat) => (
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg sm:rounded-2xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                        selectedCategory === cat
-                          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 font-extrabold"
-                          : "bg-transparent hover:bg-white/5/60 border border-zinc-850 text-zinc-400 hover:text-white"
-                      }`}
-                    >
-                      {cat === "all" ? "📦 ทั้งหมดทุกหมวดหมู่" : cat}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-white/5">
-                <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                    ความพร้อมคลัง (Stock Status)
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {(
-                      ["all", "in-stock", "low-stock", "out-of-stock"] as const
-                    ).map((st) => (
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        key={st}
-                        onClick={() => setSelectedStatus(st)}
-                        className={`py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${selectedStatus === st ? "bg-zinc-800 border-zinc-500 text-white" : "bg-transparent border-zinc-850 text-zinc-400 hover:text-zinc-300"}`}
-                      >
-                        {st === "all" && "ทั้งหมด"}
-                        {st === "in-stock" && "มีสินค้า (>5)"}
-                        {st === "low-stock" && "ใกล้หมด (1-5)"}
-                        {st === "out-of-stock" && "หมด"}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
-
+            
             {/* Admin Tools ASTD */}
             {isAdmin && (
-              <section className="glass-panel border border-indigo-500/20 p-5 rounded-2xl mb-8 relative overflow-hidden">
+              <section className="bg-zinc-900 shadow-sm border border-zinc-800 border border-indigo-500/20 p-5 rounded-2xl mb-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl pointer-events-none -z-10" />
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -4487,10 +3488,10 @@ export default function App() {
                       <SlidersHorizontal className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                        แผงจัดการสต๊อก ASTD
+                      <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
+                        แผงจัดการสต๊อก
                       </h3>
-                      <p className="text-xs text-zinc-400 mt-0.5">
+                      <p className="text-xs text-zinc-500 mt-0.5">
                         จัดการเพิ่ม หรือแก้ไขฐานข้อมูลคลังสินค้าได้แบบ Real-time
                       </p>
                     </div>
@@ -4499,7 +3500,7 @@ export default function App() {
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setIsCustomerDbOpen(true)}
-                      className="py-2 px-4 rounded-2xl bg-purple-500/20 text-purple-400 hover:text-white border border-purple-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-purple-500/10"
+                      className="py-2 px-4 rounded-2xl bg-purple-500/20 text-purple-400 hover:text-zinc-100 border border-purple-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-purple-500/10"
                     >
                       <Users className="w-4 h-4" /> ระบบฐานลูกค้า (Customer DB)
                     </motion.button>
@@ -4516,60 +3517,47 @@ export default function App() {
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setIsCouponManagerOpen(true)}
-                      className="py-2 px-4 rounded-2xl bg-emerald-500/20 text-emerald-400 hover:text-white border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/10"
+                      className="py-2 px-4 rounded-2xl bg-emerald-500/20 text-emerald-400 hover:text-zinc-100 border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/10"
                     >
                       <Gift className="w-4 h-4" /> จัดการโค้ดคูปอง
                     </motion.button>
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setIsAnnouncementManagerOpen(true)}
-                      className="py-2 px-4 rounded-2xl bg-amber-500/20 text-amber-400 hover:text-white border border-amber-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-amber-500/10"
+                      className="py-2 px-4 rounded-2xl bg-amber-500/20 text-amber-400 hover:text-zinc-100 border border-amber-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-amber-500/10"
                     >
                       <Bell className="w-4 h-4" /> จัดการแจ้งเตือนต่างๆ
                     </motion.button>
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setIsStockManagerOpen(true)}
-                      className="py-2 px-4 rounded-2xl bg-indigo-500/20 text-indigo-400 hover:text-white border border-indigo-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+                      className="py-2 px-4 rounded-2xl bg-indigo-500/20 text-indigo-400 hover:text-zinc-100 border border-indigo-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
                     >
                       <Package className="w-4 h-4" /> ระบบผู้ดูแลสต๊อก
                     </motion.button>
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setIsFormOpen(true)}
-                      className="py-2 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
+                      className="py-2 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-zinc-100 text-xs font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
                     >
-                      <Plus className="w-4 h-4" /> เพิ่มสินค้า ASTD
+                      <Plus className="w-4 h-4" /> เพิ่มสินค้า
                     </motion.button>
                   </div>
                 </div>
               </section>
             )}
 
-            {/* Results Summary */}
-            <div className="flex items-center justify-between gap-4 mb-5 text-xs text-zinc-400 font-display tracking-tight">
-              <span>
-                เจอทั้งหมด:{" "}
-                <strong className="text-zinc-300 font-bold">
-                  {sortedItems.length}
-                </strong>{" "}
-                รายการ
-              </span>
-              {(search ||
-                selectedCategory !== "all" ||
-                selectedStatus !== "all") && (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={async () => {
-                    setSearch("");
-                    setSelectedCategory("all");
-                    setSelectedStatus("all");
-                  }}
-                  className="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer"
-                >
-                  <RotateCcw className="w-3 h-3" /> ล้างตัวกรอง
-                </motion.button>
-              )}
+            {/* Recommended Products Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-zinc-100">
+                สินค้าแนะนำ
+              </h2>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-1 px-3 py-1 text-sm font-medium border border-zinc-800 rounded-full text-zinc-300 hover:bg-zinc-800"
+              >
+                ดูเพิ่มเติม <ChevronRight className="w-4 h-4 text-zinc-500" />
+              </motion.button>
             </div>
 
             {/* Item Grid */}
@@ -4580,10 +3568,10 @@ export default function App() {
                 ))}
               </div>
             ) : sortedItems.length === 0 ? (
-              <div className="text-center py-24 bg-white/5/20 border border-white/5 rounded-2xl">
+              <div className="text-center py-24 bg-zinc-900 border border-zinc-800 rounded-2xl">
                 <Inbox className="w-16 h-16 text-indigo-500/50 mx-auto mb-6" />
-                <h2 className="text-lg font-black text-white mb-2 uppercase tracking-wide">
-                  ไม่พบสินค้าในสต๊อก ASTD
+                <h2 className="text-lg font-black text-zinc-100 mb-2 uppercase tracking-wide">
+                  ไม่พบสินค้าในสต๊อก
                 </h2>
               </div>
             ) : (
@@ -4616,42 +3604,30 @@ export default function App() {
             <DiscordBanner />
           </main>
 
-          {/* ASTD Custom Footer */}
-          <footer className="mt-20 py-8 relative z-10 border-t border-white/5/50 bg-transparent backdrop-blur-sm text-xs w-full">
+          {/* Custom Footer */}
+          <footer className="mt-auto py-8 relative z-10 border-t border-zinc-800 bg-transparent text-xs w-full">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                {/* Left section info */}
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    <span className="font-display font-medium text-white text-sm">
-                      All Star Tower Defense Stock Checker
-                    </span>
-                  </div>
-                  <p className="text-zinc-400">
-                    ระบบจัดการและเช็คจำนวนคงเหลือสต๊อกไอเทมและสเตตัสในเกม All
-                    Star Tower Defense แบบเรียลไทม์
-                  </p>
-                </div>
-
-                {/* Right section - signature citation requested explicitly */}
-                <div className="text-center md:text-right space-y-1">
-                  <p className="text-zinc-600 uppercase tracking-widest text-[11px]">
-                    Development Credit
-                  </p>
-                  <p className="text-zinc-300 font-display tracking-tight">
-                    Made with passion by{" "}
-                    <strong className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer font-bold font-mono">
-                      Kuwashii El ( @_.texraxit )
-                    </strong>
-                  </p>
-                  <p className="text-zinc-600 text-[11px]">
-                    ลิขสิทธิ์ดีไซน์เป็นไปตามข้อตกลงและเกม All Star Tower Defense
-                    Roblox
-                  </p>
-                </div>
+              <div className="flex flex-col items-center justify-center gap-2">
+                <p className="text-zinc-600 uppercase tracking-widest text-[11px]">
+                  Development Credit
+                </p>
+                <p className="text-zinc-400 font-display tracking-tight text-center">
+                  Made with passion by{" "}
+                  <strong className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer font-bold font-mono">
+                    Kuwashii El ( @_.texraxit )
+                  </strong>
+                </p>
               </div>
-            </div>
+                  <MobileDrawer
+        isOpen={isAstdMenuOpen}
+        onClose={() => setIsAstdMenuOpen(false)}
+        currentUser={currentUser}
+        onLoginClick={() => { setShowAuthModal(true); setAuthMode('login'); }}
+        onLogoutClick={handleLogout}
+        setPage={setAppScreen}
+        setShowTopupModal={setShowTopupModal}
+      />
+</div>
           </footer>
 
           {renderModals()}
@@ -4659,1726 +3635,9 @@ export default function App() {
       );
     }
 
-    if (appScreen === "AOTR") {
-  return (
-      <motion.div
-        key="aotr"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.99 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
-        className="min-h-[100vh] min-h-[100dvh] flex flex-col bg-transparent text-zinc-100 font-display tracking-tight selection:bg-amber-500 selection:text-black"
-      >
-        <MarqueeAnnouncement appScreen={appScreen} />
-        <AnnouncementPopup appScreen={appScreen} />
-        <Snowfall />
-        {/* Return to Hub floating button */}
-        <div className="fixed bottom-6 right-6 z-40 hidden md:block">
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              localStorage.removeItem("KUWASHII_LAST_SCREEN");
-              setAppScreen("SELECT");
-            }}
-            className="glass-panel-light hover:bg-zinc-800 hover:border-zinc-700 text-zinc-300 p-3 rounded-full shadow-2xl transition-all duration-300 group flex items-center justify-center"
-            title="Return to Game Hub"
-          >
-            <Layers className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          </motion.button>
-        </div>
+    
 
-        {/* Dynamic Floating Toast Notification */}
-        <AnimatePresence>
-          {toastMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: -50, x: "-50%" }}
-              animate={{ opacity: 1, y: 0, x: "-50%" }}
-              exit={{ opacity: 0, y: -30, x: "-50%" }}
-              style={{ zIndex: 9999 }}
-              className={`fixed top-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold tracking-wide border backdrop-blur-md ${
-                toastMessage.type === "success"
-                  ? "bg-emerald-950/90 text-emerald-400 border-emerald-500/30"
-                  : toastMessage.type === "error"
-                    ? "bg-red-950/90 text-red-400 border-red-500/30"
-                    : "glass-panel text-zinc-300 border-zinc-705"
-              }`}
-            >
-              {toastMessage.type === "success" ? (
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-              ) : toastMessage.type === "error" ? (
-                <AlertTriangle className="w-4 h-4 text-red-500" />
-              ) : (
-                <Info className="w-4 h-4 text-blue-400" />
-              )}
-              <span>{toastMessage.text}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Hero Header Section */}
-        <header className="relative border-b border-white/5 bg-transparent py-7 overflow-hidden">
-          {/* Background Atmosphere */}
-          <div className="absolute top-0 right-0 w-[45rem] h-[24rem] bg-gradient-to-l from-red-600/5 to-transparent filter blur-3xl pointer-events-none -z-10" />
-          <div className="absolute top-0 left-0 w-[30rem] h-[20rem] bg-gradient-to-r from-amber-600/5 to-transparent filter blur-3xl pointer-events-none -z-10" />
-
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              {/* Title, Branding & Credits */}
-              <div>
-                <div className="flex items-center gap-2.5 mb-2.5">
-                  <span className="bg-red-600 text-white text-[11px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-md animate-pulse shadow-md shadow-red-950">
-                    Live Stock
-                  </span>
-                  <span className="text-zinc-600 text-xs font-mono">
-                    v1.4.1
-                  </span>
-                </div>
-                <h1 className="font-display text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                  <span>AOT REVOLUTION</span>
-                  <span className="text-zinc-400 font-light">|</span>
-                  <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-                    STOCK CHECKER
-                  </span>
-                </h1>
-
-                {/* Creator Tag line requested by User */}
-                <div className="mt-2 text-sm text-zinc-400 flex items-center gap-2 font-mono">
-                  <span className="text-zinc-600">•</span>
-                  <span>Made by</span>
-                  <span className="text-amber-400 hover:text-amber-300 transition-colors cursor-pointer font-bold relative group">
-                    Kuwashii El (@_.texraxit)
-                    <span className="absolute bottom-0 left-0 w-full h-[1px] bg-amber-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
-                  </span>
-                </div>
-              </div>
-
-              {/* Admin toggle console */}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Chat now button */}
-                <a
-                  href="https://m.me/kuwashii"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="py-2.5 px-4 rounded-2xl border border-blue-500/30 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-lg shadow-blue-500/5 hover:scale-[1.02] active:scale-95"
-                  id="btn-nav-chat"
-                >
-                  <MessageCircle className="w-4 h-4 text-blue-400" />
-                  <span>ทักแชททันที (Messenger)</span>
-                </a>
-
-                {currentUser ? (
-                  <div className="flex flex-wrap items-center gap-2 glass-panel-light p-1 rounded-2xl">
-                    {/* User Tag */}
-                    <span
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-display tracking-tight ${isAdmin ? "text-amber-400 bg-amber-500/10" : "text-indigo-400 bg-indigo-500/10"}`}
-                    >
-                      {isAdmin ? (
-                        <ShieldCheck className="w-3.5 h-3.5 animate-pulse" />
-                      ) : (
-                        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                      )}
-                      <span>
-                        {currentUser.username} {isAdmin && "(Admin)"}
-                      </span>
-                    </span>
-
-                    {/* Top Up Button for EVERYONE */}
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      type="button"
-                      onClick={() => setShowTopupModal(true)}
-                      className="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
-                    >
-                      <Wallet className="w-3.5 h-3.5" />
-                      <span>เติมเงิน</span>
-                    </motion.button>
-
-
-
-                    {/* Add Product Shortcut (Only Admins) */}
-                    {isAdmin && (
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        type="button"
-                        onClick={() => {
-                          setEditingItem(null);
-                          setIsFormOpen(true);
-                        }}
-                        className="py-1.5 px-3 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-md shadow-white/5 active:scale-95"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        เพิ่มสินค้า {appScreen}
-                      </motion.button>
-                    )}
-                    {/* Logout Button */}
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      type="button"
-                      onClick={handleLogout}
-                      className="py-1.5 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
-                      id="btn-nav-logout"
-                    >
-                      ออกจากระบบ
-                    </motion.button>
-                  </div>
-                ) : (
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => {
-                      setShowAuthModal(true);
-                      setAuthMode("login");
-                    }}
-                    className="py-2.5 px-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-xl shadow-black/30"
-                    id="btn-nav-auth"
-                  >
-                    <Shield className="w-4 h-4 text-indigo-500" />
-                    <span>เข้าสู่ระบบ / สมัครสมาชิก</span>
-                  </motion.button>
-                )}
-                <div className="h-6 w-px bg-zinc-800 hidden sm:block" />
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
-                  onClick={() => {
-                    localStorage.removeItem("KUWASHII_LAST_SCREEN");
-                    setAppScreen("SELECT");
-                  }}
-                  className="py-2.5 px-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-xl shadow-black/30"
-                >
-                  <Layers className="w-4 h-4 text-indigo-500" />
-                  <span className="hidden md:inline">
-                    กลับหน้าเข้าสู่ระบบ (Hub)
-                  </span>
-                  <span className="md:hidden">Hub</span>
-                </motion.button>
-              </div>
-            </div>
-
-            {/* Statistics summary row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-              <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                  จำนวนสินค้าทั้งหมด
-                </span>
-                <div className="mt-1.5 flex items-baseline gap-2">
-                  {isLoadingStock ? (
-                    <div className="h-8 w-12 bg-zinc-850/80 animate-pulse rounded" />
-                  ) : (
-                    <>
-                      <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-white">
-                        {totalStockItems}
-                      </span>
-                      <span className="text-xs text-zinc-400">รายการ</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                  จำนวนพร้อมส่งด่วน
-                </span>
-                <div className="mt-1.5 flex items-baseline gap-2">
-                  {isLoadingStock ? (
-                    <div className="h-8 w-12 bg-zinc-850/80 animate-pulse rounded" />
-                  ) : (
-                    <>
-                      <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-emerald-400">
-                        {inStockCount}
-                      </span>
-                      <span className="text-xs text-zinc-400">ประเภทคลัง</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                  สินค้าสะสมในสต๊อก
-                </span>
-                <div className="mt-1.5 flex items-baseline gap-2">
-                  {isLoadingStock ? (
-                    <div className="h-8 w-12 bg-zinc-850/80 animate-pulse rounded" />
-                  ) : (
-                    <>
-                      <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-yellow-500">
-                        {totalStockUnits}
-                      </span>
-                      <span className="text-xs text-zinc-400">ชิ้น</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                  มูลค่าสต๊อกประเมินทั้งหมด
-                </span>
-                <div className="mt-1.5 flex items-baseline gap-1">
-                  {isLoadingStock ? (
-                    <div className="h-8 w-24 bg-zinc-850/80 animate-pulse rounded" />
-                  ) : (
-                    <>
-                      <span className="text-zinc-400 font-mono text-xs">฿</span>
-                      <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-white">
-                        {totalStockValue.toLocaleString()}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <LiveActivities
-              appScreen={appScreen}
-              syncCounter={syncCounter}
-              isAdmin={isAdmin}
-            />
-          </div>
-        </header>
-
-        {/* Main Container */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 flex-grow w-full">
-          {/* Banner announcement board */}
-          <div className="mb-6 p-3 sm:p-4 rounded-2xl sm:rounded-2xl bg-gradient-to-r from-red-950/20 via-zinc-900/50 to-zinc-900/20 border border-white/5 shadow-sm backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400 animate-pulse" />
-              </div>
-              <div>
-                <p className="text-[11px] sm:text-xs font-bold text-zinc-300">
-                  บอร์ดข้อมูลร้านค้า
-                </p>
-                <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 line-clamp-1 sm:line-clamp-none">
-                  อัปเดตสต๊อกไอเทมเกม AOT Revolution ตลอด 24 ชม.
-                  สะดวก รวดเร็ว เชื่อถือได้ 100%
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
-              <div className="flex flex-1 sm:flex-none items-center justify-center sm:justify-start gap-1.5 sm:gap-2 bg-transparent/50 px-2 sm:px-3 py-1.5 rounded-lg sm:rounded-2xl border border-zinc-850">
-                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-550/80" />
-                <span className="text-[11px] sm:text-[11px] text-zinc-300">
-                  อัปเดตคลังล่าสุด:{" "}
-                  {isLoadingStock ? (
-                    <span className="h-3 w-16 bg-white/5/80 animate-pulse rounded inline-block align-middle ml-1" />
-                  ) : (
-                    <strong className="text-amber-400">
-                      {getLatestUpdatedRelativeTime(currentContextItems)}
-                    </strong>
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                <span className="text-[11px] sm:text-xs font-mono font-semibold text-emerald-400">
-                  สถานะ: พร้อมขาย
-                </span>
-              </div>
-            </div>
-          </div>
-
-          
-
-          {/* Search and Filters Hub */}
-          <section className="bg-white/5/20 border border-white/5 p-5 sm:p-6 rounded-2xl mb-8 space-y-5">
-            {/* Main search input and Sort dropdown row */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-              {/* Elegant Search Input */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="ค้นหาชื่อไอเทม, คุณสมบัติความเร็ว, ระดับระดับ หรือหมวดหมู่..."
-                  className="w-full bg-transparent border border-zinc-850 py-3 pl-10 pr-10 rounded-2xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all font-display tracking-tight"
-                />
-                {search && (
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white hover:bg-white/5 rounded-md transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </motion.button>
-                )}
-              </div>
-
-              {/* Sort Dropdown */}
-              <div className="flex items-center gap-2.5">
-                <span className="text-xs text-zinc-400 font-display tracking-tight flex-shrink-0">
-                  เรียงตาม:
-                </span>
-                <div className="relative">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-transparent border border-zinc-850 py-3 px-4 rounded-2xl text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer font-display tracking-tight appearance-none pr-8 font-medium"
-                  >
-                    <option value="rarity-desc">
-                      ความหายาก (หายากสุด-ทั่วไป)
-                    </option>
-                    <option value="price-desc">ราคา (แพงสุด - ถูกสุด)</option>
-                    <option value="price-asc">ราคา (ถูกสุด - แพงสุด)</option>
-                    <option value="stock-desc">
-                      จำนวนคงเหลือ (มากสุด - น้อยสุด)
-                    </option>
-                    <option value="stock-asc">
-                      จำนวนคงเหลือ (น้อยสุด - มากสุด)
-                    </option>
-                    <option value="name-asc">ชื่อไอเทม (ก-ฮ / A-Z)</option>
-                  </select>
-                  <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-
-            {/* Horizontal Swiping Category list */}
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight block mb-1">
-                หมวดหมู่ไอเทม (Item Categories)
-              </span>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin scrollbar-thumb-zinc-800">
-                {(
-                  [
-                    "all",
-                    "Serum",
-                    "Bloodline",
-                    "Skin",
-                    "Artifact",
-                    "Scroll/Key",
-                    "Perk",
-                    "Other",
-                  ] as const
-                ).map((cat) => (
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`py-2 px-4 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                      selectedCategory === cat
-                        ? "bg-white text-black shadow-lg shadow-white/5 font-extrabold"
-                        : "bg-transparent hover:bg-white/5/60 border border-zinc-850 text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    {cat === "all" ? "📦 ทั้งหมดทุกหมวดหมู่" : cat}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-
-            {/* Rarity & Status Filter tags row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-white/5">
-              {/* Rarity Selector Buttons */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  ระดับแรร์ (Rarity Type)
-                </span>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {(
-                    [
-                      "all",
-                      "Mythic",
-                      "Legendary",
-                      "Epic",
-                      "Rare",
-                      "Common",
-                    ] as const
-                  ).map((rarity) => (
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      key={rarity}
-                      onClick={() => setSelectedRarity(rarity)}
-                      className={`py-1.5 px-3 rounded-lg text-xs font-bold tracking-normal transition-all cursor-pointer border ${
-                        selectedRarity === rarity
-                          ? rarity === "Mythic"
-                            ? "bg-red-500/10 border-red-500 text-red-400"
-                            : rarity === "Legendary"
-                              ? "bg-amber-500/10 border-amber-500 text-amber-500"
-                              : rarity === "Epic"
-                                ? "bg-purple-500/10 border-purple-500 text-purple-400"
-                                : rarity === "Rare"
-                                  ? "bg-blue-500/10 border-blue-500 text-blue-400"
-                                  : rarity === "Common"
-                                    ? "bg-zinc-500/10 border-zinc-400 text-zinc-300"
-                                    : "bg-white text-black border-white font-extrabold"
-                          : "bg-transparent border-zinc-850 text-zinc-400 hover:text-zinc-300"
-                      }`}
-                    >
-                      {rarity === "all" ? "⭐ ทุกระดับความหายาก" : rarity}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Availability status selectors and Popular item filters */}
-              <div className="space-y-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                    ความพร้อมคลัง (Stock Status)
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {(
-                      ["all", "in-stock", "low-stock", "out-of-stock"] as const
-                    ).map((st) => (
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        key={st}
-                        type="button"
-                        onClick={() => setSelectedStatus(st)}
-                        className={`py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
-                          selectedStatus === st
-                            ? "bg-zinc-800 border-zinc-500 text-white"
-                            : "bg-transparent border-zinc-850 text-zinc-400 hover:text-zinc-300"
-                        }`}
-                      >
-                        {st === "all" && "ทั้งหมด"}
-                        {st === "in-stock" && "มีสินค้า (>5)"}
-                        {st === "low-stock" && "ใกล้หมด (1-5)"}
-                        {st === "out-of-stock" && "หมด"}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Show Popular Only switch */}
-                <div className="space-y-2 sm:self-end">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setShowPopularOnly(!showPopularOnly)}
-                    className={`py-1.5 px-3 rounded-lg text-xs font-extrabold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                      showPopularOnly
-                        ? "bg-rose-500/15 border-rose-500 text-rose-450"
-                        : "bg-transparent border-zinc-850 text-zinc-400 hover:text-rose-400"
-                    }`}
-                  >
-                    <Flame
-                      className={`w-3.5 h-3.5 ${showPopularOnly ? "fill-current text-rose-450 animate-bounce" : "text-zinc-400"}`}
-                    />
-                    <span>แสดงเฉพาะยอดนิยม</span>
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Admin Dashboard Control Center */}
-          {isAdmin && (
-            <section className="glass-panel border border-emerald-500/20 p-5 rounded-2xl mb-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl pointer-events-none -z-10" />
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0 animate-pulse">
-                    <SlidersHorizontal className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                      แผงเครื่องมือแอดมินจัดการสต๊อกดิ๊ก
-                    </h3>
-                    <p className="text-xs text-zinc-400 mt-0.5">
-                      คุณสามารถอัปเดตสต็อก, รีเซ็ตข้อมูลดีฟอลต์ หรือ
-                      แบคอัพข้อมูลสต๊อกทั้งหมดได้ที่นี่
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setIsAnnouncementManagerOpen(true)}
-                    className="py-2 px-3 border border-amber-500/30 hover:border-amber-500/80 bg-amber-950/20 hover:bg-amber-950/40 text-amber-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Bell className="w-3.5 h-3.5" /> แจ้งเตือน Popup
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsCustomerDbOpen(true)}
-                    className="py-2 px-3 border border-purple-500/30 hover:border-purple-500/80 bg-purple-950/20 hover:bg-purple-950/40 text-purple-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Users className="w-3.5 h-3.5" /> ลูกค้า
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={toggleMaintenanceMode}
-                    className={`py-2 px-3 border border-red-500/30 hover:border-red-500/80 bg-red-950/20 hover:bg-red-950/40 text-red-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer ${globalStats?.maintenance_mode ? "!bg-amber-500/20 !border-amber-500/30 !text-amber-400" : ""}`}
-                  >
-                    <AlertTriangle className="w-3.5 h-3.5" />{" "}
-                    {globalStats?.maintenance_mode ? "เปิดเว็บ" : "ปิดเว็บ"}
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsCouponManagerOpen(true)}
-                    className="py-2 px-3 border border-emerald-500/30 hover:border-emerald-500/80 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Gift className="w-3.5 h-3.5" /> คูปอง
-                  </motion.button>
-
-                  {/* Stock Manager button */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setIsStockManagerOpen(true)}
-                    className="py-2 px-3 border border-indigo-500/30 hover:border-indigo-500/80 bg-indigo-950/20 hover:bg-indigo-950/40 text-indigo-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Package className="w-3.5 h-3.5" />
-                    <span>ระบบผู้ดูแลสต๊อกทั้งหมด</span>
-                  </motion.button>
-
-                  {/* Add product button AOTR */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setIsFormOpen(true)}
-                    className="py-2 px-3 border border-blue-500/30 hover:border-blue-500/80 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-2xl transition-all shadow-lg shadow-blue-500/20 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>เพิ่มสินค้า {appScreen}</span>
-                  </motion.button>
-
-                  {/* Delete all products button */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={handleDeleteAllProducts}
-                    className="py-2 px-3 border border-red-500/30 hover:border-red-650/80 bg-red-950/20 hover:bg-red-950/40 text-red-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    <span>ลบสินค้าทั้งหมดในคลังออกทั้งหมด</span>
-                  </motion.button>
-
-                  {/* Make all set to 0 stock button */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={handleClearStockToZero}
-                    className="py-2 px-3 border border-amber-500/30 hover:border-amber-600/80 bg-amber-950/20 hover:bg-amber-950/40 text-amber-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Package className="w-3.5 h-3.5 animate-pulse" />
-                    <span>เซ็ตจำนวนสต๊อกสินค้าทั้งหมดเหลือ 0 ชิ้น</span>
-                  </motion.button>
-
-                  {/* Backup export */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={handleExportJSON}
-                    className="py-2 px-3 border border-white/5 hover:border-zinc-700 bg-white/5 text-zinc-300 hover:text-white text-xs font-semibold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <FileDown className="w-3.5 h-3.5" />
-                    <span>ส่งออก JSON Backup</span>
-                  </motion.button>
-
-                  {/* Import backup */}
-                  <label className="py-2 px-3 border border-white/5 hover:border-zinc-700 bg-white/5 text-zinc-300 hover:text-white text-xs font-semibold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer">
-                    <FileUp className="w-3.5 h-3.5" />
-                    <span>นำเข้าไฟล์ JSON</span>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportJSON}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Search status summary display */}
-          <div className="flex items-center justify-between gap-4 mb-5 text-xs text-zinc-400 font-display tracking-tight">
-            <span>
-              ผลการค้นหาและตัวกรองที่เลือกเจอทั้งหมด:{" "}
-              <strong className="text-zinc-300 font-bold">
-                {sortedItems.length}
-              </strong>{" "}
-              รายการสินค้า
-            </span>
-            {(search ||
-              selectedCategory !== "all" ||
-              selectedRarity !== "all" ||
-              selectedStatus !== "all" ||
-              showPopularOnly) && (
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setSearch("");
-                  setSelectedCategory("all");
-                  setSelectedRarity("all");
-                  setSelectedStatus("all");
-                  setShowPopularOnly(false);
-                }}
-                className="text-amber-500 hover:text-amber-400 font-extrabold flex items-center gap-1 cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>ล้างตัวกรองทั้งหมด</span>
-              </motion.button>
-            )}
-          </div>
-
-          {/* Item Grid Component */}
-          {isLoadingStock ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-              {Array.from({ length: 8 }).map((_, idx) => (
-                <ItemCardSkeleton key={`skeleton-${idx}`} />
-              ))}
-            </div>
-          ) : sortedItems.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="border border-white/5 bg-transparent/60 p-12 rounded-3xl text-center space-y-4"
-            >
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto text-zinc-650 border border-zinc-805">
-                <Inbox className="w-8 h-8" />
-              </div>
-              <div>
-                <h3 className="font-display text-lg font-bold text-white">
-                  ไม่พบสินค้าที่คุณต้องการในสต๊อกขณะนี้
-                </h3>
-                <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-                  ลองตรวจสอบชื่อสะกดไอเทมใหม่อีกครั้ง หรือเข้ากลุ่ม Discord
-                  สอบถามเพิ่มเติมได้โดยตรง
-                </p>
-              </div>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setSelectedCategory("all");
-                  setSelectedRarity("all");
-                  setSelectedStatus("all");
-                }}
-                className="py-2.5 px-5 bg-white/5 hover:bg-zinc-800 text-white rounded-2xl text-xs font-semibold border border-white/5 transition-all cursor-pointer"
-              >
-                ย้อนกลับไปดูสินค้าทั้งหมด
-              </motion.button>
-            </motion.div>
-          ) : (
-            <motion.div
-              layout
-              className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6"
-            >
-              <AnimatePresence mode="popLayout">
-                {sortedItems.map((item) => (
-                  <ItemCard
-                    appScreen={appScreen}
-                    key={item.id}
-                    item={item}
-                    isAdmin={isAdmin}
-                    onEdit={(it) => {
-                      setEditingItem(it);
-                      setIsFormOpen(true);
-                    }}
-                    onDelete={handleDeleteItem}
-                    onQuickQuantityChange={handleQuickQuantityChange}
-                    onInquire={(it) => setInquiringItem(it)}
-                    onTogglePin={handleTogglePin}
-                    onShareToAI={handleShareToAI}
-                  />
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          )}
-
-          <DiscordBanner />
-        </main>
-
-        {/* Modern, Highly styled Custom Footer */}
-        <footer className="border-t border-white/5 bg-transparent text-xs py-10 mt-12 bg-gradient-to-b from-transparent to-black/90">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              {/* Left section info */}
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-650" />
-                  <span className="font-display font-medium text-white text-sm">
-                    Attack on Titan Revolution Stock Checker
-                  </span>
-                </div>
-                <p className="text-zinc-400">
-                  ระบบจัดการและเช็คจำนวนคงเหลือสต๊อกไอเทม แรร์ไอเทม
-                  และสเตตัสในเกม AOT Revolution แบบเรียลไทม์
-                </p>
-              </div>
-
-              {/* Right section - signature citation requested explicitly */}
-              <div className="text-center md:text-right space-y-1">
-                <p className="text-zinc-600 uppercase tracking-widest text-[11px]">
-                  Development Credit
-                </p>
-                <p className="text-zinc-300 font-display tracking-tight">
-                  Made with passion by{" "}
-                  <strong className="text-amber-450 hover:text-amber-400 transition-colors cursor-pointer font-bold font-mono">
-                    Kuwashii El ( @_.texraxit )
-                  </strong>
-                </p>
-                <p className="text-zinc-650 text-[11px]">
-                  ลิขสิทธิ์ดีไซน์เป็นไปตามข้อตกลงและเกม Attack on Titan
-                  Revolution Roblox
-                </p>
-              </div>
-            </div>
-          </div>
-        </footer>
-
-        {renderModals()}
-      </motion.div>
-    );
-    }
-
-    if (appScreen === "ROV") {
-  return (
-      <motion.div
-        key="rov"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.99 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
-        className="min-h-[100vh] min-h-[100dvh] flex flex-col bg-transparent text-zinc-100 font-display tracking-tight selection:bg-amber-500 selection:text-black"
-      >
-        <MarqueeAnnouncement appScreen={appScreen} />
-        <AnnouncementPopup appScreen={appScreen} />
-        <Snowfall />
-        {/* Return to Hub floating button */}
-        <div className="fixed bottom-6 right-6 z-40 hidden md:block">
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              localStorage.removeItem("KUWASHII_LAST_SCREEN");
-              setAppScreen("SELECT");
-            }}
-            className="glass-panel-light hover:bg-zinc-800 hover:border-zinc-700 text-zinc-300 p-3 rounded-full shadow-2xl transition-all duration-300 group flex items-center justify-center"
-            title="Return to Game Hub"
-          >
-            <Layers className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          </motion.button>
-        </div>
-
-        {/* Dynamic Floating Toast Notification */}
-        <AnimatePresence>
-          {toastMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: -50, x: "-50%" }}
-              animate={{ opacity: 1, y: 0, x: "-50%" }}
-              exit={{ opacity: 0, y: -30, x: "-50%" }}
-              style={{ zIndex: 9999 }}
-              className={`fixed top-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold tracking-wide border backdrop-blur-md ${
-                toastMessage.type === "success"
-                  ? "bg-emerald-950/90 text-emerald-400 border-emerald-500/30"
-                  : toastMessage.type === "error"
-                    ? "bg-red-950/90 text-red-400 border-red-500/30"
-                    : "glass-panel text-zinc-300 border-zinc-705"
-              }`}
-            >
-              {toastMessage.type === "success" ? (
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-              ) : toastMessage.type === "error" ? (
-                <AlertTriangle className="w-4 h-4 text-red-500" />
-              ) : (
-                <Info className="w-4 h-4 text-blue-400" />
-              )}
-              <span>{toastMessage.text}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Hero Header Section */}
-        <header className="relative border-b border-white/5 bg-transparent py-7 overflow-hidden">
-          {/* Background Atmosphere */}
-          <div className="absolute top-0 right-0 w-[45rem] h-[24rem] bg-gradient-to-l from-red-600/5 to-transparent filter blur-3xl pointer-events-none -z-10" />
-          <div className="absolute top-0 left-0 w-[30rem] h-[20rem] bg-gradient-to-r from-amber-600/5 to-transparent filter blur-3xl pointer-events-none -z-10" />
-
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              {/* Title, Branding & Credits */}
-              <div>
-                <div className="flex items-center gap-2.5 mb-2.5">
-                  <span className="bg-red-600 text-white text-[11px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-md animate-pulse shadow-md shadow-red-950">
-                    Live Stock
-                  </span>
-                  <span className="text-zinc-600 text-xs font-mono">
-                    v1.4.1
-                  </span>
-                </div>
-                <h1 className="font-display text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                  <span>ARENA OF VALOR (ROV)</span>
-                  <span className="text-zinc-400 font-light">|</span>
-                  <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-                    STOCK CHECKER
-                  </span>
-                </h1>
-
-                {/* Creator Tag line requested by User */}
-                <div className="mt-2 text-sm text-zinc-400 flex flex-wrap items-center gap-2 font-mono">
-                  <span className="text-zinc-600">•</span>
-                  <span>Made by</span>
-                  <span className="text-amber-400 hover:text-amber-300 transition-colors cursor-pointer font-bold relative group">
-                    Kuwashii El (@_.texraxit)
-                    <span className="absolute bottom-0 left-0 w-full h-[1px] bg-amber-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
-                  </span>
-                  <span className="text-zinc-600 ml-2">•</span>
-                  <span className="ml-1 text-zinc-300 italic">
-                    สินค้าโดย{" "}
-                    <span className="text-zinc-100 font-bold not-italic font-display tracking-tight underline decoration-amber-500/50 underline-offset-4">
-                      sokay0419
-                    </span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Admin toggle console */}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Chat now button */}
-                <a
-                  href="https://discord.gg/AQKtJpvyva"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="py-2.5 px-4 rounded-2xl border border-indigo-500/30 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-lg shadow-indigo-500/5 hover:scale-[1.02] active:scale-95"
-                  id="btn-nav-chat"
-                >
-                  <MessageCircle className="w-4 h-4 text-indigo-400" />
-                  <span>ดิสคอร์ดเซิฟเวอร์</span>
-                </a>
-
-                {currentUser ? (
-                  <div className="flex flex-wrap items-center gap-2 glass-panel-light p-1 rounded-2xl">
-                    {/* User Tag */}
-                    <span
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-display tracking-tight ${isAdmin ? "text-amber-400 bg-amber-500/10" : "text-indigo-400 bg-indigo-500/10"}`}
-                    >
-                      {isAdmin ? (
-                        <ShieldCheck className="w-3.5 h-3.5 animate-pulse" />
-                      ) : (
-                        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                      )}
-                      <span>
-                        {currentUser.username} {isAdmin && "(Admin)"}
-                      </span>
-                    </span>
-
-                    {/* Top Up Button for EVERYONE */}
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      type="button"
-                      onClick={() => setShowTopupModal(true)}
-                      className="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-amber-500/30"
-                    >
-                      <Wallet className="w-3.5 h-3.5" />
-                      <span>เติมเงิน</span>
-                    </motion.button>
-
-                    {!isAdmin && (
-                      <span className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 h-full font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
-                        <Coins className="w-3.5 h-3.5" />
-                        <span>
-                          เครดิต: ฿
-                          {Number((appScreen === 'ROV' ? currentUserData?.balance_rov : currentUserData?.balance) || 0).toLocaleString(
-                            undefined,
-                            {
-                              maximumFractionDigits: 2,
-                              minimumFractionDigits: 0,
-                            },
-                          )}
-                        </span>
-                      </span>
-                    )}
-
-                    {/* Add Product Shortcut (Only Admins) */}
-                    {isAdmin && (
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        type="button"
-                        onClick={() => {
-                          setEditingItem(null);
-                          setIsFormOpen(true);
-                        }}
-                        className="py-1.5 px-3 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-md shadow-white/5 active:scale-95"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        เพิ่มสินค้า {appScreen}
-                      </motion.button>
-                    )}
-                    {/* Logout Button */}
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      type="button"
-                      onClick={handleLogout}
-                      className="py-1.5 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
-                      id="btn-nav-logout"
-                    >
-                      ออกจากระบบ
-                    </motion.button>
-                  </div>
-                ) : (
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => {
-                      setShowAuthModal(true);
-                      setAuthMode("login");
-                    }}
-                    className="py-2.5 px-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-xl shadow-black/30"
-                    id="btn-nav-auth"
-                  >
-                    <Shield className="w-4 h-4 text-indigo-500" />
-                    <span>เข้าสู่ระบบ / สมัครสมาชิก</span>
-                  </motion.button>
-                )}
-                <div className="h-6 w-px bg-zinc-800 hidden sm:block" />
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
-                  onClick={() => {
-                    localStorage.removeItem("KUWASHII_LAST_SCREEN");
-                    setAppScreen("SELECT");
-                  }}
-                  className="py-2.5 px-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-extrabold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-xl shadow-black/30"
-                >
-                  <Layers className="w-4 h-4 text-indigo-500" />
-                  <span className="hidden md:inline">
-                    กลับหน้าเข้าสู่ระบบ (Hub)
-                  </span>
-                  <span className="md:hidden">Hub</span>
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
-                  onClick={() => setIsAstdMenuOpen(!isAstdMenuOpen)}
-                  className="py-2.5 px-3 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white transition-all duration-300 flex items-center cursor-pointer shadow-xl shadow-black/30 relative"
-                >
-                  <Menu className="w-5 h-5 text-zinc-400" />
-                </motion.button>
-
-                {/* Dropdown Menu */}
-                <AnimatePresence>
-                  {isAstdMenuOpen && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsAstdMenuOpen(false)}
-                      />
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute top-16 right-4 sm:right-6 lg:right-8 w-64 bg-white/5/95 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl z-50 overflow-hidden"
-                      >
-                        <div className="p-3 sm:hidden border-b border-white/5/50 mb-2">
-                          <div className="flex flex-col gap-2">
-                            {currentUser ? (
-                              <>
-                                <div className="flex items-center gap-2 px-2 py-1.5 mb-1 bg-transparent/50 rounded-lg">
-                                  {isAdmin ? (
-                                    <ShieldCheck className="w-4 h-4 text-amber-500" />
-                                  ) : (
-                                    <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                                  )}
-                                  <span className="text-sm font-semibold text-zinc-200">
-                                    {currentUser.username}
-                                  </span>
-                                  {!isAdmin && (
-                                    <span className="ml-auto text-xs font-mono text-emerald-400">
-                                      ฿
-                                      {Number(
-                                        (appScreen === 'ROV' ? currentUserData?.balance_rov : currentUserData?.balance) || 0,
-                                      ).toLocaleString(undefined, {
-                                        maximumFractionDigits: 2,
-                                        minimumFractionDigits: 0,
-                                      })}
-                                    </span>
-                                  )}
-                                </div>
-                                {isAdmin && (
-                                  <motion.button
-                                    whileTap={{ scale: 0.95 }}
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingItem(null);
-                                      setIsFormOpen(true);
-                                      setIsAstdMenuOpen(false);
-                                    }}
-                                    className="py-2 px-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-zinc-850 text-white text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
-                                  >
-                                    <Plus className="w-4 h-4 text-indigo-400" />{" "}
-                                    ลงขายสินค้า
-                                  </motion.button>
-                                )}
-                              </>
-                            ) : (
-                              <motion.button
-                                whileTap={{ scale: 0.95 }}
-                                type="button"
-                                onClick={() => {
-                                  setShowAuthModal(true);
-                                  setIsAstdMenuOpen(false);
-                                }}
-                                className="w-full py-2 px-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-colors shadow-lg shadow-amber-500/20"
-                              >
-                                เข้าสู่ระบบ / สมัครสมาชิก
-                              </motion.button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="py-2">
-                          {currentUser ? (
-                            <>
-                              <motion.button
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => {
-                                  setShowTopupModal(true);
-                                  setIsAstdMenuOpen(false);
-                                }}
-                                className="w-full text-left px-4 py-2.5 hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
-                              >
-                                <Wallet className="w-4 h-4 text-amber-400" />{" "}
-                                เติมเงิน
-                              </motion.button>
-                              <motion.button
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => {
-                                  setShowHistoryModal(true);
-                                  setIsAstdMenuOpen(false);
-                                }}
-                                className="w-full text-left px-4 py-2.5 hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
-                              >
-                                <History className="w-4 h-4 text-blue-400" />{" "}
-                                ประวัติการทำรายการ
-                              </motion.button>
-                              <div className="h-px bg-zinc-800/50 my-1" />
-                              <motion.button
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => {
-                                  setIsAccountSettingsOpen(true);
-                                  setIsAstdMenuOpen(false);
-                                }}
-                                className="w-full text-left px-4 py-2.5 rounded-2xl hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-colors flex items-center gap-3"
-                              >
-                                <Settings className="w-4 h-4 text-zinc-400" /> ตั้งค่าบัญชี
-                              </motion.button>
-                              <div className="h-px bg-zinc-800/50 my-1" />
-                              <motion.button
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => {
-                                  handleLogout();
-                                  setIsAstdMenuOpen(false);
-                                }}
-                                className="w-full text-left px-4 py-2.5 hover:bg-red-500/10 text-sm text-red-400 hover:text-red-300 transition-colors flex items-center gap-3"
-                              >
-                                <LogOut className="w-4 h-4" /> ออกจากระบบ
-                              </motion.button>
-                            </>
-                          ) : (
-                            <div className="px-4 py-3 text-center">
-                              <p className="text-xs text-zinc-400 mb-2">
-                                กรุณาเข้าสู่ระบบเพื่อใช้งานเมนูอื่นๆ
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {/* Statistics summary row */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
-              <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                  จำนวนสินค้าทั้งหมด
-                </span>
-                <div className="mt-1.5 flex items-baseline gap-2">
-                  {isLoadingStock ? (
-                    <div className="h-8 w-12 bg-zinc-850/80 animate-pulse rounded" />
-                  ) : (
-                    <>
-                      <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-white">
-                        {totalStockItems}
-                      </span>
-                      <span className="text-xs text-zinc-400">รายการ</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                  จำนวนพร้อมส่งด่วน
-                </span>
-                <div className="mt-1.5 flex items-baseline gap-2">
-                  {isLoadingStock ? (
-                    <div className="h-8 w-12 bg-zinc-850/80 animate-pulse rounded" />
-                  ) : (
-                    <>
-                      <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-emerald-400">
-                        {inStockCount}
-                      </span>
-                      <span className="text-xs text-zinc-400">ประเภทคลัง</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                  สินค้าสะสมในสต๊อก
-                </span>
-                <div className="mt-1.5 flex items-baseline gap-2">
-                  {isLoadingStock ? (
-                    <div className="h-8 w-12 bg-zinc-850/80 animate-pulse rounded" />
-                  ) : (
-                    <>
-                      <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-yellow-500">
-                        {totalStockUnits}
-                      </span>
-                      <span className="text-xs text-zinc-400">ชิ้น</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm relative group">
-                {isAdmin && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={async () => {
-                        const currentVal = String(globalStats?.global_sales_rov || 0);
-                        const newVal = window.prompt("แก้ไขยอดขายไปแล้วทั้งหมด (ROV)", currentVal);
-                        if (newVal !== null && !isNaN(parseInt(newVal))) {
-                          const val = parseInt(newVal);
-                          const { error } = await supabase
-                            .from("system_config")
-                            .update({ global_sales_rov: val })
-                            .eq("id", "main");
-                          
-                          if (error) {
-                             showToast("อัปเดตล้มเหลว กรุณาเพิ่มคอลัมน์ global_sales_rov ในฐานข้อมูล (System Config)", "error");
-                             // Still update locally for this session
-                             setGlobalStats({ ...globalStats, global_sales_rov: val });
-                          } else {
-                             setGlobalStats({ ...globalStats, global_sales_rov: val });
-                             window.dispatchEvent(new Event("sync-update"));
-                             showToast("อัปเดตยอดขายแล้ว (ROV)", "success");
-                          }
-                        }
-                      }}
-                      className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={toggleHideGlobalStats}
-                      className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
-                    >
-                      {hideGlobalStats ? (
-                        <EyeOff className="w-3.5 h-3.5" />
-                      ) : (
-                        <Eye className="w-3.5 h-3.5" />
-                      )}
-                    </motion.button>
-                  </div>
-                )}
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                  ยอดขายไปแล้วทั้งหมด
-                </span>
-                <div className="mt-1.5 flex items-baseline gap-2">
-                  <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-emerald-400">
-                    {hideGlobalStats ? "***" : Number(globalStats?.global_sales_rov || 0).toLocaleString()}
-                  </span>
-                  <span className="text-xs text-zinc-400">ชิ้น</span>
-                </div>
-              </div>
-
-              <div className="glass-panel p-5 rounded-2xl shadow-sm backdrop-blur-sm">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight">
-                  มูลค่าสต๊อกประเมินทั้งหมด
-                </span>
-                <div className="mt-1.5 flex items-baseline gap-1">
-                  {isLoadingStock ? (
-                    <div className="h-8 w-24 bg-zinc-850/80 animate-pulse rounded" />
-                  ) : (
-                    <>
-                      <span className="text-zinc-400 font-mono text-xs">฿</span>
-                      <span className="font-mono text-3xl font-display font-medium tracking-tighter glowing-text text-white">
-                        {totalStockValue.toLocaleString()}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <LiveActivities
-              appScreen={appScreen}
-              syncCounter={syncCounter}
-              isAdmin={isAdmin}
-            />
-          </div>
-        </header>
-
-        {/* Main Container */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 flex-grow w-full">
-          {/* Banner announcement board */}
-          <div className="mb-6 p-3 sm:p-4 rounded-2xl sm:rounded-2xl bg-gradient-to-r from-red-950/20 via-zinc-900/50 to-zinc-900/20 border border-white/5 shadow-sm backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400 animate-pulse" />
-              </div>
-              <div>
-                <p className="text-[11px] sm:text-xs font-bold text-zinc-300">
-                  บอร์ดข้อมูลร้านค้า
-                </p>
-                <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 line-clamp-1 sm:line-clamp-none">
-                  อัปเดตสต๊อกไอเทมเกม Arena of Valor (ROV) ตลอด 24 ชม.
-                  สะดวก รวดเร็ว เชื่อถือได้ 100%
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
-              <div className="flex flex-1 sm:flex-none items-center justify-center sm:justify-start gap-1.5 sm:gap-2 bg-transparent/50 px-2 sm:px-3 py-1.5 rounded-lg sm:rounded-2xl border border-zinc-850">
-                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-550/80" />
-                <span className="text-[11px] sm:text-[11px] text-zinc-300">
-                  อัปเดตคลังล่าสุด:{" "}
-                  {isLoadingStock ? (
-                    <span className="h-3 w-16 bg-white/5/80 animate-pulse rounded inline-block align-middle ml-1" />
-                  ) : (
-                    <strong className="text-amber-400">
-                      {getLatestUpdatedRelativeTime(currentContextItems)}
-                    </strong>
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                <span className="text-[11px] sm:text-xs font-mono font-semibold text-emerald-400">
-                  สถานะ: พร้อมขาย
-                </span>
-              </div>
-            </div>
-          </div>
-
-          
-
-          {/* Search and Filters Hub */}
-          <section className="bg-white/5/20 border border-white/5 p-5 sm:p-6 rounded-2xl mb-8 space-y-5">
-            {/* Main search input and Sort dropdown row */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-              {/* Elegant Search Input */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="ค้นหาชื่อไอเทม, คุณสมบัติความเร็ว, ระดับระดับ หรือหมวดหมู่..."
-                  className="w-full bg-transparent border border-zinc-850 py-3 pl-10 pr-10 rounded-2xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all font-display tracking-tight"
-                />
-                {search && (
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white hover:bg-white/5 rounded-md transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </motion.button>
-                )}
-              </div>
-
-              {/* Sort Dropdown */}
-              <div className="flex items-center gap-2.5">
-                <span className="text-xs text-zinc-400 font-display tracking-tight flex-shrink-0">
-                  เรียงตาม:
-                </span>
-                <div className="relative">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-transparent border border-zinc-850 py-3 px-4 rounded-2xl text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer font-display tracking-tight appearance-none pr-8 font-medium"
-                  >
-                    <option value="rarity-desc">
-                      ความหายาก (หายากสุด-ทั่วไป)
-                    </option>
-                    <option value="price-desc">ราคา (แพงสุด - ถูกสุด)</option>
-                    <option value="price-asc">ราคา (ถูกสุด - แพงสุด)</option>
-                    <option value="stock-desc">
-                      จำนวนคงเหลือ (มากสุด - น้อยสุด)
-                    </option>
-                    <option value="stock-asc">
-                      จำนวนคงเหลือ (น้อยสุด - มากสุด)
-                    </option>
-                    <option value="name-asc">ชื่อไอเทม (ก-ฮ / A-Z)</option>
-                  </select>
-                  <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-
-            {/* Horizontal Swiping Category list */}
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-display tracking-tight block mb-1">
-                หมวดหมู่ไอเทม (Item Categories)
-              </span>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin scrollbar-thumb-zinc-800">
-                {(
-                  [
-                    "all",
-                    "รหัส ROV"
-                  ] as const
-                ).map((cat) => (
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`py-2 px-4 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                      selectedCategory === cat
-                        ? "bg-white text-black shadow-lg shadow-white/5 font-extrabold"
-                        : "bg-transparent hover:bg-white/5/60 border border-zinc-850 text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    {cat === "all" ? "📦 ทั้งหมดทุกหมวดหมู่" : cat}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-
-            {/* Rarity & Status Filter tags row */}
-            <div className="grid grid-cols-1 gap-5 pt-2 border-t border-white/5">
-              {/* Availability status selectors and Popular item filters */}
-              <div className="space-y-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                    ความพร้อมคลัง (Stock Status)
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {(
-                      ["all", "in-stock", "low-stock", "out-of-stock"] as const
-                    ).map((st) => (
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        key={st}
-                        type="button"
-                        onClick={() => setSelectedStatus(st)}
-                        className={`py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
-                          selectedStatus === st
-                            ? "bg-zinc-800 border-zinc-500 text-white"
-                            : "bg-transparent border-zinc-850 text-zinc-400 hover:text-zinc-300"
-                        }`}
-                      >
-                        {st === "all" && "ทั้งหมด"}
-                        {st === "in-stock" && "มีสินค้า (>5)"}
-                        {st === "low-stock" && "ใกล้หมด (1-5)"}
-                        {st === "out-of-stock" && "หมด"}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Show Popular Only switch */}
-                <div className="space-y-2 sm:self-end">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setShowPopularOnly(!showPopularOnly)}
-                    className={`py-1.5 px-3 rounded-lg text-xs font-extrabold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                      showPopularOnly
-                        ? "bg-rose-500/15 border-rose-500 text-rose-450"
-                        : "bg-transparent border-zinc-850 text-zinc-400 hover:text-rose-400"
-                    }`}
-                  >
-                    <Flame
-                      className={`w-3.5 h-3.5 ${showPopularOnly ? "fill-current text-rose-450 animate-bounce" : "text-zinc-400"}`}
-                    />
-                    <span>แสดงเฉพาะยอดนิยม</span>
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Admin Dashboard Control Center */}
-          {isAdmin && (
-            <section className="glass-panel border border-emerald-500/20 p-5 rounded-2xl mb-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl pointer-events-none -z-10" />
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0 animate-pulse">
-                    <SlidersHorizontal className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                      แผงเครื่องมือแอดมินจัดการสต๊อกดิ๊ก
-                    </h3>
-                    <p className="text-xs text-zinc-400 mt-0.5">
-                      คุณสามารถอัปเดตสต็อก, รีเซ็ตข้อมูลดีฟอลต์ หรือ
-                      แบคอัพข้อมูลสต๊อกทั้งหมดได้ที่นี่
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setIsAnnouncementManagerOpen(true)}
-                    className="py-2 px-3 border border-amber-500/30 hover:border-amber-500/80 bg-amber-950/20 hover:bg-amber-950/40 text-amber-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Bell className="w-3.5 h-3.5" /> แจ้งเตือน Popup
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsCustomerDbOpen(true)}
-                    className="py-2 px-3 border border-purple-500/30 hover:border-purple-500/80 bg-purple-950/20 hover:bg-purple-950/40 text-purple-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Users className="w-3.5 h-3.5" /> ลูกค้า
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={toggleMaintenanceMode}
-                    className={`py-2 px-3 border border-red-500/30 hover:border-red-500/80 bg-red-950/20 hover:bg-red-950/40 text-red-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer ${globalStats?.maintenance_mode ? "!bg-amber-500/20 !border-amber-500/30 !text-amber-400" : ""}`}
-                  >
-                    <AlertTriangle className="w-3.5 h-3.5" />{" "}
-                    {globalStats?.maintenance_mode ? "เปิดเว็บ" : "ปิดเว็บ"}
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsCouponManagerOpen(true)}
-                    className="py-2 px-3 border border-emerald-500/30 hover:border-emerald-500/80 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Gift className="w-3.5 h-3.5" /> คูปอง
-                  </motion.button>
-
-                  {/* Stock Manager button */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setIsStockManagerOpen(true)}
-                    className="py-2 px-3 border border-indigo-500/30 hover:border-indigo-500/80 bg-indigo-950/20 hover:bg-indigo-950/40 text-indigo-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Package className="w-3.5 h-3.5" />
-                    <span>ระบบผู้ดูแลสต๊อกทั้งหมด</span>
-                  </motion.button>
-
-                  {/* Add product button AOTR */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={() => setIsFormOpen(true)}
-                    className="py-2 px-3 border border-blue-500/30 hover:border-blue-500/80 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-2xl transition-all shadow-lg shadow-blue-500/20 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>เพิ่มสินค้า {appScreen}</span>
-                  </motion.button>
-
-                  {/* Delete all products button */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={handleDeleteAllProducts}
-                    className="py-2 px-3 border border-red-500/30 hover:border-red-650/80 bg-red-950/20 hover:bg-red-950/40 text-red-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    <span>ลบสินค้าทั้งหมดในคลังออกทั้งหมด</span>
-                  </motion.button>
-
-                  {/* Make all set to 0 stock button */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={handleClearStockToZero}
-                    className="py-2 px-3 border border-amber-500/30 hover:border-amber-600/80 bg-amber-950/20 hover:bg-amber-950/40 text-amber-400 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Package className="w-3.5 h-3.5 animate-pulse" />
-                    <span>เซ็ตจำนวนสต๊อกสินค้าทั้งหมดเหลือ 0 ชิ้น</span>
-                  </motion.button>
-
-                  {/* Backup export */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    type="button"
-                    onClick={handleExportJSON}
-                    className="py-2 px-3 border border-white/5 hover:border-zinc-700 bg-white/5 text-zinc-300 hover:text-white text-xs font-semibold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <FileDown className="w-3.5 h-3.5" />
-                    <span>ส่งออก JSON Backup</span>
-                  </motion.button>
-
-                  {/* Import backup */}
-                  <label className="py-2 px-3 border border-white/5 hover:border-zinc-700 bg-white/5 text-zinc-300 hover:text-white text-xs font-semibold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer">
-                    <FileUp className="w-3.5 h-3.5" />
-                    <span>นำเข้าไฟล์ JSON</span>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportJSON}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Search status summary display */}
-          <div className="flex items-center justify-between gap-4 mb-5 text-xs text-zinc-400 font-display tracking-tight">
-            <span>
-              ผลการค้นหาและตัวกรองที่เลือกเจอทั้งหมด:{" "}
-              <strong className="text-zinc-300 font-bold">
-                {sortedItems.length}
-              </strong>{" "}
-              รายการสินค้า
-            </span>
-            {(search ||
-              selectedCategory !== "all" ||
-              selectedRarity !== "all" ||
-              selectedStatus !== "all" ||
-              showPopularOnly) && (
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setSearch("");
-                  setSelectedCategory("all");
-                  setSelectedRarity("all");
-                  setSelectedStatus("all");
-                  setShowPopularOnly(false);
-                }}
-                className="text-amber-500 hover:text-amber-400 font-extrabold flex items-center gap-1 cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>ล้างตัวกรองทั้งหมด</span>
-              </motion.button>
-            )}
-          </div>
-
-          {/* Item Grid Component */}
-          {isLoadingStock ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-              {Array.from({ length: 8 }).map((_, idx) => (
-                <ItemCardSkeleton key={`skeleton-${idx}`} />
-              ))}
-            </div>
-          ) : sortedItems.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="border border-white/5 bg-transparent/60 p-12 rounded-3xl text-center space-y-4"
-            >
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto text-zinc-650 border border-zinc-805">
-                <Inbox className="w-8 h-8" />
-              </div>
-              <div>
-                <h3 className="font-display text-lg font-bold text-white">
-                  ไม่พบสินค้าที่คุณต้องการในสต๊อกขณะนี้
-                </h3>
-                <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-                  ลองตรวจสอบชื่อสะกดไอเทมใหม่อีกครั้ง หรือเข้ากลุ่ม Discord
-                  สอบถามเพิ่มเติมได้โดยตรง
-                </p>
-              </div>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setSelectedCategory("all");
-                  setSelectedRarity("all");
-                  setSelectedStatus("all");
-                }}
-                className="py-2.5 px-5 bg-white/5 hover:bg-zinc-800 text-white rounded-2xl text-xs font-semibold border border-white/5 transition-all cursor-pointer"
-              >
-                ย้อนกลับไปดูสินค้าทั้งหมด
-              </motion.button>
-            </motion.div>
-          ) : (
-            <motion.div
-              layout
-              className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6"
-            >
-              <AnimatePresence mode="popLayout">
-                {sortedItems.map((item) => (
-                  <ItemCard
-                    appScreen={appScreen}
-                    key={item.id}
-                    item={item}
-                    isAdmin={isAdmin}
-                    onEdit={(it) => {
-                      setEditingItem(it);
-                      setIsFormOpen(true);
-                    }}
-                    onDelete={handleDeleteItem}
-                    onQuickQuantityChange={handleQuickQuantityChange}
-                    onInquire={(it) => setInquiringItem(it)}
-                    onBuy={handleBuyItem}
-                    onTogglePin={handleTogglePin}
-                  />
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          )}
-
-          <DiscordBanner />
-        </main>
-
-        {/* Modern, Highly styled Custom Footer */}
-        <footer className="border-t border-white/5 bg-transparent text-xs py-10 mt-12 bg-gradient-to-b from-transparent to-black/90">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              {/* Left section info */}
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-650" />
-                  <span className="font-display font-medium text-white text-sm">
-                    Attack on Titan Revolution Stock Checker
-                  </span>
-                </div>
-                <p className="text-zinc-400">
-                  ระบบจัดการและเช็คจำนวนคงเหลือสต๊อกไอเทม แรร์ไอเทม
-                  และสเตตัสในเกม Arena of Valor (ROV) แบบเรียลไทม์
-                </p>
-              </div>
-
-              {/* Right section - signature citation requested explicitly */}
-              <div className="text-center md:text-right space-y-1">
-                <p className="text-zinc-600 uppercase tracking-widest text-[11px]">
-                  Development Credit
-                </p>
-                <p className="text-zinc-300 font-display tracking-tight">
-                  Made with passion by{" "}
-                  <strong className="text-amber-450 hover:text-amber-400 transition-colors cursor-pointer font-bold font-mono">
-                    Kuwashii El ( @_.texraxit )
-                  </strong>
-                </p>
-                <p className="text-zinc-650 text-[11px]">
-                  ลิขสิทธิ์ดีไซน์เป็นไปตามข้อตกลงและเกม Attack on Titan
-                  Revolution Roblox
-                </p>
-              </div>
-            </div>
-          </div>
-        </footer>
-
-        {renderModals()}
-      </motion.div>
-    );
-    }
+    
 
     return null;
   }; // end renderAppScreen

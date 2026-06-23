@@ -39,7 +39,7 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            className="absolute inset-0 bg-black/80 "
         />
 
         {/* Modal Container */}
@@ -64,20 +64,20 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
             <div className="flex items-center gap-3">
               <motion.button whileTap={{ scale: 0.95 }} 
                 onClick={onAddNew}
-                className="bg-white text-black hover:bg-zinc-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                className="bg-zinc-900 text-black hover:bg-zinc-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" /> เพิ่มสินค้าใหม่
               </motion.button>
               <motion.button whileTap={{ scale: 0.95 }}
                 onClick={onClose}
-                className="p-2 text-zinc-500 hover:text-white rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer bg-zinc-900/50"
+                className="p-2 text-zinc-500 hover:text-white rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer bg-zinc-900"
               >
                 <X className="w-5 h-5" />
               </motion.button>
             </div>
           </div>
 
-          <div className="flex-shrink-0 p-5 bg-zinc-900/20 border-b border-zinc-900">
+          <div className="flex-shrink-0 p-5 bg-zinc-900 border-b border-zinc-900">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
               <input 
@@ -90,9 +90,9 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto bg-zinc-900/10">
+          <div className="flex-1 overflow-auto bg-zinc-900">
             <table className="w-full text-left font-sans text-sm">
-                <thead className="bg-zinc-950/80 sticky top-0 border-b border-zinc-900 backdrop-blur-md z-10">
+                <thead className="bg-zinc-950 sticky top-0 border-b border-zinc-900  z-10">
                     <tr>
                         <th className="px-5 py-4 font-bold text-zinc-400 uppercase tracking-wider text-xs">สินค้า</th>
                         <th className="px-5 py-4 font-bold text-zinc-400 uppercase tracking-wider text-xs">เกม</th>
@@ -104,7 +104,7 @@ export const StockManagerModal: React.FC<StockManagerModalProps> = ({
                 </thead>
                 <tbody className="divide-y divide-zinc-900/50">
                     {filteredItems.map(item => (
-                        <tr key={item.id} className="hover:bg-zinc-900/30 transition-colors group">
+                        <tr key={item.id} className="hover:bg-zinc-900 transition-colors group">
                             <td className="px-5 py-3">
                                 <div className="flex items-center gap-3">
                                    {item.imageUrl ? (

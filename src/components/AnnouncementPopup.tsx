@@ -112,7 +112,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({ appScreen 
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/80 " />
 
           <AnimatePresence mode="wait">
             <motion.div

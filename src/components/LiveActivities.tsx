@@ -74,7 +74,7 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
     return (
       <div className="mb-4 sm:mb-8 mt-3 sm:mt-4 p-2.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-white/5 shadow-2xl bg-transparent/90 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-zinc-600/50 to-transparent" />
-        <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-800/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-800 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
         <div className="flex flex-col mb-2 sm:mb-5 gap-2 sm:gap-3">
           <div>
             <h2 className="text-sm sm:text-lg font-bold text-zinc-400 font-display tracking-tight flex items-center gap-2 relative z-10">
@@ -100,7 +100,7 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
     <div className="mb-4 sm:mb-8 mt-3 sm:mt-4 p-2.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-white/5 shadow-2xl bg-transparent/90 relative overflow-hidden">
       {/* Decorative gradient accents */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-zinc-600/50 to-transparent" />
-      <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-800/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-800 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
       
       <div className="flex flex-row items-center justify-between mb-3 sm:mb-5 gap-2">
         <div>
@@ -127,7 +127,7 @@ export const LiveActivities: React.FC<LiveActivitiesProps> = ({ appScreen, syncC
                 initial={{ opacity: 0, height: 0, scale: 0.98, y: -10 }}
                 animate={{ opacity: 1, height: 'auto', scale: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="flex items-center gap-2 sm:gap-3.5 p-1.5 sm:p-3.5 rounded-lg sm:rounded-2xl border border-white/5/60 bg-black/40 hover:bg-white/5/40 transition-colors"
+                className="flex items-center gap-2 sm:gap-3.5 p-1.5 sm:p-3.5 rounded-lg sm:rounded-2xl border border-white/5/60 bg-black/40 hover:bg-zinc-900/40 transition-colors"
               >
                 <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-md sm:rounded-2xl shrink-0 flex items-center justify-center border border-white/5/80 glass-panel shadow-inner">
                   {a.type === 'signup' ? (

@@ -2,8 +2,8 @@ export interface StockItem {
   id: string;
   game?: 'AOTR' | 'ASTD' | 'ROV';
   name: string;
-  category: 'Serum' | 'Bloodline' | 'Skin' | 'Artifact' | 'Scroll/Key' | 'Perk' | 'Starter Accounts' | 'High Level / PvP' | 'Rare Units' | 'Gems / Currency' | 'Rank Boosting' | 'Bundle Offers' | 'Gifts / Codes' | 'Other Services' | 'สุ่มตัวละคร - ออสตา' | 'ไอดี ROV' | 'คูปอง ROV' | 'รับปั้มแรงค์ ROV' | 'Other';
-  rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythic';
+  category: string;
+  saleFormat?: 'ขายรหัส' | 'กล่องสุ่ม';
   quantity: number;
   initialQuantity?: number;
   piecesPerUnit?: number;
@@ -53,6 +53,6 @@ export interface UserData {
   topupCount?: number;
 }
 
-export type CategoryFilter = 'all' | StockItem['category'];
-export type RarityFilter = 'all' | StockItem['rarity'];
+export type CategoryFilter = string;
+export type SaleFormatFilter = 'all' | 'ขายรหัส' | 'กล่องสุ่ม';
 export type StockStatusFilter = 'all' | 'in-stock' | 'low-stock' | 'out-of-stock';

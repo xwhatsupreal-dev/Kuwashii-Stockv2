@@ -116,8 +116,8 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
       case 'Mythic': return 'bg-red-500/10 border-red-500/40 text-red-400';
       case 'Legendary': return 'bg-amber-500/10 border-amber-500/30 text-amber-400';
       case 'Epic': return 'bg-purple-500/10 border-purple-500/30 text-purple-400';
-      case 'Rare': return 'bg-blue-500/10 border-blue-500/30 text-blue-400';
-      default: return 'bg-zinc-500/10 border-zinc-500/30 text-zinc-400';
+      case 'Rare': return 'bg-blue-900/200/10 border-blue-500/30 text-blue-400';
+      default: return 'bg-zinc-800 border-zinc-500/30 text-zinc-400';
     }
   };
 
@@ -130,7 +130,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/85 backdrop-blur-md"
+          className="absolute inset-0 bg-black/85 "
         />
 
         {/* Modal Window Container */}
@@ -151,7 +151,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
             </h3>
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
-              className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+              className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-900 transition-colors"
               id="btn-close-inquiry"
             >
               <X className="w-4.5 h-4.5" />
@@ -161,7 +161,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
           {/* Scrollable Content wrapper to prevent full-screen takeover on small viewports */}
           <div className="overflow-y-auto space-y-3.5 pr-0.5 scrollbar-thin scrollbar-thumb-zinc-800 pb-1 flex-1">
             {/* Item details card preview */}
-            <div className="flex gap-3 p-2.5 rounded-2xl border border-white/5 bg-white/5/30">
+            <div className="flex gap-3 p-2.5 rounded-2xl border border-white/5 bg-zinc-900/30">
               <div className="w-14 h-14 bg-transparent border border-zinc-850 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
                 {item.imageUrl ? (
                   <img src={item.imageUrl} alt={item.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
@@ -185,7 +185,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
 
             {/* Dedicated full item description wrapper */}
             {item.description && (
-              <div className="bg-white/5/20 p-3 rounded-2xl border border-white/5 text-xs leading-relaxed">
+              <div className="bg-zinc-900/20 p-3 rounded-2xl border border-white/5 text-xs leading-relaxed">
                 <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block mb-1 font-display tracking-tight">📝 คำอธิบายสินค้า / รายละเอียด:</span>
                 <p className="text-zinc-200 whitespace-pre-wrap font-display tracking-tight font-medium text-[11px] leading-relaxed break-words">
                   {item.description}
@@ -213,7 +213,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                 <span className="text-xs text-zinc-400 font-display tracking-tight">
                   {hasPieces ? 'จำนวนชุดที่ต้องการ:' : 'จำนวนชิ้นที่ต้องการ:'}
                 </span>
-                <div className="flex items-center gap-1.5 bg-white/5 border border-white/5 rounded-lg p-0.5">
+                <div className="flex items-center gap-1.5 bg-zinc-900 border border-white/5 rounded-lg p-0.5">
                   <motion.button whileTap={{ scale: 0.95 }}
                     type="button"
                     onMouseDown={() => startAutoStep('dec')}
@@ -297,7 +297,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
 
               {/* Live calculation preview during purchase */}
               {hasPieces && (
-                <div className="bg-white/5/30 px-2 py-1.5 rounded-lg border border-zinc-905 text-[10px] flex justify-between items-center text-zinc-400 leading-none">
+                <div className="bg-zinc-900/30 px-2 py-1.5 rounded-lg border border-zinc-905 text-[10px] flex justify-between items-center text-zinc-400 leading-none">
                   <span>🎁 จะได้รับรวมเสมือนจริง:</span>
                   <span className="font-mono font-bold text-amber-400">
                     {quantity} ชุด × {item.piecesPerUnit} = <strong className="text-white font-black text-xs">{quantity * (item.piecesPerUnit || 1)} ชิ้น</strong>
@@ -337,7 +337,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                 <div className="space-y-1.5 mt-3">
                   <span className="text-[10px] text-zinc-450 font-display tracking-tight block">กล่องแชทข้อความสั่งซื้อด่วน:</span>
                   <div className="relative">
-                    <pre className="text-[10px] font-mono leading-relaxed bg-white/5 border border-white/5 py-2 px-2.5 rounded-lg text-zinc-350 whitespace-pre h-16 overflow-y-auto overflow-x-hidden scrollbar">
+                    <pre className="text-[10px] font-mono leading-relaxed bg-zinc-900 border border-white/5 py-2 px-2.5 rounded-lg text-zinc-350 whitespace-pre h-16 overflow-y-auto overflow-x-hidden scrollbar">
                       {purchaseMessage}
                     </pre>
                     <div className="absolute top-1.5 right-1.5">
@@ -373,7 +373,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ item, onClose, onBuy
                       className={`py-1.5 px-3 rounded-lg font-bold text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         copied
                           ? 'bg-emerald-500 text-black border-emerald-500 hover:bg-emerald-400 shadow-lg shadow-emerald-500/10'
-                          : 'bg-white hover:bg-zinc-150 text-black border-white shadow-md active:scale-[0.98]'
+                          : 'bg-zinc-900 hover:bg-zinc-150 text-black border-white shadow-md active:scale-[0.98]'
                       }`}
                       id="btn-action-copy-buy"
                     >

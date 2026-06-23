@@ -78,7 +78,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/90 backdrop-blur-md"
+          className="absolute inset-0 bg-black/90 "
         />
 
         <motion.div
@@ -87,7 +87,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="relative w-full max-w-md max-h-[85dvh] bg-zinc-950 border border-white/5 rounded-3xl shadow-2xl flex flex-col font-sans overflow-hidden"
         >
-          <div className="p-6 border-b border-zinc-900 bg-zinc-900/60 backdrop-blur-md shrink-0">
+          <div className="p-6 border-b border-zinc-900 bg-zinc-900  shrink-0">
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={onClose}
               className="absolute top-6 right-6 p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
@@ -106,7 +106,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
           </div>
 
           <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
-            <label className="flex items-center gap-3 p-4 bg-zinc-900/50 border border-white/5 rounded-2xl cursor-pointer hover:bg-zinc-800 transition-colors">
+            <label className="flex items-center gap-3 p-4 bg-zinc-900 border border-white/5 rounded-2xl cursor-pointer hover:bg-zinc-800 transition-colors">
               <input
                 type="checkbox"
                 checked={settings.enabled}
@@ -163,7 +163,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <label className="flex items-center gap-3 p-3 bg-zinc-900/50 border border-white/5 rounded-xl cursor-pointer hover:bg-zinc-800 transition-colors">
+              <label className="flex items-center gap-3 p-3 bg-zinc-900 border border-white/5 rounded-xl cursor-pointer hover:bg-zinc-800 transition-colors">
                 <input
                   type="checkbox"
                   checked={settings.showInATOR}
@@ -173,7 +173,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
                 <span className="text-zinc-300 font-bold text-xs flex-1">แสดงในหน้า ATOR</span>
               </label>
 
-              <label className="flex items-center gap-3 p-3 bg-zinc-900/50 border border-white/5 rounded-xl cursor-pointer hover:bg-zinc-800 transition-colors">
+              <label className="flex items-center gap-3 p-3 bg-zinc-900 border border-white/5 rounded-xl cursor-pointer hover:bg-zinc-800 transition-colors">
                 <input
                   type="checkbox"
                   checked={settings.showInASTD}
@@ -185,7 +185,7 @@ export const AnnouncementManagerModal: React.FC<AnnouncementManagerModalProps> =
             </div>
 
             <div className="pt-4 border-t border-white/5/50">
-              <label className="flex items-center gap-3 p-4 bg-zinc-900/50 border border-white/5 rounded-2xl cursor-pointer hover:bg-zinc-800 transition-colors mb-4">
+              <label className="flex items-center gap-3 p-4 bg-zinc-900 border border-white/5 rounded-2xl cursor-pointer hover:bg-zinc-800 transition-colors mb-4">
                 <input
                   type="checkbox"
                   checked={settings.marqueeEnabled || false}

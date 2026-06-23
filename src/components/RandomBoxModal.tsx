@@ -109,7 +109,7 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/50 "
         />
 
         {/* Modal Container: Dark theme with rounded corners */}
@@ -135,7 +135,7 @@ export const RandomBoxModal: React.FC<RandomBoxModalProps> = ({ item, onClose, o
             {/* Description matching screenshot format */}
             <div className="text-zinc-400 text-[13px] leading-relaxed whitespace-pre-wrap mb-5 mt-3 font-medium">
               {item.description /* custom description here */}
-              {item.description && <div className="h-px bg-zinc-800/50 my-3" />}
+              {item.description && <div className="h-px bg-zinc-800 my-3" />}
 
               {/* Additional Images */}
               {item.imageUrls && item.imageUrls.length > 0 && (

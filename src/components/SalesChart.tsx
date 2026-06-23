@@ -115,7 +115,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({ appScreen }) => {
   };
 
   return (
-    <div className="w-full h-auto mt-4 bg-zinc-900/40 border border-zinc-900/60 p-4 rounded-xl flex flex-col font-sans relative z-10 box-border">
+    <div className="w-full h-auto mt-4 bg-zinc-900 border border-zinc-900/60 p-4 rounded-xl flex flex-col font-sans relative z-10 box-border">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
         <h3 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">สถิติ 7 วันล่าสุด</h3>
         

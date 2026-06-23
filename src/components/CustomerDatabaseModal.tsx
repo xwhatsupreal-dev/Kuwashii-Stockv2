@@ -127,7 +127,7 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            className="absolute inset-0 bg-black/90 "
           />
 
           <motion.div
@@ -137,7 +137,7 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
             className="relative w-full max-w-4xl max-h-[85dvh] bg-zinc-950 border border-white/5 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="p-6 border-b border-zinc-900 bg-zinc-900/60 backdrop-blur-md shrink-0">
+            <div className="p-6 border-b border-zinc-900 bg-zinc-900  shrink-0">
               <motion.button whileTap={{ scale: 0.95 }}
                 onClick={onClose}
                 className="absolute top-6 right-6 p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
@@ -171,21 +171,21 @@ export const CustomerDatabaseModal: React.FC<CustomerModalProps> = ({ isOpen, on
                     className="w-full bg-zinc-900 border border-white/5 py-2 pl-10 pr-4 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
                   />
                 </div>
-                <div className="bg-zinc-900/50 border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2">
+                <div className="bg-zinc-900 border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2">
                    <span className="text-zinc-500 text-xs">ลูกค้าทั้งหมด:</span>
                    <span className="text-indigo-400 font-black">{users.length} บัญชี</span>
                 </div>
               </div>
 
               {filteredUsers.length === 0 ? (
-                <div className="text-center py-12 bg-zinc-900/30 rounded-2xl border border-white/5/50">
+                <div className="text-center py-12 bg-zinc-900 rounded-2xl border border-white/5/50">
                   <Users className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
                   <p className="text-zinc-400 font-bold">ไม่พบรายชื่อลูกค้าในระบบ</p>
                 </div>
               ) : (
                 <div className="grid gap-4">
                   {filteredUsers.map((user, index) => (
-                    <div key={user.username || index} className="bg-zinc-900/20 border border-white/5 rounded-2xl overflow-hidden transition-colors hover:bg-zinc-900/60 backdrop-blur-md">
+                    <div key={user.username || index} className="bg-zinc-900 border border-white/5 rounded-2xl overflow-hidden transition-colors hover:bg-zinc-900 ">
                       <div className="p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
                           <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-black shrink-0">

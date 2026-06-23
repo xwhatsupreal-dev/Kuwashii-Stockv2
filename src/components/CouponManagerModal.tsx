@@ -72,7 +72,7 @@ export const CouponManagerModal: React.FC<CouponManagerModalProps> = ({ isOpen, 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 "
           />
 
           <motion.div
@@ -95,7 +95,7 @@ export const CouponManagerModal: React.FC<CouponManagerModalProps> = ({ isOpen, 
           </div>
 
           <div className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-6">
-            <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
+            <div className="bg-zinc-900 p-4 rounded-xl border border-white/5">
               <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">สร้างคูปองใหม่</h3>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <input

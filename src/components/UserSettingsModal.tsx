@@ -89,14 +89,14 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/80 "
         />
 
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative max-w-sm sm:max-w-md w-full rounded-2xl border border-white/5 bg-zinc-950 p-6 shadow-2xl z-10 font-sans max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800"
+          className="relative max-w-sm sm:max-w-md w-full rounded-2xl border border-white/5 bg-zinc-950 p-6 shadow-2xl z-10 font-sans max-h-[90dvh] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800"
         >
           <motion.button whileTap={{ scale: 0.95 }}
             type="button"
@@ -162,7 +162,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
               </div>
             </div>
 
-            <div className="h-px w-full bg-zinc-800/50 my-2" />
+            <div className="h-px w-full bg-zinc-800 my-2" />
 
             {/* Password Section */}
             <div>

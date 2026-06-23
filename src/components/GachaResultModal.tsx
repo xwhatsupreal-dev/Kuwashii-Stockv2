@@ -26,7 +26,7 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/80 backdrop-blur-md"
+          className="absolute inset-0 bg-black/80 "
         />
 
         <motion.div
@@ -37,7 +37,7 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({ isOpen, onCl
           className={`relative max-w-lg w-full bg-zinc-950 border-2 ${allSalt ? 'border-zinc-500/50 shadow-[0_0_50px_rgba(113,113,122,0.2)]' : 'border-amber-500/50 shadow-[0_0_50px_rgba(245,158,11,0.2)]'} rounded-3xl p-6 z-10 text-center overflow-hidden`}
         >
           {/* Confetti / Lights effect background */}
-          <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 ${allSalt ? 'bg-zinc-500/20' : 'bg-amber-500/20'} blur-[60px] rounded-full pointer-events-none`} />
+          <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 ${allSalt ? 'bg-zinc-800' : 'bg-amber-500/20'} blur-[60px] rounded-full pointer-events-none`} />
 
           <motion.button whileTap={{ scale: 0.95 }}
             onClick={onClose}

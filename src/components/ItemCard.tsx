@@ -12,7 +12,6 @@ interface ItemCardProps {
   onInquire: (item: StockItem) => void;
   onBuy?: (item: StockItem, qty: number) => void;
   onTogglePin: (id: string) => void;
-  onShareToAI?: (item: StockItem) => void;
   appScreen?: string;
 }
 
@@ -25,74 +24,35 @@ export const ItemCard: React.FC<ItemCardProps> = ({
   onInquire,
   onBuy,
   onTogglePin,
-  onShareToAI,
   appScreen,
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
 
-  const getRarityColors = (rarity: StockItem['rarity']) => {
-    switch (rarity) {
-      case 'Mythic':
+  const getFormatColors = (format?: string) => {
+    switch (format) {
+      case 'กล่องสุ่ม':
         return {
-          bg: 'bg-red-500/10 border-red-500/40 text-red-400',
-          badge: 'bg-red-600 text-white shadow-red-600/50',
-          glow: 'mythic-glow',
-          text: 'text-red-400',
-          border: 'border-red-500/30 hover:border-red-500/80',
-          gradient: 'from-red-600/20 via-transparent to-transparent'
-        };
-      case 'Legendary':
-        return {
-          bg: 'bg-amber-500/10 border-amber-500/40 text-amber-400',
-          badge: 'bg-amber-500 text-black font-semibold shadow-amber-500/50',
-          glow: 'legendary-glow',
-          text: 'text-amber-400',
-          border: 'border-amber-500/30 hover:border-amber-500/80',
-          gradient: 'from-amber-500/20 via-transparent to-transparent'
-        };
-      case 'Epic':
-        return {
-          bg: 'bg-purple-500/10 border-purple-500/40 text-purple-400',
-          badge: 'bg-purple-500 text-white shadow-purple-500/50',
+          bg: 'bg-purple-500/10 border-purple-500/40 text-purple-600',
+          badge: 'bg-purple-500 text-zinc-100 shadow-purple-500/50',
           glow: 'epic-glow',
-          text: 'text-purple-400',
+          text: 'text-purple-600',
           border: 'border-purple-500/30 hover:border-purple-500/80',
           gradient: 'from-purple-500/20 via-transparent to-transparent'
         };
-      case 'Rare':
+      case 'ขายรหัส':
+      default:
         return {
-          bg: 'bg-blue-500/10 border-blue-500/40 text-blue-400',
-          badge: 'bg-blue-500 text-white shadow-blue-500/50',
+          bg: 'bg-blue-900/200/10 border-blue-500/40 text-blue-600',
+          badge: 'bg-blue-900/200 text-zinc-100 shadow-blue-500/50',
           glow: 'rare-glow',
-          text: 'text-blue-400',
+          text: 'text-blue-600',
           border: 'border-blue-500/30 hover:border-blue-500/80',
           gradient: 'from-blue-500/20 via-transparent to-transparent'
         };
-      case 'Common':
-      default:
-        return {
-          bg: 'bg-zinc-500/10 border-zinc-500/40 text-zinc-400',
-          badge: 'bg-zinc-500 text-white',
-          glow: 'common-glow',
-          text: 'text-zinc-300',
-          border: 'border-zinc-700 hover:border-zinc-500',
-          gradient: 'from-zinc-500/10 via-transparent to-transparent'
-        };
     }
   };
 
-  const getCategoryIconPath = (category: StockItem['category']) => {
-    switch (category) {
-      case 'Bloodline':
-        return "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1-2c6 0 11 5 11 11s-5 11-11 11S1 17 1 11 6 0 12 0zm0 4c-3.87 0-7 3.13-7 7 0 3.87 3.13 7 7 7s7-3.13 7-7c0-3.87-3.13-7-7-7zm0 1c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6-2.69-6 6-6z";
-      case 'Serum':
-        return "M19 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2z";
-      default:
-        return "";
-    }
-  };
-
-  const colors = getRarityColors(item.rarity);
+  const colors = getFormatColors(item.saleFormat);
 
   // Status computation
   const getStockStatus = (qty: number) => {
@@ -155,7 +115,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ y: -4, transition: { duration: 0.15 } }}
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-transparent/80 transition-all duration-300 ${colors.border} ${colors.glow}`}
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-zinc-800 transition-all duration-300 ${colors.border} ${colors.glow}`}
       id={`item-card-${item.id}`}
     >
       {/* Background radial gradient representing rarity */}
@@ -173,11 +133,11 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                 className={`p-1.5 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${
                   item.isPinned
                     ? 'bg-amber-500/10 border-amber-500/50 text-amber-400 shadow-md shadow-amber-500/10'
-                    : 'bg-white/5 border-white/5 text-zinc-550 hover:text-zinc-300 hover:border-zinc-700'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-550 hover:text-zinc-400 hover:border-zinc-700'
                 }`}
                 title={item.isPinned ? 'เลิกปักหมุดสินค้านี้' : 'ปักหมุดสินค้านี้'}
               >
-                <Pin className={`w-3.5 h-3.5 transition-transform ${item.isPinned ? 'fill-current scale-110 text-amber-400' : 'text-zinc-400 rotate-45'}`} />
+                <Pin className={`w-3.5 h-3.5 transition-transform ${item.isPinned ? 'fill-current scale-110 text-amber-400' : 'text-zinc-500 rotate-45'}`} />
               </motion.button>
             ) : item.isPinned ? (
               <div
@@ -187,22 +147,22 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                 <Pin className="w-3.5 h-3.5 fill-current text-amber-400" />
               </div>
             ) : null}
-            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider uppercase bg-zinc-800/85 text-zinc-400 border border-zinc-700/60">
+            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider uppercase bg-zinc-900 text-zinc-500 border border-zinc-700/60">
               {item.category}
             </span>
           </div>
 
-          {/* Rarity StarBadge */}
-          {appScreen !== "ROV" && (
+          {/* Sale Format Badge */}
+          {item.saleFormat && (
             <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider border flex items-center gap-1 ${colors.bg}`}>
               <span className="w-1 h-1 rounded-full bg-current animate-pulse"></span>
-              {item.rarity}
+              {item.saleFormat}
             </span>
           )}
         </div>
 
         {/* Item Image with hover expansion */}
-        <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-white/5 border border-white/5 mb-3 flex items-center justify-center group/carousel">
+        <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800 mb-3 flex items-center justify-center group/carousel">
           {(item.imageUrls && item.imageUrls.length > 0) || item.imageUrl ? (
             <>
               <img
@@ -218,19 +178,19 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                 <>
                   <button
                     onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => prev === 0 ? item.imageUrls!.length - 1 : prev - 1); }}
-                    className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                    className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-zinc-900 text-zinc-100 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity"
                   >
                     &lsaquo;
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => prev === item.imageUrls!.length - 1 ? 0 : prev + 1); }}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-zinc-900 text-zinc-100 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity"
                   >
                     &rsaquo;
                   </button>
                   <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
                     {item.imageUrls.map((_, i) => (
-                      <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === currentImageIndex ? 'bg-white' : 'bg-white/40'}`} />
+                      <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === currentImageIndex ? 'bg-zinc-900' : 'bg-zinc-900'}`} />
                     ))}
                   </div>
                 </>
@@ -238,42 +198,42 @@ export const ItemCard: React.FC<ItemCardProps> = ({
             </>
           ) : (
             <div className="absolute inset-0 bg-gradient-to-tr from-zinc-950 to-zinc-900 flex flex-col items-center justify-center p-3">
-              <div className="w-10 h-10 rounded-full bg-zinc-800/70 flex items-center justify-center border border-zinc-700/50 mb-2 text-zinc-400 group-hover:border-zinc-600 transition-colors">
+              <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-700/50 mb-2 text-zinc-500 group-hover:border-zinc-600 transition-colors">
                 <Package className="w-5 h-5" />
               </div>
-              <span className="text-[11px] text-zinc-400 font-medium">AOT Revolution</span>
+              <span className="text-[11px] text-zinc-500 font-medium">AOT Revolution</span>
             </div>
           )}
 
           {/* Absolute overlay price tag */}
-          <div className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/5/80 flex items-center gap-1">
+          <div className="absolute bottom-2 right-2 bg-zinc-900  px-2.5 py-1 rounded-lg border border-zinc-800/80 flex items-center gap-1">
             <Coins className="w-3 h-3 text-yellow-500" />
-            <span className="font-mono text-xs font-bold text-white">฿{item.price.toLocaleString()}</span>
+            <span className="font-mono text-xs font-bold text-zinc-100">฿{item.price.toLocaleString()}</span>
           </div>
 
           {/* Stock Availability indicator */}
-          <div className="absolute top-2 left-2 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5/60 flex items-center gap-1">
+          <div className="absolute top-2 left-2 bg-zinc-900  px-2 py-0.5 rounded-md border border-zinc-800/60 flex items-center gap-1">
             <span className={`w-1.5 h-1.5 rounded-full ${status.color.split(' ')[0]}`} />
-            <span className="text-[9px] tracking-wide font-medium text-zinc-300">{status.label}</span>
+            <span className="text-[9px] tracking-wide font-medium text-zinc-400">{status.label}</span>
           </div>
 
           {/* Popular Tag */}
           {item.isPopular && (
-            <div className="absolute top-2 right-2 bg-rose-500/90 text-white font-bold backdrop-blur-md px-2 py-0.5 rounded-md border border-rose-450/40 flex items-center gap-1 shadow-md shadow-rose-500/20">
-              <Flame className="w-3 h-3 fill-current text-white animate-pulse" />
+            <div className="absolute top-2 right-2 bg-rose-500/90 text-zinc-100 font-bold  px-2 py-0.5 rounded-md border border-rose-450/40 flex items-center gap-1 shadow-md shadow-rose-500/20">
+              <Flame className="w-3 h-3 fill-current text-zinc-100 animate-pulse" />
               <span className="text-[9px] tracking-wide">ยอดนิยม</span>
             </div>
           )}
         </div>
 
         {/* Typography */}
-        <h3 className="font-display text-[15px] font-bold tracking-tight text-white tracking-tight mb-1 group-hover:text-amber-400 transition-colors flex items-center gap-1">
+        <h3 className="font-display text-[15px] font-bold tracking-tight text-zinc-100 tracking-tight mb-1 group-hover:text-amber-400 transition-colors flex items-center gap-1">
           {item.isPinned && <Pin className="w-3 h-3 text-amber-400 fill-current flex-shrink-0 animate-bounce" />}
           <span className="truncate">{item.name}</span>
         </h3>
 
         {/* Description */}
-        <p className="text-[11px] text-zinc-400 line-clamp-2 min-h-[1.75rem] leading-relaxed mb-3 font-display tracking-tight">
+        <p className="text-[11px] text-zinc-500 line-clamp-2 min-h-[1.75rem] leading-relaxed mb-3 font-display tracking-tight">
           {item.description || 'ไม่มีคำอธิบายเพิ่มเติมสำหรับไอเทมนี้'}
         </p>
 
@@ -286,20 +246,20 @@ export const ItemCard: React.FC<ItemCardProps> = ({
           if (hasPieces) {
             const pUnit = item.piecesPerUnit as number;
             return (
-              <div className="space-y-2 glass-panel backdrop-blur-sm p-2.5 rounded-2xl border border-white/5 text-[11px] font-display tracking-tight">
+              <div className="space-y-2 bg-zinc-900 shadow-sm border border-zinc-800  p-2.5 rounded-2xl border border-zinc-800 text-[11px] font-display tracking-tight">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-zinc-400">
-                    <Package className="w-3.5 h-3.5 text-zinc-400" />
+                  <div className="flex items-center gap-1.5 text-zinc-500">
+                    <Package className="w-3.5 h-3.5 text-zinc-500" />
                     <span>สต๊อกคลังสินค้า:</span>
                   </div>
-                  <div className="text-right font-mono font-bold text-white">
+                  <div className="text-right font-mono font-bold text-zinc-100">
                     {item.quantity === 0 ? (
                       <span className="text-red-400 font-extrabold text-xs">หมดคลัง</span>
                     ) : item.initialQuantity && item.initialQuantity > item.quantity ? (
-                      <span className="text-zinc-300">
+                      <span className="text-zinc-400">
                         <span className="text-emerald-450 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">{item.quantity}</span>
-                        <span className="text-zinc-400 font-normal mx-0.5">/</span>
-                        <span className="text-zinc-400">{item.initialQuantity}</span> ชุด
+                        <span className="text-zinc-500 font-normal mx-0.5">/</span>
+                        <span className="text-zinc-500">{item.initialQuantity}</span> ชุด
                       </span>
                     ) : (
                       <span className="text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">{item.quantity} ชุด</span>
@@ -307,30 +267,30 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-white/5/45 pt-1.5 mt-1">
-                  <div className="flex items-center gap-1.5 text-zinc-400">
+                <div className="flex items-center justify-between border-t border-zinc-800/45 pt-1.5 mt-1">
+                  <div className="flex items-center gap-1.5 text-zinc-500">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     <span>จำนวนของที่จะได้:</span>
                   </div>
                   <div className="text-right font-mono font-extrabold text-amber-400 text-xs">
-                    {pUnit} <span className="text-[9px] font-normal text-zinc-400">ชิ้นต่อชุด</span>
+                    {pUnit} <span className="text-[9px] font-normal text-zinc-500">ชิ้นต่อชุด</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-white/5/45 pt-1.5 mt-1 bg-transparent/20 -mx-1 px-1 rounded-md">
-                  <div className="flex items-center gap-1.5 text-zinc-400">
+                <div className="flex items-center justify-between border-t border-zinc-800/45 pt-1.5 mt-1 bg-transparent/20 -mx-1 px-1 rounded-md">
+                  <div className="flex items-center gap-1.5 text-zinc-500">
                     <Coins className="w-3.5 h-3.5 text-emerald-500" />
                     <span>รวมของทั้งหมดมี:</span>
                   </div>
-                  <div className="text-right font-mono font-extrabold text-zinc-200">
-                    <span className="text-white text-xs font-black">{item.quantity * pUnit}</span> ชิ้น
+                  <div className="text-right font-mono font-extrabold text-zinc-300">
+                    <span className="text-zinc-100 text-xs font-black">{item.quantity * pUnit}</span> ชิ้น
                   </div>
                 </div>
 
                 {/* Progress bar visual */}
                 {initQty > 0 && (
-                  <div className="space-y-1 pt-1.5 border-t border-white/5/45">
-                    <div className="w-full bg-transparent h-1.5 rounded-full overflow-hidden p-0.5 flex items-center border border-white/5/30">
+                  <div className="space-y-1 pt-1.5 border-t border-zinc-800/45">
+                    <div className="w-full bg-transparent h-1.5 rounded-full overflow-hidden p-0.5 flex items-center border border-zinc-800/30">
                       <div 
                         className={`h-0.5 rounded-full transition-all duration-500 ${
                           item.quantity === 0
@@ -342,9 +302,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[8px] text-zinc-400 font-medium leading-none">
+                    <div className="flex justify-between text-[8px] text-zinc-500 font-medium leading-none">
                       <span>สถานะคลังสินค้า</span>
-                      <span className="font-mono font-bold text-zinc-400">{percentage.toFixed(0)}%</span>
+                      <span className="font-mono font-bold text-zinc-500">{percentage.toFixed(0)}%</span>
                     </div>
                   </div>
                 )}
@@ -353,20 +313,20 @@ export const ItemCard: React.FC<ItemCardProps> = ({
           }
 
           return (
-            <div className="space-y-2 glass-panel backdrop-blur-sm p-2.5 rounded-2xl border border-white/5 text-[11px] font-display tracking-tight">
+            <div className="space-y-2 bg-zinc-900 shadow-sm border border-zinc-800  p-2.5 rounded-2xl border border-zinc-800 text-[11px] font-display tracking-tight">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-zinc-400">
-                  <Package className="w-3.5 h-3.5 text-zinc-400" />
+                <div className="flex items-center gap-1.5 text-zinc-500">
+                  <Package className="w-3.5 h-3.5 text-zinc-500" />
                   <span>สต๊อกคงเหลือ:</span>
                 </div>
-                <div className="text-right font-mono font-bold text-white">
+                <div className="text-right font-mono font-bold text-zinc-100">
                   {item.quantity === 0 ? (
                     <span className="text-red-400 font-extrabold">หมดเกลี้ยง</span>
                   ) : item.initialQuantity && item.initialQuantity > item.quantity ? (
-                    <span className="text-zinc-300">
+                    <span className="text-zinc-400">
                       <span className="text-emerald-400 font-bold">{item.quantity}</span>
-                      <span className="text-zinc-400 font-normal mx-0.5">/</span>
-                      <span className="text-zinc-400">{item.initialQuantity}</span> ชิ้น
+                      <span className="text-zinc-500 font-normal mx-0.5">/</span>
+                      <span className="text-zinc-500">{item.initialQuantity}</span> ชิ้น
                     </span>
                   ) : (
                     <span className="text-emerald-400 font-bold">{item.quantity} ชิ้น</span>
@@ -377,7 +337,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               {/* Progress bar visual */}
               {initQty > 0 && (
                 <div className="space-y-1 pt-0.5">
-                  <div className="w-full bg-transparent h-1.5 rounded-full overflow-hidden p-0.5 flex items-center border border-white/5/30">
+                  <div className="w-full bg-transparent h-1.5 rounded-full overflow-hidden p-0.5 flex items-center border border-zinc-800/30">
                     <div 
                       className={`h-0.5 rounded-full transition-all duration-500 ${
                         item.quantity === 0
@@ -389,9 +349,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-[8px] text-zinc-400 font-medium">
+                  <div className="flex justify-between text-[8px] text-zinc-500 font-medium">
                     <span>สถานะคลังสินค้า</span>
-                    <span className="font-mono font-bold text-zinc-400">{percentage.toFixed(0)}%</span>
+                    <span className="font-mono font-bold text-zinc-500">{percentage.toFixed(0)}%</span>
                   </div>
                 </div>
               )}
@@ -401,30 +361,30 @@ export const ItemCard: React.FC<ItemCardProps> = ({
       </div>
 
       {/* Bottom Action Section */}
-      <div className="p-3 sm:p-4 pt-0 bg-gradient-to-t from-zinc-950/90 to-transparent">
+      <div className="p-3 sm:p-4 pt-0 bg-zinc-900">
         {/* Admin actions or regular users Inquiry action */}
         {isAdmin ? (
-          <div className="mt-1 border-t border-white/5 pt-3 flex flex-col gap-2.5">
+          <div className="mt-1 border-t border-zinc-800 pt-3 flex flex-col gap-2.5">
             {/* Quick stock adjustment controls */}
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">สต๊อก:</span>
-              <div className="flex items-center gap-1 glass-panel-light rounded-lg p-0.5">
+              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">สต๊อก:</span>
+              <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-800 rounded-lg p-0.5">
                 <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => onQuickQuantityChange(item.id, -1)}
                   disabled={item.quantity <= 0}
-                  className="w-6 h-6 flex items-center justify-center rounded text-zinc-450 hover:text-white hover:bg-zinc-800 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-xs font-bold font-mono cursor-pointer"
+                  className="w-6 h-6 flex items-center justify-center rounded text-zinc-450 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-xs font-bold font-mono cursor-pointer"
                   id={`btn-add-dec-${item.id}`}
                 >
                   -
                 </motion.button>
-                <span className="w-6 text-center font-mono font-bold text-xs text-white">
+                <span className="w-6 text-center font-mono font-bold text-xs text-zinc-100">
                   {item.quantity}
                 </span>
                 <motion.button whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => onQuickQuantityChange(item.id, 1)}
-                  className="w-6 h-6 flex items-center justify-center rounded text-zinc-455 hover:text-white hover:bg-zinc-800 transition-colors text-xs font-bold font-mono cursor-pointer"
+                  className="w-6 h-6 flex items-center justify-center rounded text-zinc-455 hover:text-zinc-100 hover:bg-zinc-800 transition-colors text-xs font-bold font-mono cursor-pointer"
                   id={`btn-add-inc-${item.id}`}
                 >
                   +
@@ -437,7 +397,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               <motion.button whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => onEdit(item)}
-                className="py-1 px-2 rounded-lg border border-zinc-700 hover:border-zinc-500 bg-zinc-800/40 text-zinc-300 hover:text-white hover:bg-zinc-805 text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                className="py-1 px-2 rounded-lg border border-zinc-700 hover:border-zinc-500 bg-zinc-900 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-805 text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
                 id={`btn-admin-edit-${item.id}`}
               >
                 <Edit2 className="w-3 h-3" />
@@ -464,35 +424,24 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               disabled={item.quantity === 0}
               className={`w-full py-2 px-3 rounded-2xl font-bold text-[11px] transition-all flex items-center justify-center gap-1.5 border ${
                 item.quantity === 0
-                  ? 'glass-panel border-zinc-850 text-zinc-650 cursor-not-allowed'
+                  ? 'bg-zinc-900 shadow-sm border border-zinc-800 border-zinc-700 text-zinc-400 cursor-not-allowed'
                   : onBuy 
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/20 cursor-pointer active:scale-[0.98]'
-                    : 'bg-white hover:bg-zinc-100 text-black border-white shadow-md cursor-pointer active:scale-[0.98]'
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-zinc-100 border-emerald-500 shadow-md shadow-emerald-500/20 cursor-pointer active:scale-[0.98]'
+                    : 'bg-zinc-900 hover:bg-zinc-100 text-black border-white shadow-md cursor-pointer active:scale-[0.98]'
               }`}
               id={`btn-buy-${item.id}`}
             >
               <ShoppingBag className="w-3 h-3" />
               <span>{item.quantity === 0 ? 'สินค้าหมดคลัง' : (item.gachaPool && item.gachaPool.length > 0 && onBuy ? 'สั่งซื้อกล่องสุ่ม' : (onBuy ? 'ซื้อด้วยเครดิต / ระบุจำนวน' : 'สนใจซื้อ / สอบถามสต๊อก'))}</span>
             </motion.button>
-            {onShareToAI && (
-              <motion.button whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={() => onShareToAI(item)}
-                className="w-full py-1.5 px-3 rounded-2xl font-bold text-[11px] transition-all flex items-center justify-center gap-1.5 border border-purple-500/20 bg-purple-950/20 hover:bg-purple-900/30 text-purple-300 hover:text-purple-250 cursor-pointer active:scale-[0.98]"
-                id={`btn-share-ai-${item.id}`}
-              >
-                <Sparkles className="w-3 h-3 text-purple-400 fill-current animate-pulse" />
-                <span>คุยกับ AI เกี่ยวกับชิ้นนี้ 🔮</span>
-              </motion.button>
-            )}
           </div>
         )}
 
         {/* Timestamp footer in monospace */}
-        <div className="mt-2.5 flex items-center justify-between text-[9px] text-zinc-600 border-t border-white/5 pt-2 font-mono">
+        <div className="mt-2.5 flex items-center justify-between text-[9px] text-zinc-600 border-t border-zinc-800 pt-2 font-mono">
           <span className="flex items-center gap-1">
-            <Clock className="w-2.5 h-2.5 text-zinc-750" />
-            <span className="text-zinc-400 font-display tracking-tight" title={formattedDate}>{relativeTime}</span>
+            <Clock className="w-2.5 h-2.5 text-zinc-300" />
+            <span className="text-zinc-500 font-display tracking-tight" title={formattedDate}>{relativeTime}</span>
           </span>
           <span className="text-zinc-700">ID: {item.id.slice(0, 6)}</span>
         </div>
